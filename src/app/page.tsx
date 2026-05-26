@@ -1,102 +1,204 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  Activity,
+  Wallet,
+  Brain,
+  ArrowRight,
+  Moon,
+  BarChart3,
+} from "lucide-react";
+
+export default function HomePage() {
   return (
-    <main className="text-gray-900">
+    <main className="min-h-screen bg-[#020617] text-white overflow-hidden">
+      {/* Glow */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-20 left-20 h-72 w-72 rounded-full bg-teal-500/20 blur-[120px]" />
+        <div className="absolute bottom-20 right-20 h-72 w-72 rounded-full bg-purple-500/20 blur-[120px]" />
+      </div>
+
       {/* Navbar */}
-      <header className="fixed w-full bg-white/80 backdrop-blur-md shadow-sm z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
-          <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500">
-            Wellfilab
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <h1 className="text-2xl font-bold">
+            WellFi<span className="text-teal-400">Lab</span>
           </h1>
-          <nav className="space-x-6 font-medium text-gray-700">
-            <Link href="/">Home</Link>
-            <Link href="/tools">Tools</Link>
-            <Link href="/blog">Blog</Link>
-            <Link href="/about">About</Link>
+
+          <nav className="hidden gap-8 md:flex text-slate-300">
+            <a href="#">Features</a>
+            <a href="#">Dashboard</a>
+            <a href="#">AI Coach</a>
+            <Link
+              href="https://healthwealthtools.com"
+              target="_blank"
+            >
+              Tools
+            </Link>
           </nav>
+
+          <button className="rounded-full bg-teal-500 px-5 py-2 text-black font-semibold">
+            Get Started
+          </button>
         </div>
       </header>
 
-      {/* Hero Section with subtle image background */}
-      <section
-        className="h-screen flex flex-col justify-center items-center text-center px-6 text-white relative"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1600&q=80')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/50"></div>
-        <div className="relative z-10">
-          <h2 className="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight">
-            Balance Your Health & Wealth
-          </h2>
-          <p className="text-lg md:text-xl max-w-2xl mb-8 opacity-90">
-            Smart calculators and insights to help you plan better, live healthier, and grow wealthier.
-          </p>
-          <Link href="/tools">
-            <button className="bg-white text-blue-600 px-8 py-3 rounded-full font-semibold shadow-lg hover:scale-105 transition">
-              Explore Tools
-            </button>
-          </Link>
-        </div>
-      </section>
+      {/* Hero */}
+      <section className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 px-6 py-24 md:grid-cols-2">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="mb-6 inline-flex rounded-full border border-teal-500/20 bg-teal-500/10 px-4 py-2 text-sm text-teal-300">
+            Life Optimization Platform
+          </div>
 
-      {/* Tools Section */}
-      <section className="py-24 px-6 max-w-7xl mx-auto grid md:grid-cols-3 gap-10 bg-gray-50">
-        {[
-          { title: "BMI Calculator", desc: "Track your body mass index instantly.", link: "/tools/bmi" },
-          { title: "SIP Calculator", desc: "Plan your investments with ease.", link: "/tools/sip" },
-          { title: "EMI Calculator", desc: "Calculate loan repayments quickly.", link: "/tools/emi" },
-        ].map((item) => (
-          <div
-            key={item.title}
-            className="bg-white rounded-xl shadow-md p-10 hover:shadow-xl transition transform hover:-translate-y-1"
-          >
-            <h3 className="text-2xl font-bold mb-3 text-blue-600">{item.title}</h3>
-            <p className="text-gray-600 mb-6">{item.desc}</p>
-            <Link href={item.link}>
-              <button className="bg-gradient-to-r from-blue-600 to-green-500 text-white px-5 py-2 rounded-full font-medium hover:opacity-90">
-                Try Now
-              </button>
+          <h1 className="text-6xl font-black leading-tight">
+            The Operating System
+            <br />
+            for Better{" "}
+            <span className="bg-gradient-to-r from-teal-400 to-purple-400 bg-clip-text text-transparent">
+              Health & Wealth
+            </span>
+          </h1>
+
+          <p className="mt-6 max-w-xl text-lg text-slate-400">
+            Track wellness, improve productivity, and build smarter
+            financial habits with AI-powered insights.
+          </p>
+
+          <div className="mt-10 flex flex-wrap gap-4">
+            <button className="rounded-full bg-teal-500 px-7 py-4 font-semibold text-black">
+              Start Free
+            </button>
+
+            <Link
+              href="https://healthwealthtools.com"
+              target="_blank"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-7 py-4"
+            >
+              Explore Tools
+              <ArrowRight size={18} />
             </Link>
           </div>
-        ))}
+        </motion.div>
+
+        {/* Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <Card
+              icon={<Activity />}
+              title="Health Score"
+              value="84"
+            />
+
+            <Card
+              icon={<Wallet />}
+              title="Wealth Score"
+              value="76"
+            />
+
+            <Card
+              icon={<Brain />}
+              title="Focus"
+              value="91%"
+            />
+
+            <Card
+              icon={<Moon />}
+              title="Recovery"
+              value="89%"
+            />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-slate-400">
+                Performance Analytics
+              </p>
+
+              <BarChart3 className="text-teal-400" />
+            </div>
+
+            <div className="flex h-40 items-end gap-3">
+              {[30, 50, 70, 60, 90, 80, 100].map((h, i) => (
+                <div
+                  key={i}
+                  style={{ height: `${h}%` }}
+                  className="w-full rounded-t-xl bg-gradient-to-t from-teal-500 to-purple-500"
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
       </section>
 
-      {/* About Section */}
-      <section className="py-24 px-6 text-center bg-gray-100">
-        <h2 className="text-3xl font-extrabold mb-6">About Wellfilab</h2>
-        <p className="max-w-3xl mx-auto text-gray-700 leading-relaxed">
-          Wellfilab helps you make smarter decisions for your health and wealth. 
-          Our interactive tools simplify complex planning so you can focus on living better.
-        </p>
-      </section>
+      {/* Tool Ecosystem */}
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <div className="mb-16 text-center">
+          <h2 className="text-5xl font-bold">
+            Explore Health & Wealth Tools
+          </h2>
 
-      {/* CTA Section */}
-      <section className="py-24 text-center bg-gradient-to-r from-teal-400 to-green-500 text-white">
-        <h2 className="text-3xl font-extrabold mb-6">Ready to Plan Smarter?</h2>
-        <p className="max-w-xl mx-auto mb-8 opacity-90">
-          Join thousands of users who trust Wellfilab for their health and wealth planning.
-        </p>
-        <Link href="/signup">
-          <button className="bg-white text-green-600 px-8 py-3 rounded-full font-semibold shadow-lg hover:scale-105 transition">
-            Get Started
-          </button>
-        </Link>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-8 text-center bg-gray-900 text-gray-300">
-        <p>© {new Date().getFullYear()} Wellfilab. All rights reserved.</p>
-        <div className="mt-4 space-x-4">
-          <Link href="/privacy">Privacy Policy</Link>
-          <Link href="/terms">Terms</Link>
-          <Link href="/contact">Contact</Link>
+          <p className="mt-4 text-slate-400">
+            Use free calculators and assessments from our tools ecosystem.
+          </p>
         </div>
-      </footer>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {[
+            "Sleep Calculator",
+            "Savings Calculator",
+            "Burnout Analyzer",
+            "Hydration Calculator",
+            "Investment Planner",
+            "Focus Tracker",
+          ].map((tool) => (
+            <Link
+              key={tool}
+              href="https://healthwealthtools.com"
+              target="_blank"
+              className="rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-2"
+            >
+              <div className="mb-5 inline-flex rounded-2xl bg-teal-500/10 p-4 text-teal-400">
+                <Activity />
+              </div>
+
+              <h3 className="text-2xl font-semibold">{tool}</h3>
+
+              <p className="mt-3 text-slate-400">
+                Open free tool →
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
+  );
+}
+
+function Card({
+  icon,
+  title,
+  value,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+      <div className="mb-4 text-teal-400">{icon}</div>
+
+      <p className="text-slate-400">{title}</p>
+
+      <h3 className="text-3xl font-bold">{value}</h3>
+    </div>
   );
 }
