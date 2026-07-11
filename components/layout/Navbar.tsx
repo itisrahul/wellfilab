@@ -31,7 +31,7 @@ const Logo = memo(function Logo() {
       </svg>
       <div className="leading-none">
         <span className="block font-bold text-[15px] tracking-tight text-gray-900 dark:text-white">WellFiLab</span>
-        <span className="block text-[10px] text-gray-400 dark:text-gray-500 tracking-widest uppercase mt-0.5">Measure What Matters.</span>
+        <span className="block text-[10px] text-gray-500 dark:text-gray-400 tracking-widest uppercase mt-0.5">Measure What Matters.</span>
       </div>
     </Link>
   );
