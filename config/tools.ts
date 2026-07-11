@@ -1411,8 +1411,16 @@ export const CALCULATORS: Calculator[] = [
 
 export const getBySlug     = (slug: string) => CALCULATORS.find(c => c.slug === slug) ?? null;
 export const getAllSlugs   = () => CALCULATORS.map(c => ({ category: c.category, slug: c.slug }));
-export const getRelated    = (slug: string, cat: Category) =>
-  CALCULATORS.filter(c => c.slug !== slug && c.category === cat).slice(0, 8);
+export const getRelated    = (slug: string, cat: Category) => {
+  const current    = CALCULATORS.find(c => c.slug === slug);
+  const candidates = CALCULATORS.filter(c => c.slug !== slug && c.category === cat);
+  if (!current) return candidates.slice(0, 8);
+  return candidates
+    .map(c => ({ calc: c, score: c.tags.filter(t => current.tags.includes(t)).length }))
+    .sort((a, b) => b.score - a.score)
+    .map(s => s.calc)
+    .slice(0, 8);
+};
 export const getAll        = () => CALCULATORS;
 export const getByCategory = (cat: Category) => CALCULATORS.filter(c => c.category === cat);
 export const getPopular    = () => CALCULATORS.filter(c => c.popular);

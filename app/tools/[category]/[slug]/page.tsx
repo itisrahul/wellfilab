@@ -6,6 +6,7 @@ import { ToolRenderer }   from '@/components/tools/ToolRenderer';
 import { ToolSEOContent } from '@/components/tools/ToolSEOContent';
 import { PairWith }       from '@/components/tools/PairWith';
 import { ExploreTools }   from '@/components/tools/ExploreTools';
+import { EmbedButton }    from '@/components/tools/EmbedButton';
 import { CalcHistory }    from '@/components/ui/CalcHistory';
 import { StructuredData, BreadcrumbSchema } from '@/components/ui/StructuredData';
 import { SITE_NAME, SITE_URL } from '@/config/site';
@@ -80,9 +81,33 @@ export default function ToolPage({ params }: { params: { category: string; slug:
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden mb-4">
           <ToolRenderer slug={params.slug} />
         </div>
+
+        <div className="flex justify-end mb-6">
+          <EmbedButton url={pageUrl} title={calc.title} />
+        </div>
+
+        {related.length > 0 && (
+          <section className="mb-8">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">You might also like</p>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {related.slice(0, 3).map(t => (
+                <Link key={t.slug} href={`/tools/${t.category}/${t.slug}`}
+                  className={`flex items-start gap-3 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-sm transition-all group ${isHealth ? 'hover:border-teal-300 dark:hover:border-teal-700' : 'hover:border-amber-300 dark:hover:border-amber-700'}`}>
+                  <span className="text-2xl flex-shrink-0">{t.icon}</span>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold text-gray-800 dark:text-gray-200 truncate ${isHealth ? 'group-hover:text-teal-600 dark:group-hover:text-teal-400' : 'group-hover:text-amber-600 dark:group-hover:text-amber-400'} transition-colors`}>
+                      {t.short}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{t.desc}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2 space-y-8">

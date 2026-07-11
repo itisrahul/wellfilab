@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { CALCULATORS, getByCategory } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { PostCard } from '@/components/ui/PostCard';
+import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -255,6 +256,11 @@ export default function HomePage() {
             {latest.map(p => <PostCard key={p.slug} post={p} />)}
           </div>
         </section>
+
+        {/* ══════════════════════════════════════════════
+            NEWSLETTER
+        ══════════════════════════════════════════════ */}
+        <NewsletterSignup source="homepage" />
 
         {/* ══════════════════════════════════════════════
             WHY

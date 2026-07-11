@@ -5,6 +5,7 @@ import { getPostBySlug, getRelatedPosts, ALL_POSTS } from '@/lib/posts';
 import { ArticleBody }  from '@/components/ui/ArticleBody';
 import { PlanUpsell }   from '@/components/ui/PlanUpsell';
 import { RelatedPosts } from '@/components/ui/RelatedPosts';
+import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 import { ArticleShare } from '@/components/ui/ArticleShare';
 
@@ -152,6 +153,11 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
           </div>
         </section>
       )}
+
+      {/* Newsletter signup — bottom of every guide article */}
+      <section className="max-w-6xl mx-auto px-4 pb-16">
+        <NewsletterSignup source="guide-article" />
+      </section>
 
     </div>
   );
