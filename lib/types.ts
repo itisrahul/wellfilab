@@ -61,22 +61,3 @@ export interface Post {
   body: Section[];
   hwtCalc?: { label: string; url: string };
 }
-
-// ─── Plan ────────────────────────────────────────────────────────────────────
-export interface Plan {
-  id: string;
-  enabled: boolean;
-  name: string;
-  tagline: string;
-  icon: string;
-  gradient: string;
-  borderColor: string;
-  badgeColor: string;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  stripePriceIds: { monthly: string; yearly: string };
-  features: string[];
-  deliverables: string[];
-  highlight?: string;
-  category: 'health' | 'finance' | 'bundle';
-}

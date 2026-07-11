@@ -61,8 +61,8 @@ export default function SuccessPage({
         {isDemo && (
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
             <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">
-              🔧 Development mode — In production, Stripe handles real payments.
-              Configure your STRIPE_SECRET_KEY in .env.local to enable real checkout.
+              🔧 Development mode — In production, Razorpay handles real payments.
+              Configure your RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env.local to enable real checkout.
             </p>
           </div>
         )}
