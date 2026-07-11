@@ -18,6 +18,7 @@ import index_fund_vs_active_india from './index-fund-vs-active-india';
 import inflation_impact_savings from './inflation-impact-savings';
 import net_worth_guide from './net-worth-guide';
 import retirement_planning_india from './retirement-planning-india';
+import sip_complete_guide from './sip-complete-guide';
 import sip_vs_lump_sum from './sip-vs-lump-sum';
 import tax_saving_guide_india from './tax-saving-guide-india';
 
@@ -32,6 +33,7 @@ const posts: Post[] = [
   inflation_impact_savings,
   net_worth_guide,
   retirement_planning_india,
+  sip_complete_guide,
   sip_vs_lump_sum,
   tax_saving_guide_india,
 ];
