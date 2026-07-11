@@ -109,12 +109,64 @@ export function calcRetirement(age: number, retAge: number, monthlyExpense: numb
   return { corpus, monthly, yrs, futureExpense, fireNum: Math.round(monthlyExpense * 12 * 25), safe4pct: Math.round(corpus * 0.04 / 12) };
 }
 
+/**
+ * Given a target corpus and a horizon, finds the STARTING monthly contribution
+ * that — growing by stepUpPct once per year — accumulates to exactly `corpus`
+ * by year `yrs`. No closed form exists for a stepped (non-continuous) growing
+ * annuity, so this bisects on the simulated future value (60 iterations is
+ * far more precision than the rounded rupee output needs).
+ */
+export function calcRetirementStepUp(corpus: number, yrs: number, roi: number, stepUpPct: number) {
+  const r = roi / 100 / 12;
+  const fvFor = (startMonthly: number) => {
+    let bal = 0, mc = startMonthly;
+    for (let y = 1; y <= yrs; y++) {
+      for (let m = 0; m < 12; m++) bal = bal * (1 + r) + mc;
+      mc *= 1 + stepUpPct / 100;
+    }
+    return bal;
+  };
+  let lo = 0, hi = Math.max(1, corpus);
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (fvFor(mid) < corpus) lo = mid; else hi = mid;
+  }
+  const startMonthly = Math.round(hi);
+
+  let bal = 0, invested = 0, mc = startMonthly;
+  const rows: { year: number; invested: number; value: number }[] = [];
+  for (let y = 1; y <= yrs; y++) {
+    for (let m = 0; m < 12; m++) bal = bal * (1 + r) + mc;
+    invested += mc * 12;
+    rows.push({ year: y, invested: Math.round(invested), value: Math.round(bal) });
+    mc *= 1 + stepUpPct / 100;
+  }
+  return { startMonthly, finalMonthly: Math.round(mc / (1 + stepUpPct / 100)), rows };
+}
+
 export function calcFIRE(annualExp: number, portfolio: number, monthlyInvest: number, roi: number) {
   const fireNum = Math.round(annualExp * 25);
   const r = roi / 100 / 12;
   let bal = portfolio, months = 0;
   while (bal < fireNum && months < 600) { bal = bal * (1 + r) + monthlyInvest; months++; }
   return { fireNum, months, years: Math.floor(months / 12), remMonths: months % 12, deficit: Math.max(0, fireNum - portfolio), leanFire: Math.round(annualExp * 0.7 * 25), fatFire: Math.round(annualExp * 1.5 * 25) };
+}
+
+/** Same as calcFIRE, but the monthly contribution grows by stepUpPct once per year — plus a year-by-year portfolio trajectory for the chart/table. */
+export function calcFIREStepUp(fireNum: number, portfolio: number, startMonthly: number, roi: number, stepUpPct: number) {
+  const r = roi / 100 / 12;
+  let bal = portfolio, invested = 0, mc = startMonthly, months = 0;
+  const rows: { year: number; invested: number; value: number }[] = [];
+  while (bal < fireNum && months < 600) {
+    bal = bal * (1 + r) + mc;
+    invested += mc;
+    months++;
+    if (months % 12 === 0) {
+      rows.push({ year: months / 12, invested: Math.round(invested), value: Math.round(bal) });
+      mc *= 1 + stepUpPct / 100;
+    }
+  }
+  return { months, years: Math.floor(months / 12), remMonths: months % 12, rows };
 }
 
 export function calcBudget(income: number) {
