@@ -1,6 +1,10 @@
+'use client';
 import { SignUp } from '@clerk/nextjs';
+import { useClerkAppearance } from '@/lib/clerkAppearance';
 
 export default function SignUpPage() {
+  const appearance = useClerkAppearance();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-12">
       <div className="w-full max-w-md flex flex-col items-center">
@@ -11,7 +15,7 @@ export default function SignUpPage() {
           </svg>
           <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white">WellFiLab</span>
         </div>
-        <SignUp fallbackRedirectUrl="/dashboard" />
+        <SignUp appearance={appearance} signInUrl="/sign-in" fallbackRedirectUrl="/dashboard" />
       </div>
     </div>
   );

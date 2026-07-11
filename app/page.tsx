@@ -53,12 +53,6 @@ export default function HomePage() {
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28 text-center">
 
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold uppercase tracking-widest mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-300 animate-pulse flex-shrink-0"/>
-            Free · No Signup · 100% Private
-          </div>
-
           {/* Headline */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
             Know Your Numbers.<br/>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs';
+import { useClerkAppearance } from '@/lib/clerkAppearance';
 import { CALCULATORS, getGroups, type Category } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 
@@ -205,6 +206,7 @@ const NAV = [
 export function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const clerkAppearance = useClerkAppearance();
   const [mounted,   setMounted]   = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [showSrch,  setShowSrch]  = useState(false);
@@ -306,11 +308,13 @@ export function Navbar() {
               </button>
             )}
 
-            {/* CTA / Auth */}
+            {/* Auth */}
             <SignedOut>
-              <Link href="/score"
-                className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors shadow-sm">
-                Get Score
+              <Link href="/sign-in" aria-label="Sign in"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-950/70 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
               </Link>
             </SignedOut>
             <SignedIn>
@@ -318,7 +322,7 @@ export function Navbar() {
                 className="hidden sm:inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 Dashboard
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton afterSignOutUrl="/" appearance={clerkAppearance} />
             </SignedIn>
 
             {/* Mobile hamburger */}
