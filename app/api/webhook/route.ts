@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getPlanAny } from '@/lib/plans';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const crypto = require('crypto');
 
@@ -40,6 +41,33 @@ function buildPaymentEmail({ email, planId, billing, amount, siteUrl }: {
 </body></html>`;
 }
 
+async function sendPaymentEmail({ email, planId, billing, amount }: {
+  email: string; planId: string; billing: string; amount: number;
+}) {
+  const apiKey  = process.env.RESEND_API_KEY;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wellfilab.com';
+
+  if (!apiKey) {
+    console.log('Payment email (no Resend key):', { email, planId, billing, amount });
+    return;
+  }
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from:    'WellFiLab <hello@wellfilab.com>',
+        to:      [email],
+        subject: "You're subscribed to WellFiLab 🎉",
+        html:    buildPaymentEmail({ email, planId, billing, amount, siteUrl }),
+      }),
+    });
+  } catch (err) {
+    // Swallow — a failed email must not cause Razorpay to retry the webhook.
+    console.error('Payment email send failed:', err);
+  }
+}
 
 /**
  * Razorpay webhook handler.
@@ -87,16 +115,27 @@ export async function POST(req: Request) {
         // TODO (after adding auth):
         // 1. Create/update user record in DB
         // 2. Set subscription status to active
-        // 3. Send welcome email via Resend
-        // 4. Trigger onboarding questionnaire email
+        // 3. Trigger onboarding questionnaire email
 
         break;
       }
 
       case 'subscription.activated': {
-        const sub   = payload.subscription?.entity;
-        const email = sub?.notes?.email;
+        const sub     = payload.subscription?.entity;
+        const email   = sub?.notes?.email;
+        const planId  = sub?.notes?.planId;
+        const billing = sub?.notes?.billing;
+        const plan    = getPlanAny(planId);
+        const amount  = plan ? (billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice) : 0;
+
         console.log(`✅ Subscription activated: ${sub?.id} | Email: ${email}`);
+
+        if (email && planId) {
+          await sendPaymentEmail({ email, planId, billing, amount });
+        } else {
+          console.error('subscription.activated missing notes — cannot send confirmation email', sub?.id);
+        }
+
         break;
       }
 
