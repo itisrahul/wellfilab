@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs';
 import { CALCULATORS, getGroups, type Category } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 
@@ -305,11 +306,20 @@ export function Navbar() {
               </button>
             )}
 
-            {/* CTA */}
-            <Link href="/score"
-              className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors shadow-sm">
-              Get Score
-            </Link>
+            {/* CTA / Auth */}
+            <SignedOut>
+              <Link href="/score"
+                className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors shadow-sm">
+                Get Score
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard"
+                className="hidden sm:inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                Dashboard
+              </Link>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
 
             {/* Mobile hamburger */}
             <button onClick={() => { setMobile(m=>!m); setShowSrch(false); setShowTools(false); }}

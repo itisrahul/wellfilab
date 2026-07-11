@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 import { ThemeProvider }    from '@/components/layout/ThemeProvider';
 import { CurrencyProvider } from '@/lib/useCurrency';
@@ -40,6 +41,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/favicon-512.png`,
   };
   return (
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: '#0d9488',
+          colorBackground: 'transparent',
+        },
+      }}
+    >
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
       <head>
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
@@ -88,5 +97,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       )}
     </html>
+    </ClerkProvider>
   );
 }
