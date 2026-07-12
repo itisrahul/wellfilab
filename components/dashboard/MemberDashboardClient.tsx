@@ -57,6 +57,69 @@ const LEVEL_LABEL: Record<WellFiScore['level'], string> = {
   quick: 'Quick self-rating', body: 'Body details added', full: 'Full picture',
 };
 
+type StepState = 'done' | 'current' | 'upcoming' | 'optional';
+interface JourneyStep { icon: string; label: string; sub: string; state: StepState; href?: string; }
+
+const STEP_STYLE: Record<StepState, { dot: string; text: string; line: string }> = {
+  done:     { dot: 'bg-teal-600 text-white',                                    text: 'text-gray-700 dark:text-gray-300', line: 'bg-teal-600' },
+  current:  { dot: 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-900/40', text: 'text-amber-700 dark:text-amber-400 font-bold', line: 'bg-gray-200 dark:bg-gray-700' },
+  upcoming: { dot: 'bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700', text: 'text-gray-400', line: 'bg-gray-200 dark:bg-gray-700' },
+  optional: { dot: 'bg-white dark:bg-gray-900 text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-700', text: 'text-gray-400', line: 'bg-gray-200 dark:bg-gray-700' },
+};
+
+function buildJourney(score: WellFiScore, subscription: StoredSubscription | null, onboarded: boolean): JourneyStep[] {
+  const steps: JourneyStep[] = [{ icon: '🎯', label: 'Score taken', sub: score.archetype.name, state: 'done' }];
+
+  if (!subscription || subscription.status === 'cancelled') {
+    steps.push({ icon: '📋', label: 'Get a plan', sub: subscription ? 'Resubscribe' : 'Optional', state: 'optional', href: '/plan' });
+  } else if (!onboarded) {
+    steps.push({ icon: '📝', label: 'Onboarding', sub: 'Do this next', state: 'current', href: `/plan/onboarding?plan=${subscription.planId}` });
+    steps.push({ icon: '📬', label: 'Plan arrives', sub: 'Within 48hrs', state: 'upcoming' });
+  } else {
+    steps.push({ icon: '📝', label: 'Onboarding', sub: 'Complete', state: 'done' });
+    const next = new Date(subscription.nextBillingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    steps.push({ icon: '📬', label: 'Plan delivered', sub: `Next: ${next}`, state: 'done' });
+  }
+
+  const daysSinceScore = score.date ? Math.floor((Date.now() - new Date(score.date).getTime()) / 86400000) : 0;
+  const checkInDue = daysSinceScore >= 7;
+  steps.push({
+    icon: '📊', label: '7-day check-in',
+    sub: checkInDue ? 'Due now' : `In ${Math.max(0, 7 - daysSinceScore)}d`,
+    state: checkInDue ? 'current' : 'upcoming',
+    href: checkInDue ? '/score' : undefined,
+  });
+
+  return steps;
+}
+
+function JourneyTracker({ score, subscription, onboarded }: { score: WellFiScore; subscription: StoredSubscription | null; onboarded: boolean }) {
+  const steps = buildJourney(score, subscription, onboarded);
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Your journey</p>
+      <div className="flex items-start">
+        {steps.map((s, i) => {
+          const style = STEP_STYLE[s.state];
+          const content = (
+            <div className="flex-1 flex flex-col items-center text-center min-w-0 px-1">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm mb-2 flex-shrink-0 ${style.dot}`}>{s.icon}</div>
+              <p className={`text-[11px] leading-tight ${style.text}`}>{s.label}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-full">{s.sub}</p>
+            </div>
+          );
+          return (
+            <div key={i} className="flex items-center flex-1 last:flex-none">
+              {s.href ? <Link href={s.href} className="flex-1 hover:opacity-80 transition-opacity">{content}</Link> : content}
+              {i < steps.length - 1 && <div className={`h-0.5 flex-1 -mt-6 ${style.line}`} />}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const firstName = userName.split(' ')[0];
@@ -155,11 +218,13 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
       ) : (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
+          {/* Your journey — where they are, what's next, why it matters */}
+          <JourneyTracker score={data.score} subscription={data.subscription} onboarded={data.onboarded} />
+
           {/* Member stats strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {[
               { label: 'Score depth',     value: LEVEL_LABEL[data.score.level] },
-              { label: 'Day streak',      value: `${data.score.streakDays} 🔥` },
               { label: 'Tools tried',     value: String(data.calcHistory.length) },
               { label: 'Member since',    value: memberSince || '—' },
             ].map(s => (

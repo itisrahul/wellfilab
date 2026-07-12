@@ -99,16 +99,20 @@ export async function clearSubscription(): Promise<void> {
 
 // ── Account sync (app/api/subscription — Clerk-backed, the real source of truth) ──
 
-/** Best-effort: writes to the signed-in user's account. No-ops silently if not signed in. */
+/** Best-effort: writes to the signed-in user's account. No-ops (but logs) if not signed in or the call fails. */
 export async function syncSubscriptionToAccount(sub: StoredSubscription): Promise<void> {
   try {
-    await fetch('/api/subscription', {
+    const res = await fetch('/api/subscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sub),
     });
-  } catch {
-    /* offline or not signed in — the local copy still stands */
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error('syncSubscriptionToAccount failed:', res.status, body);
+    }
+  } catch (err) {
+    console.error('syncSubscriptionToAccount network error:', err);
   }
 }
 
@@ -116,10 +120,11 @@ export async function syncSubscriptionToAccount(sub: StoredSubscription): Promis
 export async function getAccountSubscription(): Promise<StoredSubscription | null> {
   try {
     const res = await fetch('/api/subscription');
-    if (!res.ok) return null;
+    if (!res.ok) return null; // 401 (signed out) is expected here — not an error
     const data = await res.json();
     return data.subscription ?? null;
-  } catch {
+  } catch (err) {
+    console.error('getAccountSubscription network error:', err);
     return null;
   }
 }
