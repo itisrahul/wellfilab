@@ -67,10 +67,11 @@ export async function saveSubscription(sub: StoredSubscription): Promise<StoredS
  * can still show "Cancelled" with a resubscribe path instead of reverting to
  * the generic "no plan" empty state.
  */
-export async function cancelSubscription(): Promise<StoredSubscription | null> {
-  const current = await getSubscription();
-  if (!current) return null;
-
+export async function cancelSubscription(current: StoredSubscription): Promise<StoredSubscription> {
+  // `current` comes from the caller rather than a local re-read: the dashboard's
+  // authoritative copy may be the account (Clerk) version, which this browser's
+  // localStorage was never told about — re-reading local here would silently
+  // no-op the cancel for exactly the cross-device case this system exists for.
   if (current.subscriptionId) {
     try {
       await fetch('/api/cancel-subscription', {
@@ -85,6 +86,7 @@ export async function cancelSubscription(): Promise<StoredSubscription | null> {
 
   const updated: StoredSubscription = { ...current, status: 'cancelled' };
   writeJSON(SUBSCRIPTION_KEY, updated);
+  await syncSubscriptionToAccount(updated);
   return updated;
 }
 
@@ -93,4 +95,31 @@ export async function clearSubscription(): Promise<void> {
   try {
     window.localStorage.removeItem(SUBSCRIPTION_KEY);
   } catch { /* noop */ }
+}
+
+// ── Account sync (app/api/subscription — Clerk-backed, the real source of truth) ──
+
+/** Best-effort: writes to the signed-in user's account. No-ops silently if not signed in. */
+export async function syncSubscriptionToAccount(sub: StoredSubscription): Promise<void> {
+  try {
+    await fetch('/api/subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub),
+    });
+  } catch {
+    /* offline or not signed in — the local copy still stands */
+  }
+}
+
+/** Returns null both when signed out and when the account has no subscription. */
+export async function getAccountSubscription(): Promise<StoredSubscription | null> {
+  try {
+    const res = await fetch('/api/subscription');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.subscription ?? null;
+  } catch {
+    return null;
+  }
 }

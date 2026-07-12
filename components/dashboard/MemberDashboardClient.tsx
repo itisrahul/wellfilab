@@ -2,9 +2,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
+import { scoreColor, type WellFiScore, type Insight } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
-import { getSubscription, cancelSubscription, type StoredSubscription } from '@/lib/subscriptionStorage';
+import {
+  getSubscription, getAccountSubscription, syncSubscriptionToAccount, cancelSubscription,
+  type StoredSubscription,
+} from '@/lib/subscriptionStorage';
 import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
 import { AICoach } from './AICoach';
 import { PlanStatus } from './PlanStatus';
@@ -41,6 +44,17 @@ const DIMENSIONS: { key: 'body' | 'mind' | 'wealth' | 'life'; label: string; ico
   { key: 'life',   label: 'Life',   icon: '🌱', barColor: 'bg-green-500' },
 ];
 
+const INSIGHT_STYLE: Record<Insight['type'], string> = {
+  warning:     'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800',
+  opportunity: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800',
+  connection:  'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800',
+  strength:    'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800',
+};
+
+const LEVEL_LABEL: Record<WellFiScore['level'], string> = {
+  quick: 'Quick self-rating', body: 'Body details added', full: 'Full picture',
+};
+
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const firstName = userName.split(' ')[0];
@@ -48,18 +62,29 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   useEffect(() => {
     const hour = new Date().getHours();
-    Promise.all([getLatestScore(), getScoreHistory(), getSubscription()]).then(([score, history, subscription]) => {
-      setData({
-        score, history, subscription,
-        calcHistory:  getCalcHistory(),
-        greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
-        dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    Promise.all([getLatestScore(), getScoreHistory(), getAccountSubscription(), getSubscription()])
+      .then(async ([score, history, accountSub, localSub]) => {
+        // Account metadata (Clerk) is authoritative. If it's empty but this
+        // browser has a local record — e.g. checkout happened as a guest,
+        // then the same person signed in — link it to the account now so it
+        // survives future devices/browsers too, instead of staying stuck local.
+        let subscription = accountSub;
+        if (!subscription && localSub) {
+          await syncSubscriptionToAccount(localSub);
+          subscription = localSub;
+        }
+        setData({
+          score, history, subscription,
+          calcHistory:  getCalcHistory(),
+          greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
+          dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        });
       });
-    });
   }, []);
 
   const handleCancelSubscription = async () => {
-    const updated = await cancelSubscription();
+    if (!data?.subscription) return;
+    const updated = await cancelSubscription(data.subscription);
     setData(prev => prev ? { ...prev, subscription: updated } : prev);
   };
 
@@ -126,6 +151,21 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
       ) : (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
+          {/* Member stats strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Score depth',     value: LEVEL_LABEL[data.score.level] },
+              { label: 'Day streak',      value: `${data.score.streakDays} 🔥` },
+              { label: 'Tools tried',     value: String(data.calcHistory.length) },
+              { label: 'Member since',    value: memberSince || '—' },
+            ].map(s => (
+              <div key={s.label} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3">
+                <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{s.value}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
           {/* Score + archetype hero */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
             <div className="flex items-center gap-4 flex-wrap justify-between mb-6">
@@ -158,6 +198,63 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
               ))}
             </div>
           </div>
+
+          {/* What your numbers say */}
+          {data.score.insights.length > 0 && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">What your numbers say</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {data.score.insights.slice(0, 4).map((ins, i) => (
+                  <div key={i} className={`rounded-2xl border p-4 ${INSIGHT_STYLE[ins.type]}`}>
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-xl flex-shrink-0">{ins.emoji}</span>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white text-xs mb-1">{ins.headline}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{ins.detail}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Health cost + trajectories (full picture only) — or a nudge to unlock them */}
+          {data.score.level === 'full' && data.score.annualHealthCost != null ? (
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-1 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 p-5 text-white">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Your health is costing you</p>
+                <p className="text-3xl font-black">₹{data.score.annualHealthCost.toLocaleString('en-IN')}<span className="text-sm font-bold text-white/60">/yr</span></p>
+                {data.score.lifetimeHealthCost != null && (
+                  <p className="text-xs text-white/80 mt-2">₹{(data.score.lifetimeHealthCost/10000000).toFixed(1)} Cr over your career</p>
+                )}
+              </div>
+              {data.score.trajectories && (
+                <div className="sm:col-span-2 grid grid-cols-3 gap-2.5">
+                  {data.score.trajectories.map(t => (
+                    <div key={t.scenario} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-3.5">
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2 truncate">{t.label}</p>
+                      <p className="text-sm font-black text-gray-900 dark:text-white">₹{(t.netWorthAt60/10000000).toFixed(1)}Cr</p>
+                      <p className="text-[10px] text-gray-400">at 60</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link href="/score" className="group block bg-gray-950 dark:bg-gray-900 rounded-2xl p-5 hover:shadow-lg transition-all">
+              <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                <span className="text-3xl flex-shrink-0">🔓</span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white text-sm">Unlock your health cost in ₹ and life trajectories</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {data.score.level === 'quick' ? 'Add body and finance details' : 'Add finance details'} — 2 minutes, on the Score page.
+                  </p>
+                </div>
+                <span className="flex-shrink-0 text-xs font-bold text-teal-400 group-hover:translate-x-0.5 transition-transform">Continue →</span>
+              </div>
+            </Link>
+          )}
 
           {/* AI Coach */}
           <AICoach score={data.score} />

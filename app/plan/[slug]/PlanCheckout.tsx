@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import type { Plan } from '@/lib/plans';
-import { saveSubscription, type StoredSubscription } from '@/lib/subscriptionStorage';
+import { saveSubscription, syncSubscriptionToAccount, type StoredSubscription } from '@/lib/subscriptionStorage';
 
 declare global {
   interface Window {
@@ -15,6 +16,7 @@ interface Props { plan: Plan; }
 export function PlanCheckout({ plan }: Props) {
   const searchParams   = useSearchParams();
   const initialBilling = (searchParams.get('billing') ?? 'monthly') as 'monthly' | 'yearly';
+  const { isSignedIn, user } = useUser();
 
   const [billing,  setBilling]  = useState<'monthly' | 'yearly'>(initialBilling);
   const [email,    setEmail]    = useState('');
@@ -23,6 +25,17 @@ export function PlanCheckout({ plan }: Props) {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [rzpReady, setRzpReady] = useState(false);
+
+  // If signed in, checkout is tied to this account — prefill from Clerk so the
+  // subscription lands on the account the user is about to view /dashboard as,
+  // instead of depending on them retyping the exact same email.
+  useEffect(() => {
+    if (!isSignedIn || !user) return;
+    const primaryEmail = user.primaryEmailAddress?.emailAddress;
+    if (primaryEmail) setEmail(primaryEmail);
+    const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+    if (fullName) setName(fullName);
+  }, [isSignedIn, user]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -41,7 +54,7 @@ export function PlanCheckout({ plan }: Props) {
 
   // Every checkout starts a 7-day free trial (matches the button copy and
   // the success page) — "next billing" is when the trial converts.
-  const recordSubscription = (subscriptionId?: string) => {
+  const recordSubscription = async (subscriptionId?: string) => {
     const nextBillingDate = new Date();
     nextBillingDate.setDate(nextBillingDate.getDate() + 7);
     const sub: StoredSubscription = {
@@ -53,7 +66,11 @@ export function PlanCheckout({ plan }: Props) {
       weekNumber: 1,
       deliveries: [],
     };
-    return saveSubscription(sub);
+    const saved = await saveSubscription(sub);
+    // If signed in, this is what actually makes it show up on /dashboard —
+    // the local copy alone only survives in this browser.
+    if (isSignedIn) await syncSubscriptionToAccount(saved);
+    return saved;
   };
 
   const handleCheckout = async () => {
@@ -161,8 +178,17 @@ export function PlanCheckout({ plan }: Props) {
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Email</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors"/>
+            readOnly={isSignedIn} placeholder="you@example.com"
+            className={`w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors ${
+              isSignedIn ? 'bg-gray-50 dark:bg-gray-800/60 cursor-not-allowed' : 'bg-white dark:bg-gray-800'
+            }`}/>
+          {isSignedIn ? (
+            <p className="text-xs text-gray-400 mt-1.5">Locked to your signed-in account — this is what makes the subscription show up on your dashboard.</p>
+          ) : (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+              Not signed in — this subscription will only be saved on this device. <a href="/sign-in" className="underline font-semibold">Sign in first</a> so it shows on your dashboard automatically.
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Phone (optional — for UPI)</label>

@@ -1,7 +1,43 @@
 import { NextResponse } from 'next/server';
+import { clerkClient } from '@clerk/nextjs/server';
 import { getPlanAny } from '@/lib/plans';
+import type { StoredSubscription } from '@/lib/subscriptionStorage';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const crypto = require('crypto');
+
+/**
+ * Links a Razorpay event back to a WellFiLab account by email and updates
+ * their subscription metadata — the only path that reflects lifecycle
+ * events (renewals, failed payments, cancellations) that happen entirely on
+ * Razorpay's servers with no browser involved to sync them otherwise. A
+ * no-op if no account with that email exists yet (guest checkout, no
+ * account signed up under that address).
+ */
+async function syncSubscriptionForEmail(
+  email: string,
+  patch: Partial<StoredSubscription> & { status: StoredSubscription['status'] }
+): Promise<void> {
+  try {
+    const client = await clerkClient();
+    const { data: users } = await client.users.getUserList({ emailAddress: [email] });
+    const user = users[0];
+    if (!user) return;
+
+    const existing = (user.publicMetadata?.subscription as StoredSubscription | undefined) ?? null;
+    const merged: StoredSubscription = {
+      planId: existing?.planId ?? 'diet',
+      planName: existing?.planName ?? '',
+      nextBillingDate: existing?.nextBillingDate ?? new Date().toISOString(),
+      weekNumber: existing?.weekNumber ?? 1,
+      deliveries: existing?.deliveries ?? [],
+      ...existing,
+      ...patch,
+    };
+    await client.users.updateUserMetadata(user.id, { publicMetadata: { ...user.publicMetadata, subscription: merged } });
+  } catch (err) {
+    console.error('Clerk metadata sync failed:', err);
+  }
+}
 
 function buildPaymentEmail({ email, planId, billing, amount, siteUrl }: {
   email: string; planId: string; billing: string; amount: number; siteUrl: string;
@@ -112,10 +148,14 @@ export async function POST(req: Request) {
 
         console.log(`✅ Payment captured: ₹${amount} | Plan: ${planId} | Email: ${email} | Billing: ${billing}`);
 
-        // TODO (after adding auth):
-        // 1. Create/update user record in DB
-        // 2. Set subscription status to active
-        // 3. Trigger onboarding questionnaire email
+        if (email && planId) {
+          const plan = getPlanAny(planId);
+          await syncSubscriptionForEmail(email, {
+            status: 'active',
+            planId,
+            planName: plan?.name ?? planId,
+          });
+        }
 
         break;
       }
@@ -131,6 +171,12 @@ export async function POST(req: Request) {
         console.log(`✅ Subscription activated: ${sub?.id} | Email: ${email}`);
 
         if (email && planId) {
+          await syncSubscriptionForEmail(email, {
+            status: 'active',
+            planId,
+            planName: plan?.name ?? planId,
+            subscriptionId: sub?.id,
+          });
           await sendPaymentEmail({ email, planId, billing, amount });
         } else {
           console.error('subscription.activated missing notes — cannot send confirmation email', sub?.id);
@@ -143,7 +189,7 @@ export async function POST(req: Request) {
         const sub   = payload.subscription?.entity;
         const email = sub?.notes?.email;
         console.log(`❌ Subscription cancelled: ${sub?.id} | Email: ${email}`);
-        // TODO: Revoke dashboard access
+        if (email) await syncSubscriptionForEmail(email, { status: 'cancelled' });
         break;
       }
 
