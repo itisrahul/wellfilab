@@ -212,7 +212,12 @@ export function calculateQuickScore(
 ): WellFiScore {
   const healthBase  = inputs.healthFeeling  * 22;
   const financeBase = inputs.financeFeeling * 22;
-  const mindBase    = (5 - inputs.stressFeeling) * 25;
+  // stressFeeling is already "higher = better" (1=very stressed … 4=not at all
+  // stressed), same polarity as healthFeeling/financeFeeling — so it scales
+  // the same way. (Previously inverted via `(5 - stressFeeling)`, which meant
+  // answering "not at all stressed" produced a worse mind score than
+  // answering "very stressed".)
+  const mindBase    = inputs.stressFeeling * 25;
 
   const body    = Math.min(95, healthBase + 10);
   const wealth  = Math.min(95, financeBase + 10);

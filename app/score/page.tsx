@@ -656,11 +656,26 @@ function ShareCard({ score }: { score: WellFiScore }) {
 function NumberField({ label, value, onChange, min, max }: {
   label: string; value: number; onChange: (v: number) => void; min: number; max: number;
 }) {
+  // Local text buffer so the field doesn't snap to `min` on every keystroke
+  // (e.g. clearing "28" to type "16" would otherwise clamp to min mid-type).
+  // Clamping only happens on blur, once the user is done editing.
+  const [text, setText] = useState(String(value));
+  useEffect(() => { setText(String(value)); }, [value]);
+
+  const commit = () => {
+    const n = Number(text);
+    const clamped = Number.isFinite(n) && text.trim() !== '' ? Math.max(min, Math.min(max, n)) : value;
+    setText(String(clamped));
+    if (clamped !== value) onChange(clamped);
+  };
+
   return (
     <div>
       <label className="calc-label">{label}</label>
-      <input type="number" value={value} min={min} max={max}
-        onChange={e => onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
+      <input type="number" value={text} min={min} max={max}
+        onChange={e => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-teal-500" />
     </div>
   );
