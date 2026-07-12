@@ -1,124 +1,111 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getLatestScore } from '@/lib/scoreStorage';
-import { getBySlug } from '@/config/tools';
-import type { WellFiScore } from '@/lib/wellfilab-score';
+import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
+import { CALCULATORS, getBySlug } from '@/config/tools';
+import type { WellFiScore, Dimension } from '@/lib/wellfilab-score';
+import { getRelevantAffiliates, type Affiliate } from '@/lib/affiliates';
 
-type Dim = 'body' | 'mind' | 'wealth';
+function fmtINR(n: number): string {
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
+  return `₹${n.toLocaleString('en-IN')}`;
+}
 
+const CHECKS_KEY = 'wfl_roadmap_checks';
+const START_KEY = 'wfl_roadmap_start';
+
+// ── Action banks, one per fine-grained dimension id ─────────────────────
 interface RoadmapAction {
-  title: string;
-  why: string;
-  toolSlug?: string;
-  toolCat?: 'health' | 'finance';
+  title: string; whyTemplate: string; impact: string; ease: string;
+  priority: 'Today' | 'This week'; category: 'Health' | 'Finance' | 'Mind';
+  toolSlug?: string; toolCat?: 'health' | 'finance';
 }
 
-const ROOT_CAUSE: Record<Dim, { title: string; body: string; icon: string; accent: string; bg: string; border: string }> = {
-  body: {
-    title: 'Start here: Your physical health',
-    body: 'Your body score is lowest. Energy, focus, and even financial discipline all depend on your physical foundation. Small physical changes create the biggest ripple effect.',
-    icon: '💪', accent: 'text-teal-700 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-950/20', border: 'border-teal-300 dark:border-teal-700',
-  },
-  mind: {
-    title: 'Start here: Stress and mental load',
-    body: 'Your mind score is lowest. Stress is the hidden driver behind poor food choices AND poor financial decisions. Reducing it unlocks everything else simultaneously.',
-    icon: '🧠', accent: 'text-indigo-700 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', border: 'border-indigo-300 dark:border-indigo-700',
-  },
-  wealth: {
-    title: 'Start here: Financial foundation',
-    body: 'Your finance score is lowest. Financial anxiety quietly damages sleep, eating habits, and relationships. Building a simple financial foundation removes that weight from everything.',
-    icon: '💰', accent: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-300 dark:border-amber-700',
-  },
-};
-
-const DIM_LABEL: Record<Dim, string> = { body: 'Body', mind: 'Mind', wealth: 'Wealth' };
-
-const PHASE1_ACTIONS: Record<Dim, RoadmapAction[]> = {
-  body: [
-    { title: 'Sleep 30 minutes more tonight', why: 'Not an hour. Just 30 minutes. Set a bedtime alarm, not just a wake alarm.', toolSlug: 'sleep', toolCat: 'health' },
-    { title: 'Walk for 20 minutes tomorrow morning', why: 'Before checking your phone. This sets your cortisol rhythm for the whole day.', toolSlug: 'calories-burned', toolCat: 'health' },
-    { title: "Cook one meal at home this week that you'd normally order", why: 'Not a diet. One meal. Build the habit before building the plan.', toolSlug: 'calories', toolCat: 'health' },
+const DIM_ACTIONS: Record<string, RoadmapAction[]> = {
+  sleep: [
+    { title: 'Set a bedtime alarm tonight', whyTemplate: '{insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.', impact: 'Sleep quality improves within 3-5 days. Costs nothing.', ease: 'Costs nothing', priority: 'Today', category: 'Health', toolSlug: 'sleep', toolCat: 'health' },
+    { title: 'No phone 30 min before bed — start tonight', whyTemplate: 'Blue light suppresses melatonin for 3+ hours after exposure.', impact: 'Sleep onset up to 40% faster within 1 week.', ease: '5 minutes', priority: 'Today', category: 'Health' },
+    { title: 'Keep a consistent wake time, even on weekends', whyTemplate: 'Circadian rhythm consistency matters more than total hours for how rested you actually feel.', impact: 'Noticeable energy improvement within 2 weeks.', ease: 'Costs nothing', priority: 'This week', category: 'Health' },
   ],
-  mind: [
-    { title: 'Write down your 3 biggest stressors', why: 'Not to solve them. Just to see them clearly written down. Takes 5 minutes.' },
-    { title: 'No phone for 30 minutes before sleep', why: 'Start tonight. This alone improves sleep quality noticeably within a week.', toolSlug: 'sleep', toolCat: 'health' },
-    { title: 'Write your total income and expenses', why: 'Financial fog causes more stress than financial problems. Clarity reduces anxiety immediately.', toolSlug: 'budget', toolCat: 'finance' },
+  movement: [
+    { title: 'Walk for 20 minutes tomorrow morning', whyTemplate: 'Before checking your phone — this sets your cortisol rhythm for the whole day.', impact: 'Mood and energy improve same-day. Costs nothing.', ease: '20 minutes', priority: 'Today', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
+    { title: 'Pick one recurring time slot this week for movement', whyTemplate: '{insight}. A fixed slot beats a vague intention every time.', impact: 'Consistency compounds — most people quit from lack of a schedule, not lack of motivation.', ease: '5 minutes setup', priority: 'This week', category: 'Health' },
+    { title: 'Try a beginner routine this week (bodyweight or a 20-min video)', whyTemplate: 'Structure removes the "what do I even do" barrier that stops most people before they start.', impact: 'A repeatable routine beats a one-off workout.', ease: '20 minutes', priority: 'This week', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
   ],
-  wealth: [
-    { title: 'Find out exactly where your money went last month', why: 'Open your bank app. Look at last 30 days. No judgement — just awareness.', toolSlug: 'budget', toolCat: 'finance' },
-    { title: 'Calculate your emergency fund target', why: '3 months of expenses. Calculate the exact number you\'re working towards.', toolSlug: 'savings-goal', toolCat: 'finance' },
-    { title: 'Find one thing you spend on that you could pause for 30 days', why: 'Not forever. Just 30 days. One subscription, one habit.' },
+  stress: [
+    { title: 'Write your 3 biggest stressors now', whyTemplate: '{insight}. Writing externalises stress — it reduces it immediately, before you solve anything.', impact: 'Cortisol reduces within minutes. Free. Immediate.', ease: '5 minutes', priority: 'Today', category: 'Mind' },
+    { title: 'Set one boundary today', whyTemplate: 'Chronic stress is sustained by unprotected time and energy — one boundary interrupts that.', impact: 'Compounds over weeks as the pattern breaks.', ease: 'Costs nothing', priority: 'Today', category: 'Mind' },
+    { title: 'Try 4-7-8 breathing before your next stressful moment', whyTemplate: 'A simple pattern — 4s in, 7s hold, 8s out — activates your parasympathetic nervous system directly.', impact: 'Measurable heart-rate drop within 60 seconds.', ease: 'Costs nothing', priority: 'This week', category: 'Mind' },
+  ],
+  savings: [
+    { title: 'Open a separate savings account', whyTemplate: '{insight}. Separation prevents spending from savings automatically.', impact: 'Removes the temptation entirely — out of sight, out of spend.', ease: '15 minutes setup', priority: 'This week', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance' },
+    { title: 'List every subscription you pay', whyTemplate: 'Most people underestimate fixed expenses by 20-30%.', impact: 'Usually surfaces one or two you forgot you had.', ease: '15 minutes', priority: 'Today', category: 'Finance', toolSlug: 'budget', toolCat: 'finance' },
+    { title: 'Automate one transfer to savings on payday', whyTemplate: 'Automatic beats willpower — money saved before you see it never gets the chance to be spent.', impact: 'A savings habit that runs itself.', ease: '5 minutes setup', priority: 'This week', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance' },
+  ],
+  investing: [
+    { title: 'Calculate your first SIP amount', whyTemplate: '{insight}.', impact: 'A concrete monthly number beats a vague "I should invest more."', ease: '5 minutes', priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance' },
+    { title: 'Set a calendar reminder to review your SIP in 90 days', whyTemplate: 'Consistency matters more than perfection — review, don\'t obsess over daily market moves.', impact: 'Keeps the habit alive without turning into anxiety.', ease: '2 minutes', priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance' },
+    { title: 'Open a demat account when ready', whyTemplate: 'The single blocking step between "planning to invest" and actually investing.', impact: 'Takes about 15 minutes online, most providers.', ease: '15 minutes', priority: 'This week', category: 'Finance' },
+  ],
+  debt: [
+    { title: 'List every debt with its interest rate', whyTemplate: '{insight}. You can\'t attack what you haven\'t mapped.', impact: 'Usually surfaces one obvious highest-priority target.', ease: '10 minutes', priority: 'Today', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
+    { title: 'Pick your highest-interest debt and pay ₹500 extra this month', whyTemplate: 'Extra payments on the highest-rate debt save the most over time (the avalanche method).', impact: 'Reduces total interest paid — see the exact amount in the Debt Payoff calculator.', ease: '5 minutes', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
+    { title: 'Call one lender and ask about a lower rate', whyTemplate: 'Many lenders will negotiate for an existing customer with a good payment history — it costs nothing to ask.', impact: 'Even a 1-2% rate cut compounds significantly over the loan term.', ease: '15 minutes', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
   ],
 };
 
-const PHASE3_ACTIONS: Record<Dim, RoadmapAction[]> = {
-  body: [
-    { title: 'Get a body composition check', why: 'Weight alone hides the real story — body fat percentage tells you what\'s actually changing.', toolSlug: 'body-fat', toolCat: 'health' },
-    { title: 'Set a specific fitness goal for the next 90 days', why: 'A number and a date beat "get fitter" every time.' },
-    { title: 'When ready: join a structured program', why: 'A couch-to-5K app or a local gym plan — outside structure accelerates what you\'ve already started.' },
-  ],
-  mind: [
-    { title: 'Build a 10-minute daily stress practice', why: 'Breathing, journaling, a walk without your phone — consistency matters more than the method.' },
-    { title: 'Protect one full day a week as genuinely offline', why: 'Recovery is not optional — it\'s what makes the other six days sustainable.' },
-    { title: 'When ready: talk to a professional', why: 'Even 3-4 sessions with a therapist or counsellor can build tools that last for years.' },
-  ],
-  wealth: [
-    { title: 'When ready for investing: open a demat account and start a small SIP', why: 'Even ₹500/month started today beats a larger amount started next year.', toolSlug: 'sip', toolCat: 'finance' },
-    { title: 'Review your tax-saving investments', why: 'Money you\'re already earning — make sure it\'s not leaking to avoidable tax.', toolSlug: 'debt-payoff', toolCat: 'finance' },
-    { title: 'Set a concrete net worth target for next year', why: 'A specific number to build toward, not a vague sense of "doing better".' },
-  ],
+const DIM_CATEGORY_TITLE: Record<string, string> = {
+  sleep: 'Physical Foundation', movement: 'Physical Foundation',
+  stress: 'Mental & Emotional Load',
+  savings: 'Financial Foundation', investing: 'Financial Foundation', debt: 'Financial Foundation',
 };
 
-const ROADMAP_TOOLS: Record<Dim, string[]> = {
-  body:   ['bmi', 'sleep', 'calories', 'body-fat'],
-  mind:   ['sleep', 'heart-rate', 'budget'],
-  wealth: ['budget', 'sip', 'savings-goal', 'debt-payoff'],
+const HEALTH_TOOL_SLUGS = ['sleep', 'bmi', 'calories', 'body-fat', 'calories-burned'];
+const FINANCE_TOOL_SLUGS = ['sip', 'savings-goal', 'budget', 'retirement', 'fire', 'debt-payoff'];
+
+const BOOK_REC: Record<'stress' | 'finance' | 'body', { title: string; author: string; note: string }> = {
+  stress: { title: 'Why We Sleep', author: 'Matthew Walker', note: 'Chapter 1-3 only' },
+  finance: { title: 'The Psychology of Money', author: 'Morgan Housel', note: 'All chapters, ~30 min each' },
+  body: { title: 'Atomic Habits', author: 'James Clear', note: 'Start at Chapter 3' },
 };
 
-function lowestToHighest(score: WellFiScore): Dim[] {
-  return (['body', 'mind', 'wealth'] as Dim[]).sort((a, b) => score[a] - score[b]);
-}
-
-function loadChecked(): Record<string, boolean> {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(window.localStorage.getItem('wfl_roadmap_checked') ?? '{}'); } catch { return {}; }
-}
-function saveChecked(v: Record<string, boolean>) {
-  try { window.localStorage.setItem('wfl_roadmap_checked', JSON.stringify(v)); } catch { /* noop */ }
+function loadJSON<T>(key: string, fallback: T): T {
+  try { const raw = window.localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
 }
 
 export default function RoadmapPage() {
-  const [mounted, setMounted] = useState(false);
   const [score, setScore] = useState<WellFiScore | null>(null);
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [history, setHistory] = useState<WellFiScore[]>([]);
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
   const [startedAt, setStartedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-    getLatestScore().then(s => {
+    setChecks(loadJSON(CHECKS_KEY, {}));
+    let started = window.localStorage.getItem(START_KEY);
+    Promise.all([getLatestScore(), getScoreHistory()]).then(([s, h]) => {
       setScore(s);
-      if (s) {
-        let started = window.localStorage.getItem('wfl_roadmap_start');
-        if (!started) {
-          started = new Date().toISOString();
-          window.localStorage.setItem('wfl_roadmap_start', started);
-        }
-        setStartedAt(started);
-        setChecked(loadChecked());
+      setHistory(h);
+      if (s && !started) {
+        started = new Date().toISOString();
+        window.localStorage.setItem(START_KEY, started);
       }
+      setStartedAt(started);
+      setLoading(false);
     });
   }, []);
 
-  const toggleAction = (id: string) => {
-    setChecked(prev => {
+  const toggleCheck = (id: string) => {
+    setChecks(prev => {
       const next = { ...prev, [id]: !prev[id] };
-      saveChecked(next);
+      try { window.localStorage.setItem(CHECKS_KEY, JSON.stringify(next)); } catch { /* noop */ }
       return next;
     });
   };
 
-  if (!mounted) {
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
     </div>;
@@ -129,10 +116,8 @@ export default function RoadmapPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 py-16">
         <div className="max-w-sm w-full text-center bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-8">
           <p className="text-4xl mb-4">🗺️</p>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Take the free score first</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Your roadmap is personalised to your score results. Takes 60 seconds.
-          </p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Your roadmap needs a score first</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Built from your actual health and financial data. Takes 5 minutes.</p>
           <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
             Get my score →
           </Link>
@@ -141,116 +126,197 @@ export default function RoadmapPage() {
     );
   }
 
-  const order = lowestToHighest(score);
-  const [phase1Dim, phase2Dim, phase3Dim] = order;
+  const daysSinceStart = startedAt ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 86400000)) : 0;
 
-  const checkInDate = startedAt ? new Date(new Date(startedAt).getTime() + 30 * 86400000) : null;
+  const sortedDims = [...score.dimensions].sort((a, b) => a.score - b.score);
+  const lowestDim = sortedDims[0];
+  const secondDim: Dimension | undefined = sortedDims[1];
+  const thirdDim: Dimension | undefined = sortedDims[2];
+
+  const findDim = (id: string) => score.dimensions.find(d => d.id === id);
+
+  // ── Phase 1 actions: algorithm's top actions + 1-2 dimension-specific extras
+  const dimBank = (id: string): RoadmapAction[] => DIM_ACTIONS[id] ?? DIM_ACTIONS.sleep;
+  const phase1Extras = dimBank(lowestDim.id).slice(0, 2);
+  const phase1AlgoActions = score.actions.slice(0, 3);
+  const phase1Total = phase1AlgoActions.length + phase1Extras.length;
+  const phase1CheckedCount = phase1AlgoActions.map((_, i) => checks[`p1-alg-${i}`]).filter(Boolean).length
+    + phase1Extras.map((_, i) => checks[`p1-extra-${i}`]).filter(Boolean).length;
+
+  const phase2Actions = secondDim ? dimBank(secondDim.id) : [];
+  const phase2CheckedCount = phase2Actions.map((_, i) => checks[`p2-${i}`]).filter(Boolean).length;
+  const phase2Unlocked = phase1CheckedCount >= 2;
+
+  const phase3Actions = thirdDim ? dimBank(thirdDim.id) : [];
+  const phase3Unlocked = phase2CheckedCount >= 2;
+
+  const totalActions = phase1Total + phase2Actions.length + phase3Actions.length;
+  const totalChecked = Object.values(checks).filter(Boolean).length;
+
+  const activePhaseNum: 1 | 2 | 3 = phase3Unlocked ? 3 : phase2Unlocked ? 2 : 1;
+  const relevantAffiliates = getRelevantAffiliates(score, activePhaseNum, 2);
+  const affiliatesForPhase = (n: 1 | 2 | 3) => relevantAffiliates.filter(a => a.showWhen.minPhase === n);
+
+  const trajectories = score.trajectories;
+  const current = trajectories?.find(t => t.scenario === 'current');
+  const improved = trajectories?.find(t => t.scenario === 'improved');
+  const optimal = trajectories?.find(t => t.scenario === 'optimal');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="bg-gray-950">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">Personalised Roadmap</p>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">Your 90-Day Roadmap</h1>
-          <p className="text-gray-400 text-sm mb-4">Based on your score of {score.overall}/100</p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-            <span className="text-lg">{score.archetype.emoji}</span>
-            <span className="text-sm font-bold text-white">{score.archetype.name}</span>
+
+      {/* SECTION 1: Header */}
+      <div className="bg-gradient-to-br from-teal-800 to-gray-950">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+          <div className="flex items-start justify-between flex-wrap gap-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Personalised Roadmap</p>
+              <h1 className="text-3xl font-extrabold text-white mb-3">Your 90-Day Roadmap</h1>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 mb-2">
+                <span className="text-sm font-bold text-white">{score.overall}/100</span>
+                <span className="text-white/40">·</span>
+                <span className="text-sm">{score.archetype.emoji} {score.archetype.name}</span>
+              </div>
+              {score.date && <p className="text-xs text-white/40">Last updated: {new Date(score.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+            </div>
+            <div className="flex gap-3">
+              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 min-w-[110px]">
+                <p className="text-lg font-black text-white">Day {daysSinceStart} <span className="text-xs font-normal text-white/40">of 90</span></p>
+                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2">
+                  <div className="h-full bg-teal-400 rounded-full" style={{ width: `${Math.min(100, (daysSinceStart / 90) * 100)}%` }} />
+                </div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 min-w-[110px] text-center">
+                <p className="text-lg font-black text-white">{totalChecked} <span className="text-xs font-normal text-white/40">of {totalActions}</span></p>
+                <p className="text-[10px] text-white/40">Actions completed</p>
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] text-gray-500 mt-4">Updates automatically when you retake your score</p>
+
+          <div className="mt-6 pt-4 border-t border-white/10">
+            {score.level === 'full' ? (
+              <p className="text-xs text-white/50">Based on your complete health + finance data</p>
+            ) : score.level === 'body' ? (
+              <>
+                <p className="text-xs text-white/50 mb-2">Based on health data</p>
+                <Link href="/score" className="inline-block text-xs font-bold text-amber-300 hover:underline">Add finances for full roadmap →</Link>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-white/50 mb-2">Based on quick assessment</p>
+                <Link href="/score" className="inline-block text-xs font-bold text-amber-300 hover:underline">Complete your profile for an accurate roadmap →</Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
-        {/* Root cause card */}
-        <div className={`rounded-2xl border-2 p-6 ${ROOT_CAUSE[phase1Dim].bg} ${ROOT_CAUSE[phase1Dim].border}`}>
-          <div className="flex items-start gap-4">
-            <span className="text-3xl flex-shrink-0">{ROOT_CAUSE[phase1Dim].icon}</span>
-            <div>
-              <p className={`font-extrabold text-lg mb-1.5 ${ROOT_CAUSE[phase1Dim].accent}`}>{ROOT_CAUSE[phase1Dim].title}</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{ROOT_CAUSE[phase1Dim].body}</p>
-            </div>
+        {/* SECTION 2: Root cause diagnosis */}
+        <RootCauseCard lowestDim={lowestDim} findDim={findDim} annualHealthCost={score.annualHealthCost} />
+
+        {/* SECTION 3: Dimension scores */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Your dimensions</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {score.dimensions.map(d => (
+              <div key={d.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xl">{d.icon}</span>
+                  <span className="text-lg font-black" style={{ color: d.score >= 75 ? '#0d9488' : d.score >= 50 ? '#f59e0b' : '#ef4444' }}>{d.score}</span>
+                </div>
+                <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-1">{d.label}</p>
+                <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${d.score}%`, background: d.score >= 75 ? '#0d9488' : d.score >= 50 ? '#f59e0b' : '#ef4444' }} />
+                </div>
+                {d.insight && <p className="text-[11px] text-gray-400">{d.insight}</p>}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* 3-phase timeline */}
+        {/* SECTION 4: 90-day roadmap */}
         <div>
-          <PhaseRow
-            label="Right Now" weeks="Week 1-2" status="active"
-            tagline={`Based on your lowest score: ${DIM_LABEL[phase1Dim]}`}
-            dim={phase1Dim} actions={PHASE1_ACTIONS[phase1Dim]}
-            checked={checked} onToggle={toggleAction} phaseKey="p1"
-          />
-          <PhaseRow
-            label="Building" weeks="Week 3-6" status="upcoming"
-            tagline={`Complete Phase 1 first · ${DIM_LABEL[phase2Dim]}`}
-            dim={phase2Dim} actions={PHASE1_ACTIONS[phase2Dim]}
-            checked={checked} onToggle={toggleAction} phaseKey="p2"
-          />
-          <PhaseRow
-            label="Growing" weeks="Month 2-3" status="future"
-            tagline={`Building on your strength: ${DIM_LABEL[phase3Dim]}`}
-            dim={phase3Dim} actions={PHASE3_ACTIONS[phase3Dim]}
-            checked={checked} onToggle={toggleAction} phaseKey="p3" isLast
-          />
-        </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your 90-day roadmap</p>
 
-        {/* Tools for your roadmap */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Tools for your roadmap</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {ROADMAP_TOOLS[phase1Dim].map(slug => {
-              const tool = getBySlug(slug);
-              if (!tool) return null;
-              return (
-                <Link key={slug} href={`/tools/${tool.category}/${tool.slug}`}
-                  className="p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 transition-all group">
-                  <span className="text-xl">{tool.icon}</span>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{tool.short}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{tool.desc}</p>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+          <PhaseBlock
+            label="Right Now" weeks="Weeks 1-2: Start Here" status="active"
+            focusLabel={lowestDim.label} subtitle={lowestDim.insight}
+          >
+            {phase1AlgoActions.map((a, i) => (
+              <ActionCard key={`alg-${i}`} id={`p1-alg-${i}`} checked={!!checks[`p1-alg-${i}`]} onToggle={toggleCheck}
+                title={a.title} why={a.why} impact={a.impact} priority={a.howEasy === 'today' ? 'Today' : 'This week'}
+                category={a.category === 'health' ? 'Health' : a.category === 'finance' ? 'Finance' : a.category === 'mind' ? 'Mind' : 'Health'}
+                toolSlug={a.toolSlug} toolCat={a.toolCat as 'health' | 'finance' | undefined} />
+            ))}
+            {phase1Extras.map((a, i) => (
+              <ActionCard key={`extra-${i}`} id={`p1-extra-${i}`} checked={!!checks[`p1-extra-${i}`]} onToggle={toggleCheck}
+                title={a.title} why={a.whyTemplate.replace('{insight}', lowestDim.insight ?? '')} impact={a.impact}
+                priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
+            ))}
+            {affiliatesForPhase(1).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
+            <PhaseProgress checked={phase1CheckedCount} total={phase1Total} complete={phase1CheckedCount >= phase1Total} nextLabel="Phase 2 is now active." />
+          </PhaseBlock>
 
-        {/* Check-in section */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
-          <p className="text-2xl mb-2">📅</p>
-          <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">Come back in 30 days</p>
-          <p className="text-xs text-gray-400 mb-4 max-w-sm mx-auto">
-            Retake your score to see what improved. Your roadmap updates automatically.
-          </p>
-          {startedAt && (
-            <div className="flex items-center justify-center gap-6 text-xs">
-              <div>
-                <p className="font-bold text-gray-700 dark:text-gray-300">{new Date(startedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                <p className="text-gray-400">Roadmap started</p>
+          <PhaseBlock
+            label="Building" weeks="Weeks 3-6: Build On It" status={phase2Unlocked ? 'active' : 'locked'}
+            focusLabel={secondDim?.label ?? '—'} subtitle={phase2Unlocked ? secondDim?.insight : 'Complete at least 2 actions in Phase 1 to unlock'}
+          >
+            {secondDim && phase2Actions.map((a, i) => (
+              <ActionCard key={i} id={`p2-${i}`} checked={!!checks[`p2-${i}`]} onToggle={toggleCheck} disabled={!phase2Unlocked}
+                title={a.title} why={a.whyTemplate.replace('{insight}', secondDim.insight ?? '')} impact={a.impact}
+                priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
+            ))}
+            {phase2Unlocked && affiliatesForPhase(2).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
+            {secondDim && <PhaseProgress checked={phase2CheckedCount} total={phase2Actions.length} complete={phase2CheckedCount >= phase2Actions.length} nextLabel="Phase 3 is now active." />}
+          </PhaseBlock>
+
+          <PhaseBlock
+            label="Growing" weeks="Month 2-3: Grow" status={phase3Unlocked ? 'active' : 'locked'}
+            focusLabel={thirdDim?.label ?? '—'} subtitle={phase3Unlocked ? 'Strengthening and growth' : 'Complete at least 2 actions in Phase 2 to unlock'}
+            isLast
+          >
+            {thirdDim && phase3Actions.map((a, i) => (
+              <ActionCard key={i} id={`p3-${i}`} checked={!!checks[`p3-${i}`]} onToggle={toggleCheck} disabled={!phase3Unlocked}
+                title={a.title} why={a.whyTemplate.replace('{insight}', thirdDim.insight ?? '')} impact={a.impact}
+                priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
+            ))}
+            {phase3Unlocked && thirdDim && (
+              <div className="space-y-3">
+                <GrowthRecCard type="book" dim={lowestDim.id} />
+                <GrowthRecCard type="tool" dim={lowestDim.id} />
+                {affiliatesForPhase(3).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
               </div>
-              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
-              <div>
-                <p className="font-bold text-teal-600 dark:text-teal-400">{checkInDate?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                <p className="text-gray-400">Next check-in</p>
-              </div>
-            </div>
-          )}
+            )}
+          </PhaseBlock>
         </div>
 
-        {/* Upgrade section */}
-        <div className="bg-gray-950 rounded-2xl p-7 text-center">
-          <p className="font-extrabold text-white text-lg mb-3">Want a deeper personalised roadmap?</p>
-          <p className="text-sm text-gray-400 leading-relaxed max-w-md mx-auto mb-2">
-            The roadmap above is based on your score. A personalised plan goes further — your specific numbers, your specific challenges, a detailed step-by-step guide built for exactly your situation.
+        {/* SECTION 5: Financial impact */}
+        {score.level === 'full' && trajectories && current && improved && optimal && (
+          <FinancialImpact current={current} improved={improved} optimal={optimal} score={score} />
+        )}
+
+        {/* SECTION 6: Score history */}
+        {history.length > 1 && <ScoreHistorySection history={history} />}
+
+        {/* SECTION 7: 90-day timeline */}
+        <NinetyDayTimeline daysSinceStart={daysSinceStart} lowestLabel={lowestDim.label} />
+
+        {/* SECTION 8: Tools for your roadmap */}
+        <ToolsSection lowestDim={lowestDim} secondDim={secondDim} />
+
+        {/* SECTION 9: Upgrade (subtle) */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 text-center">
+          <p className="font-bold text-gray-900 dark:text-white text-sm mb-1.5">Want this taken further?</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-md mx-auto mb-3">
+            This roadmap is generated from your score. A personalised plan is created specifically for you — built by a real person, not an algorithm. You can ask questions.
           </p>
-          <p className="text-sm text-gray-400 leading-relaxed max-w-md mx-auto mb-5">
-            Created personally. Not AI-generated. Not a template.
-          </p>
-          <p className="text-xs text-gray-500 mb-5">₹149/month · 48hr delivery · 30-day refund</p>
-          <Link href="/plan" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all hover:scale-105">
-            Get my personalised plan →
+          <p className="text-[11px] text-gray-400 mb-4">₹149/month · 48hr delivery · 30-day refund guarantee</p>
+          <Link href="/plan" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition-all">
+            Get personalised plan →
           </Link>
+          <p className="text-[10px] text-gray-400 mt-3">This roadmap is free forever</p>
         </div>
 
       </div>
@@ -258,58 +324,340 @@ export default function RoadmapPage() {
   );
 }
 
-// ── Presentational pieces ─────────────────────────────────────────────────
+// ── Section 2: Root cause ────────────────────────────────────────────────
 
-const STATUS_STYLE: Record<'active' | 'upcoming' | 'future', { dot: string; card: string; opacity: string }> = {
-  active:   { dot: 'bg-teal-600 ring-4 ring-teal-100 dark:ring-teal-900/40', card: 'border-teal-300 dark:border-teal-700 bg-white dark:bg-gray-900', opacity: '' },
-  upcoming: { dot: 'bg-gray-300 dark:bg-gray-600', card: 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50', opacity: 'opacity-80' },
-  future:   { dot: 'bg-gray-200 dark:bg-gray-700', card: 'border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/30', opacity: 'opacity-60' },
-};
+function RootCauseCard({ lowestDim, findDim, annualHealthCost }: { lowestDim: Dimension; findDim: (id: string) => Dimension | undefined; annualHealthCost?: number }) {
+  const category = ['sleep', 'movement'].includes(lowestDim.id) ? 'body' : lowestDim.id === 'stress' ? 'stress' : 'finance';
+  const title = DIM_CATEGORY_TITLE[lowestDim.id] ?? 'Your Starting Point';
 
-function PhaseRow({ label, weeks, status, tagline, actions, checked, onToggle, phaseKey, isLast }: {
-  label: string; weeks: string; status: 'active' | 'upcoming' | 'future'; tagline: string;
-  dim: Dim; actions: RoadmapAction[];
-  checked: Record<string, boolean>; onToggle: (id: string) => void; phaseKey: string; isLast?: boolean;
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 border-l-4 border-l-teal-500 p-6">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Your starting point</p>
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{title}</h2>
+        <span className="text-lg font-black" style={{ color: lowestDim.score >= 50 ? '#f59e0b' : '#ef4444' }}>{lowestDim.score}/100</span>
+      </div>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">{lowestDim.insight}</p>
+
+      {category === 'body' && (
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why physical health is your starting point:</p>
+          {findDim('stress') && <p>Sleep → Stress: poor sleep raises cortisol. Your stress score of {findDim('stress')!.score}/100 reflects this.</p>}
+          {annualHealthCost != null && annualHealthCost > 0 && <p>Sleep → Finances: this costs approximately {fmtINR(annualHealthCost)}/year. Your roadmap fixes this.</p>}
+          <p>Sleep → Decisions: sleep deficit increases impulsive decisions by roughly 29%. This directly affects spending patterns.</p>
+        </div>
+      )}
+      {category === 'stress' && (
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why stress is your starting point:</p>
+          <p>Stress → Spending: high cortisol increases impulse purchases by an estimated 37%.</p>
+          <p>Stress → Sleep: {lowestDim.insight} — they reinforce each other in both directions.</p>
+          {annualHealthCost != null && annualHealthCost > 0 && <p>Stress → Productivity: estimated financial impact of {fmtINR(annualHealthCost)}/year.</p>}
+        </div>
+      )}
+      {category === 'finance' && (
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why financial foundation is your starting point:</p>
+          <p>Finance → Sleep: financial stress causes an estimated 40% more night waking. Your sleep score of {findDim('sleep')?.score ?? 'N/A'}/100 may be partially financial in origin.</p>
+          <p>Finance → Health decisions: financial pressure leads to cheaper food choices and skipped checkups.</p>
+          <p>Finance → Stress: {lowestDim.insight}. Building stability removes background anxiety from everything else.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Section 4 pieces ──────────────────────────────────────────────────────
+
+function PhaseBlock({ label, weeks, status, focusLabel, subtitle, children, isLast }: {
+  label: string; weeks: string; status: 'active' | 'locked'; focusLabel: string; subtitle?: string;
+  children: React.ReactNode; isLast?: boolean;
 }) {
-  const style = STATUS_STYLE[status];
+  const dotColor = status === 'active' ? (label === 'Building' ? 'bg-amber-500 ring-4 ring-amber-100 dark:ring-amber-900/40' : label === 'Growing' ? 'bg-green-500 ring-4 ring-green-100 dark:ring-green-900/40' : 'bg-teal-600 ring-4 ring-teal-100 dark:ring-teal-900/40') : 'bg-gray-300 dark:bg-gray-700';
+  const borderColor = status !== 'active' ? 'border-gray-100 dark:border-gray-800' : label === 'Building' ? 'border-amber-300 dark:border-amber-700' : label === 'Growing' ? 'border-green-300 dark:border-green-700' : 'border-teal-300 dark:border-teal-700';
+
   return (
     <div className="flex gap-4 sm:gap-6">
-      {/* Left rail */}
-      <div className="flex flex-col items-center flex-shrink-0 w-14 sm:w-24">
-        <div className={`w-4 h-4 rounded-full ${style.dot}`} />
+      <div className="flex flex-col items-center flex-shrink-0 w-4 sm:w-24">
+        <div className={`w-4 h-4 rounded-full flex-shrink-0 ${dotColor}`} />
         {!isLast && <div className="w-0.5 flex-1 bg-gray-200 dark:bg-gray-800 my-1" />}
         <div className="text-center mt-1 hidden sm:block">
           <p className="text-[11px] font-bold text-gray-600 dark:text-gray-300">{label}</p>
-          <p className="text-[10px] text-gray-400">{weeks}</p>
+          <p className="text-[10px] text-gray-400">{weeks.split(':')[0]}</p>
         </div>
       </div>
+      <div className={`flex-1 rounded-2xl border p-5 mb-6 bg-white dark:bg-gray-900 ${borderColor} ${status === 'locked' ? 'opacity-60' : ''}`}>
+        <p className="sm:hidden text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{weeks}</p>
+        <p className="hidden sm:block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{weeks}</p>
+        <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">Focus: {focusLabel}</p>
+        {subtitle && <p className="text-xs text-gray-400 mb-4">{subtitle}</p>}
+        {status === 'locked' ? (
+          <p className="text-xs text-gray-400 italic">🔒 Locked — {subtitle}</p>
+        ) : (
+          <div className="space-y-3">{children}</div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-      {/* Right card */}
-      <div className={`flex-1 rounded-2xl border p-5 mb-6 ${style.card} ${style.opacity}`}>
-        <p className="sm:hidden text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{label} · {weeks}</p>
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-4">{tagline}</p>
-        <div className="space-y-3">
-          {actions.map((a, i) => {
-            const id = `${phaseKey}-${i}`;
-            const done = !!checked[id];
-            return (
-              <label key={id} className="flex items-start gap-3 cursor-pointer group">
-                <input type="checkbox" checked={done} onChange={() => onToggle(id)}
-                  className="mt-1 w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className={`text-sm font-bold ${done ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>{a.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-0.5">{a.why}</p>
-                  {a.toolSlug && a.toolCat && (
-                    <Link href={`/tools/${a.toolCat}/${a.toolSlug}`} onClick={e => e.stopPropagation()}
-                      className="inline-block text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline mt-1.5">
-                      Try the tool →
-                    </Link>
-                  )}
-                </div>
-              </label>
-            );
-          })}
+function ActionCard({ id, checked, onToggle, disabled, title, why, impact, priority, category, toolSlug, toolCat }: {
+  id: string; checked: boolean; onToggle: (id: string) => void; disabled?: boolean;
+  title: string; why: string; impact: string; priority: 'Today' | 'This week'; category: 'Health' | 'Finance' | 'Mind';
+  toolSlug?: string; toolCat?: 'health' | 'finance';
+}) {
+  const catStyle = category === 'Health' ? 'bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400'
+    : category === 'Finance' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+    : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400';
+  return (
+    <label className={`flex items-start gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:border-teal-300 dark:hover:border-teal-700'} transition-colors`}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={() => onToggle(id)}
+        className="mt-1 w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{priority}</span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${catStyle}`}>{category}</span>
         </div>
+        <p className={`text-sm font-bold ${checked ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>{title}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-1">{why}</p>
+        <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 mt-1">{impact}</p>
+        {toolSlug && toolCat && (
+          <Link href={`/tools/${toolCat}/${toolSlug}`} onClick={e => e.stopPropagation()} className="inline-block text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline mt-1.5">
+            Try the tool →
+          </Link>
+        )}
+      </div>
+    </label>
+  );
+}
+
+function PhaseProgress({ checked, total, complete, nextLabel }: { checked: number; total: number; complete: boolean; nextLabel: string }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-xs text-gray-400">{checked} of {total} actions done</p>
+      </div>
+      <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
+        <div className="h-full bg-teal-500 rounded-full transition-all duration-500" style={{ width: `${total ? (checked / total) * 100 : 0}%` }} />
+      </div>
+      {complete && total > 0 && (
+        <div className="mt-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 text-xs font-bold">
+          Phase complete 🎉 {nextLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GrowthRecCard({ type, dim }: { type: 'book' | 'tool'; dim: string }) {
+  const isFinance = ['savings', 'investing', 'debt'].includes(dim);
+  const isStress = dim === 'stress';
+
+  if (type === 'book') {
+    const book = isStress ? BOOK_REC.stress : isFinance ? BOOK_REC.finance : BOOK_REC.body;
+    return (
+      <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">📖 Recommended reading</p>
+        <p className="text-sm font-bold text-gray-900 dark:text-white">{book.title} — {book.author}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{book.note}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">🔧 Recommended next step</p>
+      {isFinance ? (
+        <p className="text-sm text-gray-700 dark:text-gray-300">A broker or investing app for index fund SIPs — see the tools section below.</p>
+      ) : isStress ? (
+        <p className="text-sm text-gray-700 dark:text-gray-300">10-minute morning walks — no app needed.</p>
+      ) : (
+        <>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Track your nutrition alongside your training.</p>
+          <Link href="/tools/health/calories" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Try the Calorie Calculator →</Link>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Affiliate card ─────────────────────────────────────────────────────
+
+function AffiliateCard({ affiliate, score }: { affiliate: Affiliate; score: WellFiScore }) {
+  const dim = score.dimensions.find(d => d.id === affiliate.showWhen.dimensionId);
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 border-l-4 border-l-teal-500 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+        <span className="text-lg">{affiliate.logo}</span>
+        <span className="font-bold text-sm text-gray-900 dark:text-white">{affiliate.name}</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">Recommended tool</span>
+      </div>
+      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{affiliate.tagline}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+        {dim ? `Your ${dim.label.toLowerCase()} score is ${dim.score}/100. ` : ''}{affiliate.whyRecommend}
+      </p>
+      <a href={affiliate.url} target="_blank" rel="noopener noreferrer sponsored"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all">
+        {affiliate.cta}
+      </a>
+      <p className="text-[10px] text-gray-400 mt-2">
+        This is an affiliate link — we earn a small commission if you sign up, at no cost to you. We only recommend tools we believe in.
+      </p>
+    </div>
+  );
+}
+
+// ── Section 5: Financial impact ─────────────────────────────────────────
+
+function FinancialImpact({ current, improved, optimal, score }: {
+  current: { netWorthAt60: number; monthlyPassiveIncome: number }; improved: { netWorthAt60: number; monthlyPassiveIncome: number; keyChange: string };
+  optimal: { netWorthAt60: number; monthlyPassiveIncome: number }; score: WellFiScore;
+}) {
+  const [open, setOpen] = useState(false);
+  const maxNW = Math.max(current.netWorthAt60, improved.netWorthAt60, optimal.netWorthAt60, 1);
+  const diff = improved.netWorthAt60 - current.netWorthAt60;
+
+  return (
+    <div className="bg-gray-950 rounded-2xl p-6 text-white">
+      <p className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-1">What following this roadmap is worth</p>
+      <p className="text-2xl font-black mt-3 mb-6">Following this roadmap = {fmtINR(diff)} more at retirement</p>
+
+      <div className="space-y-4 mb-4">
+        {[
+          { label: 'Current path', nw: current.netWorthAt60, pi: current.monthlyPassiveIncome, bar: 'bg-gray-600', width: (current.netWorthAt60 / maxNW) * 100 },
+          { label: 'Follow roadmap', nw: improved.netWorthAt60, pi: improved.monthlyPassiveIncome, bar: 'bg-teal-500', width: (improved.netWorthAt60 / maxNW) * 100 },
+          { label: 'Full potential', nw: optimal.netWorthAt60, pi: optimal.monthlyPassiveIncome, bar: 'bg-green-500', width: (optimal.netWorthAt60 / maxNW) * 100 },
+        ].map(row => (
+          <div key={row.label}>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-white/70">{row.label}</span>
+              <span className="font-bold">{fmtINR(row.nw)} · {fmtINR(row.pi)}/mo passive</span>
+            </div>
+            <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${row.width}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={() => setOpen(!open)} className="text-xs font-bold text-white/70 hover:text-white underline">
+        How is this calculated? {open ? '▲' : '▼'}
+      </button>
+      {open && (
+        <p className="text-xs text-white/60 mt-2 bg-white/5 rounded-lg p-3">
+          Based on your income, current savings, and {improved.keyChange.toLowerCase()}, projected at 12% average annual return over your remaining working years.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Section 6: Score history ─────────────────────────────────────────────
+
+function ScoreHistorySection({ history }: { history: WellFiScore[] }) {
+  const sorted = [...history].filter(h => h.date).sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+  const [latest, prev] = sorted;
+  const change = latest && prev ? latest.overall - prev.overall : null;
+
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Score history</p>
+      {change != null && change !== 0 && (
+        <div className={`mb-3 px-4 py-2.5 rounded-xl text-sm font-bold ${change > 0 ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400' : 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'}`}>
+          {change > 0 ? `↑ +${change} points since your last assessment` : `↓ ${Math.abs(change)} points. Check which dimension changed and why.`}
+        </div>
+      )}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800">
+        {sorted.slice(0, 6).map((h, i) => {
+          const next = sorted[i + 1];
+          const delta = next ? h.overall - next.overall : null;
+          return (
+            <div key={h.id ?? i} className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-gray-400">{new Date(h.date!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{h.overall}/100</span>
+                {delta != null && delta !== 0 && (
+                  <span className={`text-xs font-bold ${delta > 0 ? 'text-green-500' : 'text-red-500'}`}>{delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Section 7: 90-day timeline ────────────────────────────────────────────
+
+function NinetyDayTimeline({ daysSinceStart, lowestLabel }: { daysSinceStart: number; lowestLabel: string }) {
+  const pct = Math.min(100, (daysSinceStart / 90) * 100);
+  const milestone = (day: number, threshold: number, label: string) =>
+    daysSinceStart >= threshold
+      ? <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">{label} →</Link>
+      : <p className="text-xs text-gray-400">In {day - daysSinceStart} days</p>;
+
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your 90-day journey</p>
+      <div className="relative h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mb-2">
+        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${pct}%` }} />
+        <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-teal-600 border-2 border-white dark:border-gray-950" style={{ left: `calc(${pct}% - 6px)` }} />
+      </div>
+      <div className="flex justify-between text-[10px] text-gray-400 mb-6">
+        <span>Day 1</span><span>Day {daysSinceStart}</span><span>Day 90</span>
+      </div>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+          <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mb-1">Day 1-14 · Phase 1</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Working on: {lowestLabel}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase">In progress</p>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+          <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Day 30 · First check-in</p>
+          {milestone(30, 28, 'Retake score now')}
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+          <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Day 60 · Mid-point</p>
+          {milestone(60, 58, 'Mid-point check-in')}
+        </div>
+      </div>
+      <div className="mt-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+        <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Day 90 · Full review</p>
+        {milestone(90, 88, '90-day review')}
+      </div>
+    </div>
+  );
+}
+
+// ── Section 8: Tools ───────────────────────────────────────────────────
+
+function ToolsSection({ lowestDim, secondDim }: { lowestDim: Dimension; secondDim?: Dimension }) {
+  const isHealthDim = (id: string) => ['sleep', 'movement', 'stress'].includes(id);
+  const healthNeeded = isHealthDim(lowestDim.id) || (secondDim && isHealthDim(secondDim.id));
+  const financeNeeded = !isHealthDim(lowestDim.id) || (secondDim && !isHealthDim(secondDim.id));
+
+  const slugs = [
+    ...(healthNeeded ? HEALTH_TOOL_SLUGS : []),
+    ...(financeNeeded ? FINANCE_TOOL_SLUGS : []),
+  ].slice(0, 6);
+
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Tools for your roadmap</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {slugs.map(slug => {
+          const tool = getBySlug(slug) ?? CALCULATORS.find(c => c.slug === slug);
+          if (!tool) return null;
+          return (
+            <Link key={slug} href={`/tools/${tool.category}/${tool.slug}`}
+              className="p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 transition-all group">
+              <span className="text-xl">{tool.icon}</span>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mt-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{tool.short}</p>
+              <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{tool.desc}</p>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
