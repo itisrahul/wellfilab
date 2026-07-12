@@ -4,7 +4,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
-import { getSubscription, getCalcHistory, type StoredSubscription, type CalcHistoryEntry } from '@/lib/dashboardData';
+import { getSubscription, cancelSubscription, type StoredSubscription } from '@/lib/subscriptionStorage';
+import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
 import { AICoach } from './AICoach';
 import { PlanStatus } from './PlanStatus';
 import { QuickTools } from './QuickTools';
@@ -47,16 +48,20 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   useEffect(() => {
     const hour = new Date().getHours();
-    Promise.all([getLatestScore(), getScoreHistory()]).then(([score, history]) => {
+    Promise.all([getLatestScore(), getScoreHistory(), getSubscription()]).then(([score, history, subscription]) => {
       setData({
-        score, history,
-        subscription: getSubscription(),
+        score, history, subscription,
         calcHistory:  getCalcHistory(),
         greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
         dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
       });
     });
   }, []);
+
+  const handleCancelSubscription = async () => {
+    const updated = await cancelSubscription();
+    setData(prev => prev ? { ...prev, subscription: updated } : prev);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -160,7 +165,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           {/* Chart (2/3) + Plan status (1/3) */}
           <div className="grid lg:grid-cols-3 gap-6 items-stretch">
             <div className="lg:col-span-2"><ScoreHistoryChart history={data.history} /></div>
-            <div><PlanStatus subscription={data.subscription} /></div>
+            <div><PlanStatus subscription={data.subscription} onCancel={handleCancelSubscription} /></div>
           </div>
 
           {/* Last 3 actions */}

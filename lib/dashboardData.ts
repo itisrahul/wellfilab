@@ -1,11 +1,10 @@
 /**
  * lib/dashboardData.ts — read-only helpers for /dashboard that aren't part
  * of the WellFiLab Score system itself. Score data comes from
- * lib/scoreStorage.ts; this file covers the account-adjacent bits: plan
- * subscription status and calculator usage history.
+ * lib/scoreStorage.ts, subscription data from lib/subscriptionStorage.ts;
+ * this file covers what's left: calculator usage history.
  */
 
-export const SUBSCRIPTION_KEY = 'wfl_subscription';
 export const CALC_HISTORY_KEY = 'hwt_calc_history';
 
 function safeParse<T>(raw: string | null, fallback: T): T {
@@ -16,21 +15,6 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
-}
-
-// ── Subscription (client-side flag only — see /plan for the real Razorpay flow) ──
-export interface StoredSubscription {
-  planId: 'diet' | 'finance' | 'bundle';
-  planName: string;
-  status: 'active' | 'trial' | 'cancelled';
-  nextBillingDate: string;
-  weekNumber: number;
-  deliveries: { label: string; date: string; done: boolean }[];
-}
-
-export function getSubscription(): StoredSubscription | null {
-  if (typeof window === 'undefined') return null;
-  return safeParse<StoredSubscription | null>(window.localStorage.getItem(SUBSCRIPTION_KEY), null);
 }
 
 // ── Calculator usage history (see components/ui/CalcHistory.tsx for the writer) ──

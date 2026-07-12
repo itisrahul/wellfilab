@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Plan } from '@/lib/plans';
+import { saveSubscription, type StoredSubscription } from '@/lib/subscriptionStorage';
 
 declare global {
   interface Window {
@@ -38,6 +39,23 @@ export function PlanCheckout({ plan }: Props) {
   const yearlyDisplay  = `₹${plan.yearlyPrice}/yr`;
   const yearlySaving   = ((plan.monthlyPrice * 12) - plan.yearlyPrice);
 
+  // Every checkout starts a 7-day free trial (matches the button copy and
+  // the success page) — "next billing" is when the trial converts.
+  const recordSubscription = (subscriptionId?: string) => {
+    const nextBillingDate = new Date();
+    nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+    const sub: StoredSubscription = {
+      planId: plan.id as StoredSubscription['planId'],
+      planName: plan.name,
+      status: 'trial',
+      subscriptionId,
+      nextBillingDate: nextBillingDate.toISOString(),
+      weekNumber: 1,
+      deliveries: [],
+    };
+    return saveSubscription(sub);
+  };
+
   const handleCheckout = async () => {
     if (!name.trim()) { setError('Please enter your name'); return; }
     if (!email.trim() || !email.includes('@')) { setError('Please enter a valid email'); return; }
@@ -54,8 +72,9 @@ export function PlanCheckout({ plan }: Props) {
 
       if (!res.ok) { setError(data.error ?? 'Something went wrong.'); setLoading(false); return; }
 
-      // Demo mode — redirect directly
+      // Demo mode — record locally (no real Razorpay keys configured) and redirect
       if (data.mode === 'demo') {
+        await recordSubscription();
         window.location.href = data.url;
         return;
       }
@@ -65,35 +84,33 @@ export function PlanCheckout({ plan }: Props) {
         if (!window.Razorpay) { setError('Payment gateway not loaded. Please refresh.'); setLoading(false); return; }
 
         const rzp = new window.Razorpay({
-          key:         data.keyId,
-          amount:      data.amount,
-          currency:    data.currency,
-          name:        'WellFiLab',
-          description: `${data.planName} — ${billing}`,
-          order_id:    data.orderId,
-          prefill:     data.prefill,
-          theme:       { color: '#0d9488' },
+          key:             data.keyId,
+          subscription_id: data.subscriptionId,
+          name:            'WellFiLab',
+          description:     `${data.planName} — ${billing}`,
+          prefill:         data.prefill,
+          theme:           { color: '#0d9488' },
           modal: {
             ondismiss: () => setLoading(false),
           },
           handler: (response: any) => {
-            // Payment successful — verify on server then redirect
+            // Payment successful — verify on server, record locally, then redirect
             fetch('/api/verify-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
+                razorpay_subscription_id: response.razorpay_subscription_id,
+                razorpay_payment_id:      response.razorpay_payment_id,
+                razorpay_signature:       response.razorpay_signature,
                 planId:   data.planId,
                 billing:  data.billing,
                 email:    email.trim(),
               }),
-            }).then(() => {
-              window.location.href = data.successUrl;
-            }).catch(() => {
-              // Even if verify fails, redirect — webhook handles truth
-              window.location.href = data.successUrl;
+            }).finally(() => {
+              // Even if verify fails, redirect — webhook handles truth server-side
+              recordSubscription(data.subscriptionId).finally(() => {
+                window.location.href = data.successUrl;
+              });
             });
           },
         });
