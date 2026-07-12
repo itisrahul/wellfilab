@@ -55,24 +55,24 @@ export default function HomePage() {
 
           {/* Headline */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
-            Confused about<br/>
-            <span className="text-teal-200">what to fix first?</span>
+            Confused about what to fix first
+            <span className="text-teal-200"> — health or money?</span>
           </h1>
 
           {/* Sub */}
           <p className="text-teal-100/85 text-xl leading-relaxed mb-10 max-w-2xl mx-auto">
-            We look at your health and finances together and tell you exactly where to start — and what to do next.
+            We look at your health and finances together and build you a personalised step-by-step roadmap. Free. Takes 60 seconds.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <Link href="/score"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
-              Find my starting point →
+              Get my free roadmap →
             </Link>
             <Link href="/tools"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 transition-all">
-              🧮 Browse free tools
+              Browse 60 free tools →
             </Link>
           </div>
 
@@ -98,22 +98,23 @@ export default function HomePage() {
             HOW IT WORKS
         ══════════════════════════════════════════════ */}
         <section>
-          <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">How it works</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2 text-center">How it works</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">From confused to clear — in minutes</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { n: '1', icon: '🧮', title: 'Use free tools',       desc: '60+ calculators for health and finance. No signup. Instant results.' },
-              { n: '2', icon: '⭐', title: 'Get your score',       desc: '3 questions. 60 seconds. Understand your complete health + wealth picture.' },
-              { n: '3', icon: '🗺️', title: 'See your roadmap',     desc: 'A personalised step-by-step plan. What to fix first, second, third.' },
-              { n: '4', icon: '📋', title: 'Get expert guidance', desc: 'Optional paid plan for deeper personalised advice from ₹149/month.' },
+              { n: '01', icon: '🧮', title: 'Use free tools',           desc: '60+ instant calculators for health and finance. No signup.' },
+              { n: '02', icon: '⭐', title: 'Enter your real numbers',  desc: 'Age, weight, sleep, income — your score is calculated from your actual data.' },
+              { n: '03', icon: '🗺️', title: 'Get your roadmap',         desc: 'A personalised step-by-step plan. What to fix first, second, third — and which tools to use.' },
+              { n: '04', icon: '📈', title: 'Track and improve',        desc: 'Come back monthly. Your roadmap updates as your score improves.' },
             ].map((s, i, arr) => (
-              <div key={s.n} className="relative p-5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 text-center">
+              <div key={s.n} className="relative p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 text-center">
                 {i < arr.length - 1 && (
                   <span className="hidden lg:block absolute top-1/2 -right-2.5 -translate-y-1/2 text-gray-300 dark:text-gray-700 text-lg">→</span>
                 )}
-                <div className="w-9 h-9 mx-auto mb-3 rounded-full bg-teal-600 text-white text-xs font-black flex items-center justify-center">{s.n}</div>
+                <p className="text-3xl font-black text-teal-600 opacity-30 mb-1">{s.n}</p>
                 <div className="text-2xl mb-2">{s.icon}</div>
                 <p className="font-bold text-sm text-gray-900 dark:text-white mb-1">{s.title}</p>
-                <p className="text-xs text-gray-400 leading-relaxed">{s.desc}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -136,19 +137,19 @@ export default function HomePage() {
                   <div className="flex items-center gap-2.5 mb-5">
                     <span className="flex items-center gap-1.5 text-xs font-bold bg-teal-500 text-white px-3 py-1.5 rounded-full uppercase tracking-wide">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"/>
-                      New · Signature Feature
+                      Free · No signup needed
                     </span>
                   </div>
 
                   <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-                    Your complete picture in 60 seconds
+                    Your health and money<br/>are more connected than you think.
                   </h2>
                   <p className="text-gray-400 leading-relaxed mb-8 text-base">
-                    Most people try to fix health OR money. WellFiLab shows you how they connect — and which one to fix first for your specific situation.
+                    WellFiLab looks at both together and shows you exactly what to fix first — with a personalised step-by-step roadmap based on your actual numbers. Not self-ratings. Not guesses. Your data.
                   </p>
 
                   <div className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-teal-500 group-hover:bg-teal-400 text-white font-bold text-sm transition-all group-hover:shadow-lg group-hover:shadow-teal-500/30">
-                    Find my starting point
+                    Get my free roadmap →
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                     </svg>
@@ -176,13 +177,8 @@ export default function HomePage() {
                     ))}
                   </div>
                   {/* Stats row */}
-                  <div className="flex gap-6 mt-4 pt-4 border-t border-white/10">
-                    {[{v:'3', l:'Quick questions'},{v:'60 sec', l:'To your score'},{v:'Free', l:'Always'}].map(s => (
-                      <div key={s.l} className="text-center flex-1">
-                        <p className="text-lg font-black text-teal-400">{s.v}</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">{s.l}</p>
-                      </div>
-                    ))}
+                  <div className="mt-4 pt-4 border-t border-white/10 text-center">
+                    <p className="text-xs text-gray-400">Real inputs · Based on your data · Free · Always · Roadmap included</p>
                   </div>
                 </div>
               </div>
@@ -196,10 +192,11 @@ export default function HomePage() {
         <section>
           <div className="flex items-end justify-between mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Free Calculators</p>
-              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">{CALCULATORS.length} Tools. Instant.</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Step 1 — Start Here</p>
+              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">60+ free tools. Use any. Your roadmap connects them.</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Each calculator result links to your score and roadmap automatically.</p>
             </div>
-            <Link href="/tools" className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+            <Link href="/tools" className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:underline flex-shrink-0">
               View all →
             </Link>
           </div>
@@ -288,9 +285,9 @@ export default function HomePage() {
           <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-6 text-center">Why WellFiLab</h2>
           <div className="grid sm:grid-cols-3 gap-5">
           {[
-            { icon:'👩‍⚕️', title:'Real expertise',    body:'Plans created by a certified nutrition and finance professional. Not AI. Not templates.' },
-            { icon:'🎯', title:'Your numbers',        body:'We use your WellFiLab Score, your goals, and your specific situation — not averages.' },
-            { icon:'💬', title:'30-day guarantee',    body:'Not useful in 30 days? Full refund. No forms. No questions. Immediate.' },
+            { icon:'🔗', title:'Health and money together', body:'Most apps fix one or the other. WellFiLab is the only tool that shows how they connect — and what that connection costs you.' },
+            { icon:'📊', title:'Your actual numbers',        body:'Enter your real data — sleep hours, income, weight. Your score is calculated from your actual numbers, not self-ratings or averages.' },
+            { icon:'🗺️', title:'A roadmap, not just a number', body:'Most tools stop at a score and leave you guessing. WellFiLab tells you what to fix first, second, and third — free, no plan required.' },
           ].map(f => (
             <div key={f.title} className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
               <div className="text-3xl mb-4">{f.icon}</div>
