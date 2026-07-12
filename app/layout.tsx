@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     default:  `${SITE_NAME} — Health & Finance Tools and Guides`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: '60+ free health and finance calculators in 15 currencies, evidence-based guides, and a personalised Health-Wealth Score — free for everyone, everywhere.',
+  description: '60+ free health and finance calculators in 15 currencies, evidence-based guides, and a personalised WellFiLab Score — free for everyone, everywhere.',
   openGraph: { type: 'website', siteName: SITE_NAME, locale: 'en_US' },
   twitter: { card: 'summary_large_image' },
   icons: {

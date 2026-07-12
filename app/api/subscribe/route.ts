@@ -8,11 +8,9 @@ import { NextResponse } from 'next/server';
  */
 
 export async function POST(req: Request) {
-  const body         = await req.json().catch(() => null);
-  const email        = body?.email?.trim()?.toLowerCase();
-  const source       = body?.source ?? 'unknown';
-  const scoreOverall = typeof body?.scoreOverall === 'number' ? body.scoreOverall : undefined;
-  const profileName  = typeof body?.profileName  === 'string' ? body.profileName  : undefined;
+  const body   = await req.json().catch(() => null);
+  const email  = body?.email?.trim()?.toLowerCase();
+  const source = body?.source ?? 'unknown';
 
   if (!email || !email.includes('@') || !email.includes('.')) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
@@ -33,10 +31,8 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           from:    'WellFiLab <hello@wellfilab.com>',
           to:      [email],
-          subject: scoreOverall
-            ? `Your Health-Wealth Score: ${scoreOverall}/100 — here's what it means`
-            : 'Welcome to WellFiLab 👋',
-          html: buildWelcomeEmail({ email, scoreOverall, profileName }),
+          subject: 'Welcome to WellFiLab 👋',
+          html: buildWelcomeEmail({ email }),
         }),
       });
 
@@ -69,7 +65,7 @@ export async function POST(req: Request) {
 
     const already = subs.some((s: any) => s.email === email);
     if (!already) {
-      subs.push({ email, source, scoreOverall, profileName, capturedAt: new Date().toISOString() });
+      subs.push({ email, source, capturedAt: new Date().toISOString() });
       if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
       fs.writeFileSync(DATA_FILE, JSON.stringify(subs, null, 2));
     }
@@ -80,21 +76,8 @@ export async function POST(req: Request) {
 }
 
 // ── Email template ────────────────────────────────────────────────────────────
-function buildWelcomeEmail({ email, scoreOverall, profileName }: {
-  email: string;
-  scoreOverall?: number;
-  profileName?: string;
-}) {
+function buildWelcomeEmail({ email }: { email: string }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wellfilab.com';
-
-  const scoreSection = scoreOverall ? `
-    <div style="background:#f0fdfa;border-left:4px solid #0d9488;padding:16px 20px;border-radius:8px;margin:24px 0">
-      <p style="margin:0;font-size:14px;color:#0f766e;font-weight:600">Your Health-Wealth Score: ${scoreOverall}/100</p>
-      ${profileName ? `<p style="margin:4px 0 0;font-size:13px;color:#0f766e">Profile: ${profileName}</p>` : ''}
-      <p style="margin:8px 0 0;font-size:13px;color:#115e59">
-        We'll remind you to retake the quiz in 90 days so you can see how much you've improved.
-      </p>
-    </div>` : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -115,21 +98,20 @@ function buildWelcomeEmail({ email, scoreOverall, profileName }: {
       <h1 style="margin:0 0 16px;font-size:24px;font-weight:800;color:#111827">
         Welcome to WellFiLab 👋
       </h1>
-      <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
-        You're in. We're glad you're here.
-      </p>
-
-      ${scoreSection}
-
       <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6">
         Here's what you can do right now — all free, no signup needed:
       </p>
 
-      <!-- 3 CTAs -->
+      <!-- 4 CTAs -->
       <div style="space-y:12px">
-        <a href="${siteUrl}/tools" style="display:block;padding:14px 20px;background:#f0fdfa;border:1px solid #ccfbf1;border-radius:12px;text-decoration:none;margin-bottom:10px">
+        <a href="${siteUrl}/score" style="display:block;padding:14px 20px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;text-decoration:none;margin-bottom:10px">
+          <span style="font-size:18px">🎯</span>
+          <strong style="color:#0f766e;font-size:14px;margin-left:10px">Get your WellFiLab Score</strong>
+          <p style="margin:4px 0 0 28px;font-size:12px;color:#6b7280">3 quick questions, 60 seconds — one score for your whole life</p>
+        </a>
+        <a href="${siteUrl}/tools" style="display:block;padding:14px 20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;text-decoration:none;margin-bottom:10px">
           <span style="font-size:18px">🧮</span>
-          <strong style="color:#0f766e;font-size:14px;margin-left:10px">Browse 60+ free calculators</strong>
+          <strong style="color:#111827;font-size:14px;margin-left:10px">Browse 60+ free calculators</strong>
           <p style="margin:4px 0 0 28px;font-size:12px;color:#6b7280">BMI, SIP, EMI, FIRE, calories, sleep and more</p>
         </a>
         <a href="${siteUrl}/guides" style="display:block;padding:14px 20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;text-decoration:none;margin-bottom:10px">

@@ -4,7 +4,7 @@ import { SITE_NAME } from '@/config/site';
 const EXPLORE_LINKS = [
   ['/tools',  'Tools'],
   ['/guides', 'Guides'],
-  ['/score',  'Health-Wealth Score'],
+  ['/score',  'WellFiLab Score'],
   ['/plan',   'Plans & Pricing'],
 ];
 
@@ -36,7 +36,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
-              Free health and finance calculators, evidence-based guides, and a personalised Health-Wealth Score — for everyone, everywhere.
+              Free health and finance calculators, evidence-based guides, and a personalised WellFiLab Score — for everyone, everywhere.
             </p>
           </div>
 

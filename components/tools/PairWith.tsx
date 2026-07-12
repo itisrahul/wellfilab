@@ -11,7 +11,7 @@ import type { Calculator } from '@/config/tools';
  *  - creates topical, varied-anchor-text internal links across the whole site
  *    (good for crawl depth + PageRank flow between health/finance sections)
  *  - reinforces the site's unique "health and wealth are linked" positioning,
- *    which is the same idea WellFiLab's Health-Wealth Score is built on
+ *    which is the same idea WellFiLab's Score is built on
  */
 export function PairWith({ calc }: { calc: Calculator }) {
   const pairs = (calc.pairWith ?? [])

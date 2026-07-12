@@ -380,7 +380,7 @@ export function Navbar() {
           <div className="p-3 border-t border-gray-100 dark:border-gray-700">
             <Link href="/score" onClick={() => setMobile(false)}
               className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors">
-              ⭐ Get Your Health-Wealth Score
+              ⭐ Get Your WellFiLab Score
             </Link>
           </div>
         </div>

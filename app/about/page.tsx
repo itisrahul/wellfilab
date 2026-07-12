@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
   title: `About — ${SITE_NAME}`,
-  description: `WellFiLab provides ${CALCULATORS.length}+ free health and finance calculators in 15 currencies, evidence-based guides, and a personalised Health-Wealth Score — for users worldwide.`,
+  description: `WellFiLab provides ${CALCULATORS.length}+ free health and finance calculators in 15 currencies, evidence-based guides, and a personalised WellFiLab Score — for users worldwide.`,
   alternates: { canonical: `${SITE_URL}/about` },
 };
 
@@ -20,9 +20,10 @@ const PRINCIPLES = [
 
 const TIMELINE = [
   { year:'2023', event:'WellFiLab launched as a finance and health blog — covering FIRE, weight loss, sleep science, and personal finance for a global audience.' },
-  { year:'2024', event:'Added the Health-Wealth Score — a 24-question assessment across 6 life dimensions, with personalised action plans and trend tracking.' },
+  { year:'2024', event:'Added a Score feature — a guided assessment combining health and finance, with personalised action plans and trend tracking.' },
   { year:'2024', event:'Built HealthWealthTools — 60 free calculators covering everything from BMI to tax to retirement planning, supporting 15 currencies.' },
   { year:'2025', event:'Merged both products into a single platform at wellfilab.com — one domain, one design, one place for tools and guides.' },
+  { year:'2026', event:'Rebuilt the Score into the unified WellFiLab Score — 3 quick questions get you an instant score and archetype, then real numbers on your body and finances unlock the full picture: health costs in real currency, life trajectories, and a 6-dimension breakdown.' },
 ];
 
 export default function AboutPage() {
@@ -71,7 +72,7 @@ export default function AboutPage() {
             {[
               { icon:'🧮', title:`${CALCULATORS.length}+ Calculators`,      desc:'BMI, SIP, EMI, FIRE, income tax, body fat, calories, sleep cycles and more. All free, all instant, all private.' },
               { icon:'📖', title:`${ALL_POSTS.length} Evidence-Based Guides`, desc:'Health, finance, nutrition, and lifestyle — every claim is sourced against published research.' },
-              { icon:'⭐', title:'Health-Wealth Score',                       desc:'24 questions, 6 dimensions, instant score. Personalised action plan and 90-day trend tracking.' },
+              { icon:'⭐', title:'WellFiLab Score',                          desc:'3 quick questions, 60 seconds, instant score and archetype. Go deeper for real numbers on health and money.' },
             ].map(f => (
               <div key={f.title} className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
                 <div className="text-2xl mb-3">{f.icon}</div>
@@ -118,8 +119,8 @@ export default function AboutPage() {
           <Link href="/score"
             className="group flex flex-col gap-3 p-6 rounded-2xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/20 hover:border-teal-300 hover:shadow-sm transition-all">
             <span className="text-2xl">⭐</span>
-            <p className="font-bold text-gray-900 dark:text-gray-100 group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">Try the Health-Wealth Score</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Free, 24 questions, instant personalised results.</p>
+            <p className="font-bold text-gray-900 dark:text-gray-100 group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">Try the WellFiLab Score</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Free, 3 quick questions, instant personalised results.</p>
           </Link>
           <Link href="/contact"
             className="group flex flex-col gap-3 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-sm transition-all">

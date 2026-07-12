@@ -8,7 +8,7 @@ import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} — Free Health & Finance Tools, Guides & Score`,
-  description: `${CALCULATORS.length}+ free calculators, evidence-based guides, and a personalised Health-Wealth Score. No signup. 100% private.`,
+  description: `${CALCULATORS.length}+ free calculators, evidence-based guides, and a personalised WellFiLab Score. No signup. 100% private.`,
   alternates: { canonical: SITE_URL },
   openGraph: {
     title: `${SITE_NAME} — A Better Life Starts Here.`,
@@ -20,13 +20,13 @@ export const metadata: Metadata = {
 const POPULAR_SLUGS = ['bmi','calories','body-fat','sleep','sip','loan','retirement','income-tax','fire','compound'];
 const popular = POPULAR_SLUGS.map(s => CALCULATORS.find(c => c.slug === s)).filter(Boolean) as typeof CALCULATORS;
 
+// Same 4 core dimensions the algorithm actually returns (score.body/mind/wealth/life),
+// same colours as the dashboard's dimension bars — one visual language across the site.
 const SCORE_DIMS = [
-  { icon:'💪', label:'Body Health',     color:'bg-teal-500'   },
-  { icon:'🥗', label:'Nutrition',        color:'bg-green-500'  },
-  { icon:'🧠', label:'Mental Wellness',  color:'bg-indigo-500' },
-  { icon:'💰', label:'Savings',          color:'bg-amber-500'  },
-  { icon:'💳', label:'Debt & Spending',  color:'bg-red-500'    },
-  { icon:'📈', label:'Future Planning',  color:'bg-purple-500' },
+  { icon:'💪', label:'Body',   color:'bg-teal-500'   },
+  { icon:'🧠', label:'Mind',   color:'bg-indigo-500' },
+  { icon:'💰', label:'Wealth', color:'bg-amber-500'  },
+  { icon:'🌱', label:'Life',   color:'bg-green-500'  },
 ];
 
 export default function HomePage() {
@@ -61,7 +61,7 @@ export default function HomePage() {
 
           {/* Sub */}
           <p className="text-teal-100/85 text-xl leading-relaxed mb-10 max-w-2xl mx-auto">
-            {CALCULATORS.length} free calculators · {ALL_POSTS.length} evidence-based guides · personalised Health-Wealth Score
+            {CALCULATORS.length} free calculators · {ALL_POSTS.length} evidence-based guides · your personalised WellFiLab Score
           </p>
 
           {/* CTAs */}
@@ -116,14 +116,14 @@ export default function HomePage() {
                   </div>
 
                   <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-                    How Balanced<br/>Is Your Life?
+                    One Score For<br/>Your Whole Life.
                   </h2>
                   <p className="text-gray-400 leading-relaxed mb-8 text-base">
-                    Take our free 24-question quiz across 6 life dimensions. Get an instant personalised score, action plan, and track your progress over 90 days.
+                    Answer 3 quick questions in 60 seconds. Get your WellFiLab Score, your archetype, and exactly what to do next — then go deeper with real numbers on health and money whenever you want the full picture.
                   </p>
 
                   <div className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-teal-500 group-hover:bg-teal-400 text-white font-bold text-sm transition-all group-hover:shadow-lg group-hover:shadow-teal-500/30">
-                    Take the free quiz
+                    Get my Score
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                     </svg>
@@ -152,7 +152,7 @@ export default function HomePage() {
                   </div>
                   {/* Stats row */}
                   <div className="flex gap-6 mt-4 pt-4 border-t border-white/10">
-                    {[{v:'24', l:'Questions'},{v:'6', l:'Dimensions'},{v:'<5 min', l:'Duration'}].map(s => (
+                    {[{v:'3', l:'Quick questions'},{v:'60 sec', l:'To your score'},{v:'Free', l:'Always'}].map(s => (
                       <div key={s.l} className="text-center flex-1">
                         <p className="text-lg font-black text-teal-400">{s.v}</p>
                         <p className="text-[10px] text-gray-500 mt-0.5">{s.l}</p>

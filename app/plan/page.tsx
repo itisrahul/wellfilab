@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const TRUST = [
-  { icon:'⭐', n:'Free Score', desc:'Start with the free Health-Wealth Score to see where you stand before choosing a plan.' },
+  { icon:'⭐', n:'Free Score', desc:'Start with the free WellFiLab Score to see where you stand before choosing a plan.' },
   { icon:'👩‍⚕️', n:'Expert-built', desc:'Every plan is crafted by certified nutritionists, financial planners, and health coaches.' },
   { icon:'🎯', n:'Personalised', desc:'Tailored to your Score results, goals, income bracket, and lifestyle — not a generic template.' },
   { icon:'💬', n:'30-day guarantee', desc:'Not happy in the first 30 days? Full refund, no questions asked.' },
@@ -19,8 +19,8 @@ const TRUST = [
 const COMPARE = [
   { feature:'Access to all 60+ calculators', free:true,  paid:true  },
   { feature:'34 evidence-based guides',       free:true,  paid:true  },
-  { feature:'Health-Wealth Score',            free:true,  paid:true  },
-  { feature:'90-day trend tracking',          free:true,  paid:true  },
+  { feature:'WellFiLab Score',                free:true,  paid:true  },
+  { feature:'Score history & trend tracking', free:true,  paid:true  },
   { feature:'Personalised action plan',       free:'Basic', paid:'Full' },
   { feature:'Custom meal / budget plan',      free:false, paid:true  },
   { feature:'Weekly expert check-ins',        free:false, paid:true  },
@@ -177,7 +177,7 @@ export default async function PlanPage() {
         <section className="bg-gradient-to-br from-teal-600 to-cyan-500 rounded-2xl p-8 text-center text-white">
           <h2 className="text-2xl font-extrabold mb-3">Not sure which plan to pick?</h2>
           <p className="text-teal-100 mb-6 text-sm max-w-md mx-auto">
-            Take the free Health-Wealth Score first. It tells you exactly which areas of your life need the most attention — so you choose the right plan.
+            Take the free WellFiLab Score first. It tells you exactly which areas of your life need the most attention — so you choose the right plan.
           </p>
           <Link href="/score"
             className="inline-flex items-center gap-2 bg-white text-teal-700 font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all text-sm">
