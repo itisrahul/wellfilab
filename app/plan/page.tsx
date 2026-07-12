@@ -71,10 +71,10 @@ export default async function PlanPage() {
             Personalised Plans
           </p>
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3 leading-tight">
-            Free tools show you the numbers.<br />We show you what to do with them.
+            Go deeper than the roadmap
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-base max-w-xl mx-auto leading-relaxed mb-6">
-            Your personalised plan — created by a real expert, specific to your situation. Not AI. Not a template. Yours.
+            The free roadmap shows you what to do. The personalised plan shows you exactly how to do it — built for your specific situation by a real expert.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/score"
@@ -86,6 +86,17 @@ export default async function PlanPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-16">
+
+        {/* ── Haven't taken score yet ── */}
+        <div className="flex items-center justify-between gap-4 flex-wrap bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 rounded-2xl px-5 py-4">
+          <div>
+            <p className="text-sm font-bold text-teal-800 dark:text-teal-300">Haven't taken your score yet?</p>
+            <p className="text-xs text-teal-700/80 dark:text-teal-400/70 mt-0.5">Your score shows which plan helps most for your specific situation.</p>
+          </div>
+          <Link href="/score" className="flex-shrink-0 text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline">
+            Get free score first →
+          </Link>
+        </div>
 
         {/* ── How it works ── */}
         <section>

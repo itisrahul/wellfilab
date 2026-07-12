@@ -196,11 +196,12 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
 });
 
 const NAV = [
-  { href:'/tools',  label:'Tools',  hasMega:true  },
-  { href:'/guides', label:'Guides', hasMega:false },
-  { href:'/score',  label:'Score',  hasMega:false },
-  { href:'/plan',   label:'Plans',  hasMega:false },
-  { href:'/about',  label:'About',  hasMega:false },
+  { href:'/tools',   label:'Tools',   hasMega:true  },
+  { href:'/guides',  label:'Guides',  hasMega:false },
+  { href:'/score',   label:'Score',   hasMega:false },
+  { href:'/roadmap', label:'Roadmap', hasMega:false },
+  { href:'/plan',    label:'Plans',   hasMega:false },
+  { href:'/about',   label:'About',   hasMega:false },
 ];
 
 export function Navbar() {

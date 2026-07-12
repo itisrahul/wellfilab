@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { SITE_NAME } from '@/config/site';
 
 const EXPLORE_LINKS = [
-  ['/tools',  'Tools'],
-  ['/guides', 'Guides'],
-  ['/score',  'WellFiLab Score'],
-  ['/plan',   'Plans & Pricing'],
+  ['/tools',   'Tools'],
+  ['/guides',  'Guides'],
+  ['/score',   'WellFiLab Score'],
+  ['/roadmap', 'Roadmap'],
+  ['/plan',    'Plans & Pricing'],
 ];
 
 const COMPANY_LINKS = [

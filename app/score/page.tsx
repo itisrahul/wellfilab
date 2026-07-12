@@ -325,6 +325,12 @@ export default function ScorePage() {
         {/* ── SECTION 2: Archetype card ── */}
         <ArchetypeCard score={score} />
 
+        {/* ── Bridge to the roadmap — the next step after seeing your archetype ── */}
+        <Link href="/roadmap"
+          className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-base shadow-lg shadow-teal-600/20 hover:scale-[1.01] transition-all">
+          See your personalised roadmap →
+        </Link>
+
         {/* ── STEP 6 additions — only once full data exists ── */}
         {score.level === 'full' && score.annualHealthCost != null && (
           <HealthCostCard score={score} />
@@ -339,19 +345,19 @@ export default function ScorePage() {
         {/* ── SECTION 3: deeper insights CTA ── */}
         {score.level !== 'full' && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-            <p className="font-bold text-gray-900 dark:text-white mb-1">Want deeper insights?</p>
-            <p className="text-sm text-gray-400 mb-5">Each step takes about 2 minutes and sharpens your score with real numbers.</p>
+            <p className="font-bold text-gray-900 dark:text-white mb-1">Make your roadmap more accurate</p>
+            <p className="text-sm text-gray-400 mb-5">Add a few more details and your roadmap becomes more specific to you.</p>
             <div className="grid sm:grid-cols-2 gap-3">
               <button onClick={openBody}
                 className="text-left p-5 rounded-xl border-2 border-gray-100 dark:border-gray-800 hover:border-teal-400 dark:hover:border-teal-600 transition-all">
-                <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">💪 Add body details</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">💪 Add health details (2 min)</p>
                 <p className="text-xs text-gray-400 mb-3">Sleep, exercise, weight</p>
                 <p className="text-xs text-gray-400">See your health cost in ₹</p>
                 <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-2">Takes 2 minutes →</p>
               </button>
               <button onClick={openFinance}
                 className="text-left p-5 rounded-xl border-2 border-gray-100 dark:border-gray-800 hover:border-amber-400 dark:hover:border-amber-600 transition-all">
-                <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">💰 Add finances</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">💰 Add finance details (2 min)</p>
                 <p className="text-xs text-gray-400 mb-3">Income, savings, debt</p>
                 <p className="text-xs text-gray-400">See your full Life ROI</p>
                 <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-2">Takes 2 minutes →</p>

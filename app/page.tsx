@@ -55,25 +55,24 @@ export default function HomePage() {
 
           {/* Headline */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
-            Know Your Numbers.<br/>
-            <span className="text-teal-200">Improve Your Life.</span>
+            Confused about<br/>
+            <span className="text-teal-200">what to fix first?</span>
           </h1>
 
           {/* Sub */}
           <p className="text-teal-100/85 text-xl leading-relaxed mb-10 max-w-2xl mx-auto">
-            Free tools show you the numbers. Expert plans show you what to do with them.<br className="hidden sm:block" />
-            No guesswork. No generic advice. Just yours.
+            We look at your health and finances together and tell you exactly where to start — and what to do next.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <Link href="/score"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
-              ⭐ Get My Free Score
+              Find my starting point →
             </Link>
-            <Link href="/plan"
+            <Link href="/tools"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 transition-all">
-              📋 See Plans from ₹149/mo
+              🧮 Browse free tools
             </Link>
           </div>
 
@@ -94,6 +93,31 @@ export default function HomePage() {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-20">
+
+        {/* ══════════════════════════════════════════════
+            HOW IT WORKS
+        ══════════════════════════════════════════════ */}
+        <section>
+          <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">How it works</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { n: '1', icon: '🧮', title: 'Use free tools',       desc: '60+ calculators for health and finance. No signup. Instant results.' },
+              { n: '2', icon: '⭐', title: 'Get your score',       desc: '3 questions. 60 seconds. Understand your complete health + wealth picture.' },
+              { n: '3', icon: '🗺️', title: 'See your roadmap',     desc: 'A personalised step-by-step plan. What to fix first, second, third.' },
+              { n: '4', icon: '📋', title: 'Get expert guidance', desc: 'Optional paid plan for deeper personalised advice from ₹149/month.' },
+            ].map((s, i, arr) => (
+              <div key={s.n} className="relative p-5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 text-center">
+                {i < arr.length - 1 && (
+                  <span className="hidden lg:block absolute top-1/2 -right-2.5 -translate-y-1/2 text-gray-300 dark:text-gray-700 text-lg">→</span>
+                )}
+                <div className="w-9 h-9 mx-auto mb-3 rounded-full bg-teal-600 text-white text-xs font-black flex items-center justify-center">{s.n}</div>
+                <div className="text-2xl mb-2">{s.icon}</div>
+                <p className="font-bold text-sm text-gray-900 dark:text-white mb-1">{s.title}</p>
+                <p className="text-xs text-gray-400 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* ══════════════════════════════════════════════
             SCORE — dramatic, full-width feature card
@@ -117,14 +141,14 @@ export default function HomePage() {
                   </div>
 
                   <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-                    One Score For<br/>Your Whole Life.
+                    Your complete picture in 60 seconds
                   </h2>
                   <p className="text-gray-400 leading-relaxed mb-8 text-base">
-                    Answer 3 quick questions in 60 seconds. Get your WellFiLab Score, your archetype, and exactly what to do next — then go deeper with real numbers on health and money whenever you want the full picture.
+                    Most people try to fix health OR money. WellFiLab shows you how they connect — and which one to fix first for your specific situation.
                   </p>
 
                   <div className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-teal-500 group-hover:bg-teal-400 text-white font-bold text-sm transition-all group-hover:shadow-lg group-hover:shadow-teal-500/30">
-                    Get my Score
+                    Find my starting point
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                     </svg>

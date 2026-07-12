@@ -34,9 +34,22 @@ interface DashboardData {
   history: WellFiScore[];
   subscription: StoredSubscription | null;
   onboarded: boolean;
+  roadmapStarted: boolean;
+  phase1Done: boolean;
   calcHistory: CalcHistoryEntry[];
   greeting: string;
   dateStr: string;
+}
+
+function readRoadmapState(): { started: boolean; phase1Done: boolean } {
+  if (typeof window === 'undefined') return { started: false, phase1Done: false };
+  const started = !!window.localStorage.getItem('wfl_roadmap_start');
+  let phase1Done = false;
+  try {
+    const checked = JSON.parse(window.localStorage.getItem('wfl_roadmap_checked') ?? '{}');
+    phase1Done = !!checked['p1-0'] && !!checked['p1-1'] && !!checked['p1-2'];
+  } catch { /* noop */ }
+  return { started, phase1Done };
 }
 
 const DIMENSIONS: { key: 'body' | 'mind' | 'wealth' | 'life'; label: string; icon: string; barColor: string }[] = [
@@ -67,19 +80,19 @@ const STEP_STYLE: Record<StepState, { dot: string; text: string; line: string }>
   optional: { dot: 'bg-white dark:bg-gray-900 text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-700', text: 'text-gray-400', line: 'bg-gray-200 dark:bg-gray-700' },
 };
 
-function buildJourney(score: WellFiScore, subscription: StoredSubscription | null, onboarded: boolean): JourneyStep[] {
+function buildJourney(
+  score: WellFiScore, subscription: StoredSubscription | null, onboarded: boolean,
+  roadmapStarted: boolean, phase1Done: boolean
+): JourneyStep[] {
   const steps: JourneyStep[] = [{ icon: '🎯', label: 'Score taken', sub: score.archetype.name, state: 'done' }];
 
-  if (!subscription || subscription.status === 'cancelled') {
-    steps.push({ icon: '📋', label: 'Get a plan', sub: subscription ? 'Resubscribe' : 'Optional', state: 'optional', href: '/plan' });
-  } else if (!onboarded) {
-    steps.push({ icon: '📝', label: 'Onboarding', sub: 'Do this next', state: 'current', href: `/plan/onboarding?plan=${subscription.planId}` });
-    steps.push({ icon: '📬', label: 'Plan arrives', sub: 'Within 48hrs', state: 'upcoming' });
-  } else {
-    steps.push({ icon: '📝', label: 'Onboarding', sub: 'Complete', state: 'done' });
-    const next = new Date(subscription.nextBillingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-    steps.push({ icon: '📬', label: 'Plan delivered', sub: `Next: ${next}`, state: 'done' });
-  }
+  steps.push(roadmapStarted
+    ? { icon: '🗺️', label: 'View roadmap', sub: 'Started', state: 'done', href: '/roadmap' }
+    : { icon: '🗺️', label: 'View roadmap', sub: 'Do this next', state: 'current', href: '/roadmap' });
+
+  steps.push(phase1Done
+    ? { icon: '✅', label: 'Follow Phase 1', sub: '3 actions done', state: 'done', href: '/roadmap' }
+    : { icon: '✅', label: 'Follow Phase 1', sub: roadmapStarted ? '3 actions' : 'Start the roadmap first', state: roadmapStarted ? 'current' : 'upcoming', href: roadmapStarted ? '/roadmap' : undefined });
 
   const daysSinceScore = score.date ? Math.floor((Date.now() - new Date(score.date).getTime()) / 86400000) : 0;
   const checkInDue = daysSinceScore >= 7;
@@ -90,11 +103,22 @@ function buildJourney(score: WellFiScore, subscription: StoredSubscription | nul
     href: checkInDue ? '/score' : undefined,
   });
 
+  if (!subscription || subscription.status === 'cancelled') {
+    steps.push({ icon: '📋', label: 'Plan', sub: subscription ? 'Resubscribe' : 'Optional', state: 'optional', href: '/plan' });
+  } else if (!onboarded) {
+    steps.push({ icon: '📋', label: 'Plan', sub: 'Complete onboarding', state: 'current', href: `/plan/onboarding?plan=${subscription.planId}` });
+  } else {
+    steps.push({ icon: '📋', label: 'Plan', sub: 'Active', state: 'done', href: '/plan' });
+  }
+
   return steps;
 }
 
-function JourneyTracker({ score, subscription, onboarded }: { score: WellFiScore; subscription: StoredSubscription | null; onboarded: boolean }) {
-  const steps = buildJourney(score, subscription, onboarded);
+function JourneyTracker({ score, subscription, onboarded, roadmapStarted, phase1Done }: {
+  score: WellFiScore; subscription: StoredSubscription | null; onboarded: boolean;
+  roadmapStarted: boolean; phase1Done: boolean;
+}) {
+  const steps = buildJourney(score, subscription, onboarded, roadmapStarted, phase1Done);
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
       <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Your journey</p>
@@ -120,6 +144,33 @@ function JourneyTracker({ score, subscription, onboarded }: { score: WellFiScore
   );
 }
 
+function RoadmapCard({ score, started }: { score: WellFiScore; started: boolean }) {
+  if (!started) {
+    return (
+      <Link href="/roadmap"
+        className="flex items-center gap-4 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl p-5 text-white hover:shadow-lg transition-all group">
+        <span className="text-3xl flex-shrink-0">🗺️</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm">Your roadmap is ready →</p>
+          <p className="text-xs text-white/80 mt-0.5">Based on your score. Free. Personalised.</p>
+        </div>
+        <span className="flex-shrink-0 text-xs font-bold group-hover:translate-x-0.5 transition-transform">View →</span>
+      </Link>
+    );
+  }
+  return (
+    <Link href="/roadmap"
+      className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+      <span className="text-3xl flex-shrink-0">{score.archetype.emoji}</span>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-gray-900 dark:text-white text-sm">Your Roadmap</p>
+        <p className="text-xs text-gray-400 mt-0.5">{score.archetype.name} · Score {score.overall}/100</p>
+      </div>
+      <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">View your roadmap →</span>
+    </Link>
+  );
+}
+
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const firstName = userName.split(' ')[0];
@@ -139,9 +190,12 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           subscription = localSub;
         }
         const onboarding = subscription ? await getOnboarding(subscription.planId) : null;
+        const roadmap = readRoadmapState();
         setData({
           score, history, subscription,
-          onboarded:    !!onboarding,
+          onboarded:      !!onboarding,
+          roadmapStarted: roadmap.started,
+          phase1Done:     roadmap.phase1Done,
           calcHistory:  getCalcHistory(),
           greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
           dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -219,7 +273,11 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
           {/* Your journey — where they are, what's next, why it matters */}
-          <JourneyTracker score={data.score} subscription={data.subscription} onboarded={data.onboarded} />
+          <JourneyTracker score={data.score} subscription={data.subscription} onboarded={data.onboarded}
+            roadmapStarted={data.roadmapStarted} phase1Done={data.phase1Done} />
+
+          {/* Roadmap quick link — vivid "ready" banner until started, then a calmer continue-card */}
+          <RoadmapCard score={data.score} started={data.roadmapStarted} />
 
           {/* Member stats strip */}
           <div className="grid grid-cols-3 gap-3">
