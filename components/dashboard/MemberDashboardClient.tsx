@@ -2,15 +2,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import {
-  getScoreHistory, getLifeROIHistory, getScoreHistoryChartData, getSubscription,
-  getCalcHistory, recordVisitAndGetStreak, scoreColor,
-  type ScoreSnapshotLike, type LifeROIHistoryEntry, type ChartPoint, type StoredSubscription, type CalcHistoryEntry,
-} from '@/lib/dashboardData';
-import { ScoreRingsSection } from './ScoreRingsSection';
+import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
+import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
+import { getSubscription, getCalcHistory, type StoredSubscription, type CalcHistoryEntry } from '@/lib/dashboardData';
 import { AICoach } from './AICoach';
-import { AIRecommendations } from './AIRecommendations';
-import { LifeInsightsFeed } from './LifeInsightsFeed';
 import { PlanStatus } from './PlanStatus';
 import { QuickTools } from './QuickTools';
 
@@ -19,7 +14,7 @@ import { QuickTools } from './QuickTools';
 // initial JS payload with a library only this one chart needs.
 const ScoreHistoryChart = dynamic(
   () => import('./ScoreHistoryChart').then(m => m.ScoreHistoryChart),
-  { ssr: false, loading: () => <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 h-full min-h-[340px] animate-pulse" /> }
+  { ssr: false, loading: () => <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 h-full min-h-[300px] animate-pulse" /> }
 );
 
 interface Props {
@@ -30,15 +25,20 @@ interface Props {
 }
 
 interface DashboardData {
-  scoreHistory: ScoreSnapshotLike[];
-  lifeRoiHistory: LifeROIHistoryEntry[];
-  chartData: ChartPoint[];
+  score: WellFiScore | null;
+  history: WellFiScore[];
   subscription: StoredSubscription | null;
   calcHistory: CalcHistoryEntry[];
-  streak: number;
   greeting: string;
   dateStr: string;
 }
+
+const DIMENSIONS: { key: 'body' | 'mind' | 'wealth' | 'life'; label: string; icon: string; barColor: string }[] = [
+  { key: 'body',   label: 'Body',   icon: '💪', barColor: 'bg-teal-500' },
+  { key: 'mind',   label: 'Mind',   icon: '🧠', barColor: 'bg-indigo-500' },
+  { key: 'wealth', label: 'Wealth', icon: '💰', barColor: 'bg-amber-500' },
+  { key: 'life',   label: 'Life',   icon: '🌱', barColor: 'bg-green-500' },
+];
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -47,19 +47,16 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   useEffect(() => {
     const hour = new Date().getHours();
-    setData({
-      scoreHistory:   getScoreHistory(),
-      lifeRoiHistory: getLifeROIHistory(),
-      chartData:      getScoreHistoryChartData(),
-      subscription:   getSubscription(),
-      calcHistory:    getCalcHistory(),
-      streak:         recordVisitAndGetStreak(),
-      greeting:       hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
-      dateStr:        new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    Promise.all([getLatestScore(), getScoreHistory()]).then(([score, history]) => {
+      setData({
+        score, history,
+        subscription: getSubscription(),
+        calcHistory:  getCalcHistory(),
+        greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
+        dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      });
     });
   }, []);
-
-  const latestLifeROI = data?.lifeRoiHistory[0]?.lifeROIScore;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -82,7 +79,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
               )}
               <div>
                 <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
-                  {data ? data.dateStr : ' '}
+                  {data ? data.dateStr : ' '}
                 </p>
                 <h1 className="text-2xl font-extrabold text-white mb-0.5">
                   {data ? `${data.greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋
@@ -93,13 +90,13 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
             <div className="flex gap-3">
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="text-2xl font-black" style={{ color: latestLifeROI != null ? scoreColor(latestLifeROI) : '#6b7280' }}>
-                  {latestLifeROI ?? '—'}
+                <p className="text-2xl font-black" style={{ color: data?.score ? scoreColor(data.score.overall) : '#6b7280' }}>
+                  {data?.score?.overall ?? '—'}
                 </p>
-                <p className="text-white/40 text-[11px]">Life ROI Score</p>
+                <p className="text-white/40 text-[11px]">WellFiLab Score</p>
               </div>
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="text-2xl font-black text-teal-400">{data ? data.streak : '—'}</p>
+                <p className="text-2xl font-black text-teal-400">{data?.score?.streakDays ?? '—'}</p>
                 <p className="text-white/40 text-[11px]">Day streak 🔥</p>
               </div>
             </div>
@@ -109,29 +106,86 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
       {!data ? (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
+      ) : !data.score ? (
+        // ── No score yet — CTA to take it ──
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
+          <p className="text-4xl mb-4">🎯</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't taken your WellFiLab Score yet</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
+          </p>
+          <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
+            Take the WellFiLab Score →
+          </Link>
+        </div>
       ) : (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-          {/* Row 1 — three score rings */}
-          <ScoreRingsSection scoreHistory={data.scoreHistory} lifeRoiHistory={data.lifeRoiHistory} />
+          {/* Score + archetype hero */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+            <div className="flex items-center gap-4 flex-wrap justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">{data.score.archetype.emoji}</span>
+                <div>
+                  <p className="font-extrabold text-gray-900 dark:text-white text-lg leading-tight">{data.score.archetype.name}</p>
+                  <p className="text-xs text-gray-400">{data.score.archetype.tagline}</p>
+                </div>
+              </div>
+              <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex-shrink-0">
+                View full score →
+              </Link>
+            </div>
 
-          {/* AI Coach — real Claude-generated analysis, the flagship differentiator */}
-          <AICoach scoreHistory={data.scoreHistory} lifeRoiHistory={data.lifeRoiHistory} />
-
-          {/* Row 2 — chart (2/3) + AI recommendations (1/3) */}
-          <div className="grid lg:grid-cols-3 gap-6 items-stretch">
-            <div className="lg:col-span-2"><ScoreHistoryChart data={data.chartData} /></div>
-            <div><AIRecommendations lifeRoiHistory={data.lifeRoiHistory} /></div>
+            {/* 4 dimension progress bars */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              {DIMENSIONS.map(d => (
+                <div key={d.key}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                      <span>{d.icon}</span>{d.label}
+                    </span>
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">{data.score[d.key]}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${d.barColor} transition-all duration-700`} style={{ width: `${data.score![d.key]}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Row 3 — life insights (2/3) + plan status (1/3) */}
+          {/* AI Coach */}
+          <AICoach score={data.score} />
+
+          {/* Chart (2/3) + Plan status (1/3) */}
           <div className="grid lg:grid-cols-3 gap-6 items-stretch">
-            <div className="lg:col-span-2"><LifeInsightsFeed lifeRoiHistory={data.lifeRoiHistory} /></div>
+            <div className="lg:col-span-2"><ScoreHistoryChart history={data.history} /></div>
             <div><PlanStatus subscription={data.subscription} /></div>
           </div>
 
-          {/* Row 4 — quick tools */}
-          <QuickTools lifeRoiHistory={data.lifeRoiHistory} calcHistory={data.calcHistory} />
+          {/* Last 3 actions */}
+          {data.score.actions.length > 0 && (
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Do this next</p>
+              <div className="space-y-3">
+                {data.score.actions.slice(0, 3).map(a => (
+                  <div key={a.rank} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{a.rank}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">{a.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-1.5">{a.why}</p>
+                        <p className="text-xs font-semibold text-teal-600 dark:text-teal-400">{a.impact}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick tools */}
+          <QuickTools actions={data.score.actions} calcHistory={data.calcHistory} />
 
           <p className="text-center text-[11px] text-gray-400 pt-2">
             Scores and history are stored on this device only. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>

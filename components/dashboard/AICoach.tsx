@@ -1,24 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { trendArrow, type ScoreSnapshotLike, type LifeROIHistoryEntry } from '@/lib/dashboardData';
+import type { WellFiScore } from '@/lib/wellfilab-score';
 
-interface Props {
-  scoreHistory: ScoreSnapshotLike[];
-  lifeRoiHistory: LifeROIHistoryEntry[];
-}
-
-export function AICoach({ scoreHistory, lifeRoiHistory }: Props) {
+export function AICoach({ score }: { score: WellFiScore | null }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [analysis, setAnalysis] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const latestScore = scoreHistory[scoreHistory.length - 1];
-  const prevScore   = scoreHistory[scoreHistory.length - 2];
-  const latestRoi   = lifeRoiHistory[0];
-
-  const hasData = latestScore != null || latestRoi != null;
-
   const run = async () => {
+    if (!score) return;
     setStatus('loading');
     setErrorMsg('');
     try {
@@ -26,12 +16,15 @@ export function AICoach({ scoreHistory, lifeRoiHistory }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          healthWealthScore: latestScore?.overall,
-          lifeROIScore: latestRoi?.lifeROIScore,
-          healthScore: latestRoi?.healthScore,
-          financeScore: latestRoi?.financeScore,
-          trend: trendArrow(latestScore?.overall, prevScore?.overall),
-          topInsights: latestRoi?.insights?.slice(0, 3).map(i => ({ title: i.title, description: i.description })),
+          overall: score.overall,
+          body: score.body,
+          mind: score.mind,
+          wealth: score.wealth,
+          life: score.life,
+          level: score.level,
+          archetypeName: score.archetype.name,
+          trend: score.scoreChange,
+          topInsights: score.insights.slice(0, 3).map(i => ({ headline: i.headline, detail: i.detail })),
         }),
       });
       const data = await res.json();
@@ -59,15 +52,15 @@ export function AICoach({ scoreHistory, lifeRoiHistory }: Props) {
             <h2 className="font-bold text-gray-900 dark:text-white text-base">A personalised read on your numbers</h2>
           </div>
           {status !== 'loading' && (
-            <button onClick={run} disabled={!hasData}
+            <button onClick={run} disabled={!score}
               className="flex-shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-teal-600 hover:opacity-90 text-white text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed">
               {status === 'done' ? 'Regenerate' : 'Get my AI analysis'}
             </button>
           )}
         </div>
 
-        {!hasData && (
-          <p className="text-sm text-gray-400 mt-3">Take the Health-Wealth Score or Life ROI quiz first — the AI Coach analyzes your real numbers.</p>
+        {!score && (
+          <p className="text-sm text-gray-400 mt-3">Take the WellFiLab Score quiz first — the AI Coach analyzes your real numbers.</p>
         )}
 
         {status === 'loading' && (

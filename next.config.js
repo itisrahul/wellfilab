@@ -37,6 +37,8 @@ const nextConfig = {
       { source: '/plans', destination: '/plan', permanent: true },
       { source: '/plans/:slug', destination: '/plan/:slug', permanent: true },
       { source: '/plans/success', destination: '/plan/success', permanent: true },
+      // Life ROI is now folded into the unified WellFiLab Score
+      { source: '/life-roi', destination: '/score', permanent: true },
     ];
   },
 };

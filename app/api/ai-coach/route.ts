@@ -2,28 +2,30 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
 /**
- * AI Life Coach — generates a genuinely personalised health-and-finance
- * analysis from the user's own Score/Life ROI numbers via the Claude API.
- * This is real model generation, distinct from the rule-based
- * recommendations in lib/lifeROI.ts.
+ * AI Coach — generates a genuinely personalised analysis from the user's
+ * real WellFiLab Score via the Claude API. This is real model generation,
+ * distinct from the rule-based insights/actions in lib/wellfilab-score.ts.
  *
- * Data lives in the browser's localStorage (see lib/dashboardData.ts), not
- * a database, so the client sends its own summary — nothing is looked up
- * server-side.
+ * The score lives in the browser's localStorage (see lib/scoreStorage.ts),
+ * not a database, so the client sends its own summary — nothing is looked
+ * up server-side.
  */
 
 interface CoachRequest {
-  healthWealthScore?: number;
-  lifeROIScore?: number;
-  healthScore?: number;
-  financeScore?: number;
-  trend?: 'up' | 'down' | 'same' | null;
-  topInsights?: { title: string; description: string }[];
+  overall?: number;
+  body?: number;
+  mind?: number;
+  wealth?: number;
+  life?: number;
+  level?: 'quick' | 'body' | 'full';
+  archetypeName?: string;
+  trend?: number;
+  topInsights?: { headline: string; detail: string }[];
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null)) as CoachRequest | null;
-  if (!body) {
+  const reqBody = (await req.json().catch(() => null)) as CoachRequest | null;
+  if (!reqBody) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
   }
 
@@ -31,29 +33,32 @@ export async function POST(req: Request) {
   if (!apiKey) {
     return NextResponse.json({
       analysis:
-        "AI Coach isn't configured yet — add an ANTHROPIC_API_KEY to enable personalised, AI-generated analysis of your health and finance numbers.",
+        "AI Coach isn't configured yet — add an ANTHROPIC_API_KEY to enable personalised, AI-generated analysis of your score.",
       configured: false,
     });
   }
 
-  const { healthWealthScore, lifeROIScore, healthScore, financeScore, trend, topInsights } = body;
+  const { overall, body, mind, wealth, life, level, archetypeName, trend, topInsights } = reqBody;
 
-  const summaryLines = [
-    healthWealthScore != null ? `Health-Wealth Score: ${healthWealthScore}/100` : null,
-    lifeROIScore != null ? `Life ROI Score: ${lifeROIScore}/100` : null,
-    healthScore != null && financeScore != null ? `Breakdown — Health: ${healthScore}/100, Finance: ${financeScore}/100` : null,
-    trend ? `Trend vs their last check-in: ${trend}` : null,
-    topInsights?.length
-      ? `Their top flagged areas:\n${topInsights.map(i => `- ${i.title}: ${i.description}`).join('\n')}`
-      : null,
-  ].filter(Boolean).join('\n');
-
-  if (!summaryLines) {
+  if (overall == null) {
     return NextResponse.json({
-      analysis: 'Take the Health-Wealth Score or Life ROI quiz first — the AI Coach analyzes your real numbers, so there\'s nothing to look at yet.',
+      analysis: 'Take the WellFiLab Score quiz first — the AI Coach analyzes your real numbers, so there\'s nothing to look at yet.',
       configured: true,
     });
   }
+
+  const summaryLines = [
+    `Overall WellFiLab Score: ${overall}/100`,
+    body != null && mind != null && wealth != null && life != null
+      ? `Breakdown — Body: ${body}, Mind: ${mind}, Wealth: ${wealth}, Life: ${life}`
+      : null,
+    archetypeName ? `Archetype: ${archetypeName}` : null,
+    level ? `Data depth: ${level === 'quick' ? 'quick self-rating only' : level === 'body' ? 'quick + body details' : 'quick + body + finance details (full)'}` : null,
+    trend != null && trend !== 0 ? `Trend vs their last check-in: ${trend > 0 ? '+' : ''}${trend} points` : null,
+    topInsights?.length
+      ? `Their top flagged insights:\n${topInsights.map(i => `- ${i.headline}: ${i.detail}`).join('\n')}`
+      : null,
+  ].filter(Boolean).join('\n');
 
   try {
     const client = new Anthropic({ apiKey });
@@ -61,7 +66,7 @@ export async function POST(req: Request) {
       model: 'claude-opus-4-8',
       max_tokens: 500,
       system:
-        "You are WellFiLab's AI health-and-finance coach. You are given one user's real Health-Wealth Score and/or Life ROI Score data. Write a short, warm, specific, encouraging analysis — 120 to 180 words, plain conversational prose, no markdown headers or bullet lists. Reference their actual numbers directly. Explicitly connect their health and financial situation to each other where the data supports it. End with exactly one clear, concrete next step. Respond with only the analysis text, nothing else.",
+        "You are WellFiLab's AI Coach. You are given one user's real WellFiLab Score data — a combined health-and-finance score with an archetype. Write a short, warm, specific, encouraging analysis — 120 to 180 words, plain conversational prose, no markdown headers or bullet lists. Reference their actual numbers directly. Explicitly connect their health and financial situation to each other where the data supports it. If their data is only a quick self-rating (not full body/finance details), acknowledge that and encourage adding more for a sharper picture — but still give a genuinely useful read on what they've shared. End with exactly one clear, concrete next step. Respond with only the analysis text, nothing else.",
       messages: [{ role: 'user', content: summaryLines }],
     });
 

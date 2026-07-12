@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { daysAgo, type LifeROIHistoryEntry, type CalcHistoryEntry } from '@/lib/dashboardData';
+import { daysAgo, type CalcHistoryEntry } from '@/lib/dashboardData';
+import type { Action } from '@/lib/wellfilab-score';
 
 const DEFAULT_TOOLS = [
   { icon: '⚖️', name: 'BMI',        slug: 'bmi',        url: '/tools/health/bmi' },
@@ -11,14 +12,14 @@ const DEFAULT_TOOLS = [
 ];
 
 interface Props {
-  lifeRoiHistory: LifeROIHistoryEntry[];
+  actions: Action[];
   calcHistory: CalcHistoryEntry[];
 }
 
-export function QuickTools({ lifeRoiHistory, calcHistory }: Props) {
-  const fromActions = (lifeRoiHistory[0]?.topActions ?? [])
-    .filter(a => a.toolLink)
-    .map(a => ({ icon: '🧮', name: a.toolLink!.label, slug: a.toolLink!.url.split('/').pop() ?? '', url: a.toolLink!.url }));
+export function QuickTools({ actions, calcHistory }: Props) {
+  const fromActions = actions
+    .filter(a => a.toolSlug && a.toolCat)
+    .map(a => ({ icon: '🧮', name: a.title, slug: a.toolSlug!, url: `/tools/${a.toolCat}/${a.toolSlug}` }));
 
   const seen = new Set<string>();
   const merged = [...fromActions, ...DEFAULT_TOOLS].filter(t => {
