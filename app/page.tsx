@@ -54,9 +54,8 @@ export default function HomePage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28 text-center">
 
           {/* Headline */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
-            Confused about what to fix first
-            <span className="text-teal-200"> — health or money?</span>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight mb-6">
+            Measure What Matters.
           </h1>
 
           {/* Sub */}
