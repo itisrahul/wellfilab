@@ -86,6 +86,17 @@ export default function ToolPage({ params }: { params: { category: string; slug:
           <ToolRenderer slug={params.slug} />
         </div>
 
+        {/* Calculator → Score banner — subtle, not intrusive */}
+        <Link href="/score"
+          className="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 hover:border-teal-300 dark:hover:border-teal-700 transition-colors group">
+          <span className="text-lg flex-shrink-0">📊</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">See how this fits your bigger picture</p>
+            <p className="text-[11px] text-teal-600/80 dark:text-teal-400/70">Check your WellFiLab Score — free, takes 60 seconds</p>
+          </div>
+          <span className="flex-shrink-0 text-xs font-bold text-teal-700 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Check Score →</span>
+        </Link>
+
         <div className="flex justify-end mb-6">
           <EmbedButton url={pageUrl} title={calc.title} />
         </div>

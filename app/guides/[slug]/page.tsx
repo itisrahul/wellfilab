@@ -135,9 +135,6 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         {/* Share */}
         <ArticleShare title={post.title} url={`${SITE_URL}/guides/${post.slug}`} />
 
-        {/* Plan upsell — extracted to its own component */}
-        <PlanUpsell category={post.category} />
-
       </article>
 
       {/* Related posts — extracted to its own component */}
@@ -160,9 +157,14 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         </section>
       )}
 
-      {/* Newsletter signup — bottom of every guide article */}
-      <section className="max-w-6xl mx-auto px-4 pb-16">
+      {/* Newsletter signup */}
+      <section className="max-w-6xl mx-auto px-4 pb-10">
         <NewsletterSignup source="guide-article" />
+      </section>
+
+      {/* Plan upsell — very bottom of every guide article */}
+      <section className="max-w-6xl mx-auto px-4 pb-16">
+        <PlanUpsell category={post.category} />
       </section>
 
     </div>

@@ -61,18 +61,19 @@ export default function HomePage() {
 
           {/* Sub */}
           <p className="text-teal-100/85 text-xl leading-relaxed mb-10 max-w-2xl mx-auto">
-            {CALCULATORS.length} free calculators · {ALL_POSTS.length} evidence-based guides · your personalised WellFiLab Score
+            Free tools show you the numbers. Expert plans show you what to do with them.<br className="hidden sm:block" />
+            No guesswork. No generic advice. Just yours.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <Link href="/score"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
-              ⭐ Get Your Free Score
+              ⭐ Get My Free Score
             </Link>
-            <Link href="/tools"
+            <Link href="/plan"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 transition-all">
-              🧮 Browse {CALCULATORS.length} Tools
+              📋 See Plans from ₹149/mo
             </Link>
           </div>
 
@@ -257,13 +258,15 @@ export default function HomePage() {
         <NewsletterSignup source="homepage" />
 
         {/* ══════════════════════════════════════════════
-            WHY
+            WHY WELLFILAB
         ══════════════════════════════════════════════ */}
-        <section className="grid sm:grid-cols-3 gap-5">
+        <section>
+          <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-6 text-center">Why WellFiLab</h2>
+          <div className="grid sm:grid-cols-3 gap-5">
           {[
-            { icon:'🔒', title:'100% Private',   body:'Every calculation runs in your browser. Nothing is sent to any server. We never see your inputs or results.' },
-            { icon:'✅', title:'Verified',         body:'Every formula is sourced against primary research. Tax rates and figures are updated when regulations change.' },
-            { icon:'🌐', title:'15 Currencies',    body:'$, €, £, ₹, A$, C$, AED, SGD and more. Switch on any calculator instantly. All results update in real time.' },
+            { icon:'👩‍⚕️', title:'Real expertise',    body:'Plans created by a certified nutrition and finance professional. Not AI. Not templates.' },
+            { icon:'🎯', title:'Your numbers',        body:'We use your WellFiLab Score, your goals, and your specific situation — not averages.' },
+            { icon:'💬', title:'30-day guarantee',    body:'Not useful in 30 days? Full refund. No forms. No questions. Immediate.' },
           ].map(f => (
             <div key={f.title} className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
               <div className="text-3xl mb-4">{f.icon}</div>
@@ -271,6 +274,7 @@ export default function HomePage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.body}</p>
             </div>
           ))}
+          </div>
         </section>
 
         {/* ══════════════════════════════════════════════

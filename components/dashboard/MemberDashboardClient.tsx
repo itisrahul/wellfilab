@@ -9,6 +9,7 @@ import {
   type StoredSubscription,
 } from '@/lib/subscriptionStorage';
 import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
+import { getOnboarding } from '@/lib/onboardingStorage';
 import { AICoach } from './AICoach';
 import { PlanStatus } from './PlanStatus';
 import { QuickTools } from './QuickTools';
@@ -32,6 +33,7 @@ interface DashboardData {
   score: WellFiScore | null;
   history: WellFiScore[];
   subscription: StoredSubscription | null;
+  onboarded: boolean;
   calcHistory: CalcHistoryEntry[];
   greeting: string;
   dateStr: string;
@@ -73,8 +75,10 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           await syncSubscriptionToAccount(localSub);
           subscription = localSub;
         }
+        const onboarding = subscription ? await getOnboarding(subscription.planId) : null;
         setData({
           score, history, subscription,
+          onboarded:    !!onboarding,
           calcHistory:  getCalcHistory(),
           greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
           dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -262,7 +266,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           {/* Chart (2/3) + Plan status (1/3) */}
           <div className="grid lg:grid-cols-3 gap-6 items-stretch">
             <div className="lg:col-span-2"><ScoreHistoryChart history={data.history} /></div>
-            <div><PlanStatus subscription={data.subscription} onCancel={handleCancelSubscription} /></div>
+            <div><PlanStatus subscription={data.subscription} onboarded={data.onboarded} email={userEmail} onCancel={handleCancelSubscription} /></div>
           </div>
 
           {/* Last 3 actions */}

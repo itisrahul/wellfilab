@@ -7,6 +7,7 @@ import {
   type Insight, type Action, type Trajectory, type Dimension,
 } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
+import { getPlanAny, type Plan } from '@/lib/plans';
 import { SITE_URL } from '@/config/site';
 
 // ── Defaults ─────────────────────────────────────────────────────────────
@@ -114,6 +115,18 @@ const EXERCISE_BUCKETS = [
   { label: '0', days: 0 }, { label: '1-2', days: 1.5 },
   { label: '3-4', days: 3.5 }, { label: '5-7', days: 6 },
 ];
+
+// ── Score → plan recommendation ─────────────────────────────────────────
+function recommendPlan(score: WellFiScore): { planId: 'diet' | 'finance' | 'bundle'; reason: string } {
+  const { body, mind, wealth } = score;
+  if (body < mind && body < wealth) {
+    return { planId: 'diet', reason: 'Your body score is lowest. A nutrition plan would help most.' };
+  }
+  if (wealth < body && wealth < mind) {
+    return { planId: 'finance', reason: 'Your finance score needs most attention. A personalised finance roadmap would help.' };
+  }
+  return { planId: 'bundle', reason: 'Your health and finances both need attention. The bundle addresses both together.' };
+}
 
 export default function ScorePage() {
   const [mounted, setMounted] = useState(false);
@@ -396,6 +409,9 @@ export default function ScorePage() {
           </div>
         )}
 
+        {/* ── Score → plan recommendation ── */}
+        <PlanRecommendation score={score} />
+
         {/* ── SECTION 6: Save & track ── */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
           <p className="text-2xl mb-2">🔥</p>
@@ -517,6 +533,49 @@ export default function ScorePage() {
 }
 
 // ── Presentational pieces ─────────────────────────────────────────────────
+
+function PlanRecommendation({ score }: { score: WellFiScore }) {
+  const { planId, reason } = recommendPlan(score);
+  const plan = getPlanAny(planId) as Plan | null;
+  if (!plan) return null;
+
+  const lowestLabel = planId === 'diet' ? 'body' : planId === 'finance' ? 'finance' : 'body and finance';
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-teal-200 dark:border-teal-800 p-6">
+      <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-3">💡 Based on your score</p>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+        Your <span className="font-bold text-gray-900 dark:text-white">{lowestLabel}</span> score needs most attention.
+      </p>
+      <p className="font-bold text-gray-900 dark:text-white text-base mb-4">
+        The {plan.name} is built for exactly your situation.
+      </p>
+
+      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">What you get</p>
+      <div className="space-y-1.5 mb-4">
+        {plan.features.slice(0, 3).map((f, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span className="text-teal-500 flex-shrink-0 mt-0.5">→</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{f}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-xs text-gray-400 mb-4">₹{plan.monthlyPrice}/month · 30-day refund guarantee</p>
+
+      <div className="flex flex-wrap gap-3">
+        <Link href={`/plan/${plan.id}`}
+          className={`px-5 py-2.5 rounded-xl bg-gradient-to-r ${plan.gradient} text-white font-bold text-sm hover:shadow-lg transition-all`}>
+          Get the {plan.name} →
+        </Link>
+        <Link href="/plan" className="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold text-sm hover:border-teal-400 transition-all">
+          See all plans →
+        </Link>
+      </div>
+      <p className="text-[11px] text-gray-400 mt-3">{reason}</p>
+    </div>
+  );
+}
 
 function RetakeBanner() {
   return (
