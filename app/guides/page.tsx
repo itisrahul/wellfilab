@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ALL_POSTS } from '@/lib/posts';
 import { PostCard } from '@/components/ui/PostCard';
+import { ScoreCTA } from '@/components/ui/ScoreCTA';
 import type { PostCategory } from '@/lib/types';
 
 const CATS = [
@@ -114,6 +115,12 @@ export default function GuidesPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+
+        {!isSearching && (
+          <div className="mb-8">
+            <ScoreCTA />
+          </div>
+        )}
 
         {/* Search results */}
         {isSearching ? (

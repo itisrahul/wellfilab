@@ -8,6 +8,7 @@ import { PairWith }       from '@/components/tools/PairWith';
 import { ExploreTools }   from '@/components/tools/ExploreTools';
 import { EmbedButton }    from '@/components/tools/EmbedButton';
 import { CalcHistory }    from '@/components/ui/CalcHistory';
+import { ScoreCTA }       from '@/components/ui/ScoreCTA';
 import { StructuredData, BreadcrumbSchema } from '@/components/ui/StructuredData';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 import { ShareButton }   from '@/lib/shareResult';
@@ -172,6 +173,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
           </div>
 
           <aside className="hidden lg:block sticky top-20 space-y-4">
+            <ScoreCTA variant="compact" />
             {related.length > 0 && (
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Related Tools</p>

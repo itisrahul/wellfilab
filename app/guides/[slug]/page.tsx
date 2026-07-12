@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, getRelatedPosts, ALL_POSTS } from '@/lib/posts';
 import { ArticleBody }  from '@/components/ui/ArticleBody';
+import { ScoreCTA }     from '@/components/ui/ScoreCTA';
 import { PlanUpsell }   from '@/components/ui/PlanUpsell';
 import { RelatedPosts } from '@/components/ui/RelatedPosts';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
@@ -118,6 +119,11 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
 
         {/* Article body — extracted to its own component */}
         <ArticleBody sections={post.body} hwtCalc={post.hwtCalc} calcPillClass={calcPillClass} />
+
+        {/* Score cross-link — drives traffic into the core product */}
+        <div className="mt-8">
+          <ScoreCTA variant="compact" />
+        </div>
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-10 pt-8 border-t border-gray-100 dark:border-gray-800">

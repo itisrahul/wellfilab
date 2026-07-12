@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { CALCULATORS, getGroups } from '@/config/tools';
+import { ScoreCTA } from '@/components/ui/ScoreCTA';
 
 const POPULAR_SLUGS = ['bmi','calories','body-fat','sleep','blood-pressure','sip','loan','retirement','income-tax','fire'];
 
@@ -116,6 +117,12 @@ export default function ToolsPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+
+        {!isSearching && (
+          <div className="mb-8">
+            <ScoreCTA />
+          </div>
+        )}
 
         {/* ── Search results ── */}
         {isSearching ? (
