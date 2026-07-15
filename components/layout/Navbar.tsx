@@ -127,12 +127,43 @@ const SearchOverlay = memo(function SearchOverlay({ onClose }: { onClose: () => 
   );
 });
 
+// Capped so a hover menu stays scannable no matter how large the catalog
+// grows — a group that outgrows this links to its full category page
+// instead of pushing the dropdown's height past the viewport.
+const MAX_PER_GROUP = 5;
+
+function MegaGroup({ group, calcs, category, accentDot, onClose }: {
+  group: string; calcs: typeof CALCULATORS; category: 'health' | 'finance'; accentDot: string; onClose: () => void;
+}) {
+  const shown = calcs.slice(0, MAX_PER_GROUP);
+  const extra = calcs.length - shown.length;
+  return (
+    <div className="mb-5 break-inside-avoid">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">{group}</p>
+      {shown.map(c => (
+        <Link key={c.slug} href={`/tools/${category}/${c.slug}`} onClick={onClose}
+          className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          <span className="text-base w-5 text-center flex-shrink-0">{c.icon}</span>
+          <span className="truncate">{c.short}</span>
+          {c.popular && <span className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accentDot }}/>}
+        </Link>
+      ))}
+      {extra > 0 && (
+        <Link href={`/tools/${category}`} onClick={onClose}
+          className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <span className="w-5 flex-shrink-0"/>+{extra} more →
+        </Link>
+      )}
+    </div>
+  );
+}
+
 const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => void }) {
   const hGroups = getGroups('health');
   const fGroups = getGroups('finance');
   return (
     <div className="absolute inset-x-0 top-full z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-2xl" onMouseLeave={onClose}>
-      <div className="max-w-7xl mx-auto px-6 py-7">
+      <div className="max-w-7xl mx-auto px-6 py-7 max-h-[calc(100vh-5rem)] overflow-y-auto">
         <div className="grid grid-cols-2 gap-10">
 
           {/* Health */}
@@ -145,17 +176,7 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
             </div>
             <div className="grid grid-cols-2 gap-x-8">
               {Object.entries(hGroups).map(([group, calcs]) => (
-                <div key={group} className="mb-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">{group}</p>
-                  {calcs.map(c => (
-                    <Link key={c.slug} href={`/tools/health/${c.slug}`} onClick={onClose}
-                      className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <span className="text-base w-5 text-center flex-shrink-0">{c.icon}</span>
-                      <span>{c.short}</span>
-                      {c.popular && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0"/>}
-                    </Link>
-                  ))}
-                </div>
+                <MegaGroup key={group} group={group} calcs={calcs} category="health" accentDot="#2dd4bf" onClose={onClose}/>
               ))}
             </div>
           </div>
@@ -168,19 +189,9 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
                 All {CALCULATORS.filter(c=>c.category==='finance').length} →
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-x-8">
+            <div className="grid grid-cols-3 gap-x-6">
               {Object.entries(fGroups).map(([group, calcs]) => (
-                <div key={group} className="mb-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">{group}</p>
-                  {calcs.map(c => (
-                    <Link key={c.slug} href={`/tools/finance/${c.slug}`} onClick={onClose}
-                      className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <span className="text-base w-5 text-center flex-shrink-0">{c.icon}</span>
-                      <span>{c.short}</span>
-                      {c.popular && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"/>}
-                    </Link>
-                  ))}
-                </div>
+                <MegaGroup key={group} group={group} calcs={calcs} category="finance" accentDot="#fbbf24" onClose={onClose}/>
               ))}
             </div>
           </div>

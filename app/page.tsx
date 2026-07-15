@@ -71,7 +71,7 @@ export default function HomePage() {
             </Link>
             <Link href="/tools"
               className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 transition-all">
-              Browse 60 free tools →
+              Browse {CALCULATORS.length}+ free tools →
             </Link>
           </div>
 
@@ -101,7 +101,7 @@ export default function HomePage() {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">From confused to clear — in minutes</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { n: '01', icon: '🧮', title: 'Use free tools',           desc: '60+ instant calculators for health and finance. No signup.' },
+              { n: '01', icon: '🧮', title: 'Use free tools',           desc: `${CALCULATORS.length}+ instant calculators for health and finance. No signup.` },
               { n: '02', icon: '⭐', title: 'Enter your real numbers',  desc: 'Age, weight, sleep, income — your score is calculated from your actual data.' },
               { n: '03', icon: '🗺️', title: 'Get your roadmap',         desc: 'A personalised step-by-step plan. What to fix first, second, third — and which tools to use.' },
               { n: '04', icon: '📈', title: 'Track and improve',        desc: 'Come back monthly. Your roadmap updates as your score improves.' },
@@ -192,7 +192,7 @@ export default function HomePage() {
           <div className="flex items-end justify-between mb-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Step 1 — Start Here</p>
-              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">60+ free tools. Use any. Your roadmap connects them.</h2>
+              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">{CALCULATORS.length}+ free tools. Use any. Your roadmap connects them.</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Each calculator result links to your score and roadmap automatically.</p>
             </div>
             <Link href="/tools" className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:underline flex-shrink-0">

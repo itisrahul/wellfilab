@@ -9,6 +9,7 @@ import { Navbar }        from '@/components/layout/Navbar';
 import { ScrollToTop }   from '@/components/ui/ScrollToTop';
 import { Footer }        from '@/components/layout/Footer';
 import { SITE_NAME, SITE_URL } from '@/config/site';
+import { CALCULATORS } from '@/config/tools';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' });
 const mono  = JetBrains_Mono({ subsets: ['latin'], display: 'swap', variable: '--font-mono' });
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     default:  `${SITE_NAME} — Health & Finance Tools and Guides`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: '60+ free health and finance calculators in 15 currencies, evidence-based guides, and a personalised WellFiLab Score — free for everyone, everywhere.',
+  description: `${CALCULATORS.length}+ free health and finance calculators in 15 currencies, evidence-based guides, and a personalised WellFiLab Score — free for everyone, everywhere.`,
   openGraph: { type: 'website', siteName: SITE_NAME, locale: 'en_US' },
   twitter: { card: 'summary_large_image' },
   icons: {

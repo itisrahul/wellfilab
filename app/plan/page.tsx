@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getActivePlans } from '@/lib/plans';
+import { CALCULATORS } from '@/config/tools';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -48,7 +49,7 @@ const TRUST = [
 ];
 
 const COMPARE = [
-  { feature: 'Access to all 60+ calculators', free: true,  paid: true },
+  { feature: `Access to all ${CALCULATORS.length}+ calculators`, free: true,  paid: true },
   { feature: '34 evidence-based guides',       free: true,  paid: true },
   { feature: 'WellFiLab Score',                free: true,  paid: true },
   { feature: 'Score history & trend tracking', free: true,  paid: true },

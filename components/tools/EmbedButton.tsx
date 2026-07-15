@@ -10,7 +10,7 @@ interface Props {
 /**
  * EmbedButton — shows a copyable <iframe> snippet other sites can paste in
  * to embed this calculator. Rendered once per tool page (page-level, not
- * per-widget) so it works identically across all 60 calculators.
+ * per-widget) so it works identically across every calculator.
  */
 export function EmbedButton({ url, title }: Props) {
   const [open, setOpen]     = useState(false);

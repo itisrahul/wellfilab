@@ -14,7 +14,7 @@ import type { Calculator } from '@/config/tools';
  *  2. The first entry in `tips` (every calculator has these)
  *  3. The calculator's `desc` as a final fallback
  *
- * This works for all 60 calculators with zero per-calculator wiring.
+ * This works for every calculator with zero per-calculator wiring.
  */
 export function ExploreCalculators({ related }: { related: Calculator[] }) {
   const tabs = related.slice(0, 6);
