@@ -709,3 +709,305 @@ export function calcOvulation(lastPeriodDate: Date, cycleLength: number) {
   const nextPeriod = new Date(lastPeriodDate); nextPeriod.setDate(nextPeriod.getDate() + cycle);
   return { ovulationDate, fertileStart, fertileEnd, nextPeriod, cycle };
 }
+
+// ── APY Calculator ─────────────────────
+export function calcAPY(apr: number, compoundsPerYear: number) {
+  const apy = (Math.pow(1 + apr / 100 / compoundsPerYear, compoundsPerYear) - 1) * 100;
+  const daily = (Math.pow(1 + apr / 100 / 365, 365) - 1) * 100;
+  const monthly = (Math.pow(1 + apr / 100 / 12, 12) - 1) * 100;
+  return { apy: +apy.toFixed(4), daily: +daily.toFixed(4), monthly: +monthly.toFixed(4) };
+}
+
+// ── CAGR Calculator ────────────────────
+export function calcCAGR(startVal: number, endVal: number, years: number) {
+  const cagr = (Math.pow(endVal / startVal, 1 / years) - 1) * 100;
+  const absoluteReturn = ((endVal - startVal) / startVal) * 100;
+  const rows: { year: number; value: number }[] = [];
+  for (let y = 1; y <= years; y++) {
+    rows.push({ year: y, value: Math.round(startVal * Math.pow(1 + cagr / 100, y)) });
+  }
+  return { cagr: +cagr.toFixed(2), absoluteReturn: +absoluteReturn.toFixed(2), gain: Math.round(endVal - startVal), rows };
+}
+
+// ── Future Value ────────────────────────
+export function calcFutureValue(pv: number, rate: number, years: number, pmt: number, pmtTiming: 'end' | 'begin') {
+  const r = rate / 100;
+  const n = years;
+  const fvLump = pv * Math.pow(1 + r, n);
+  // r===0 guard: the annuity formula divides by r, which a 0% rate (a
+  // perfectly valid slider position) would turn into a division by zero.
+  const annuityFactor = (nn: number) => Math.abs(r) < 1e-9 ? nn : (Math.pow(1 + r, nn) - 1) / r;
+  const fvPmt = pmt === 0 ? 0 : pmt * annuityFactor(n) * (pmtTiming === 'begin' ? (1 + r) : 1);
+  const fv = Math.round(fvLump + fvPmt);
+  const rows: { year: number; value: number }[] = [];
+  for (let y = 1; y <= n; y++) {
+    const lump = pv * Math.pow(1 + r, y);
+    const annuity = pmt === 0 ? 0 : pmt * annuityFactor(y) * (pmtTiming === 'begin' ? (1 + r) : 1);
+    rows.push({ year: y, value: Math.round(lump + annuity) });
+  }
+  return { fv, fvLump: Math.round(fvLump), fvPmt: Math.round(fvPmt), rows };
+}
+
+// ── IRR Calculator ──────────────────────
+export function calcIRR(cashflows: number[]): number {
+  // Newton-Raphson method, with bounds clamping each step — some cashflow
+  // patterns can otherwise send the iteration to a runaway or NaN rate.
+  let rate = 0.1;
+  for (let iter = 0; iter < 200; iter++) {
+    let npv = 0, dnpv = 0;
+    for (let t = 0; t < cashflows.length; t++) {
+      npv += cashflows[t] / Math.pow(1 + rate, t);
+      dnpv -= t * cashflows[t] / Math.pow(1 + rate, t + 1);
+    }
+    if (Math.abs(dnpv) < 1e-12) break;
+    let newRate = rate - npv / dnpv;
+    newRate = Math.max(-0.99, Math.min(10, newRate));
+    if (Math.abs(newRate - rate) < 1e-8) return +(newRate * 100).toFixed(2);
+    rate = newRate;
+  }
+  return Number.isFinite(rate) ? +(rate * 100).toFixed(2) : 0;
+}
+
+export function calcNPV(rate: number, cashflows: number[]): number {
+  return Math.round(cashflows.reduce((sum, cf, t) => sum + cf / Math.pow(1 + rate / 100, t), 0));
+}
+
+// ── Credit Card Payoff ─────────────────
+export function calcCreditCard(balance: number, apr: number, minPct: number, fixedPayment: number) {
+  const r = apr / 100 / 12;
+  const rows: { month: number; payment: number; interest: number; principal: number; balance: number }[] = [];
+
+  // Minimum payment simulation — Indian card issuers typically floor the
+  // minimum due at ₹200, not a token amount, so the floor here matches
+  // that (and the UI copy that states it) rather than an arbitrary ₹25.
+  let bal = balance, months = 0, totalInt = 0;
+  while (bal > 0.5 && months < 600) {
+    const int = bal * r;
+    const minPay = Math.max(bal * minPct / 100, 200);
+    const prin = Math.min(minPay - int, bal);
+    bal = Math.max(0, bal - prin);
+    totalInt += int;
+    months++;
+    if (months <= 24) rows.push({ month: months, payment: Math.round(minPay), interest: Math.round(int), principal: Math.round(prin), balance: Math.round(bal) });
+  }
+  const minResult = { months, totalInterest: Math.round(totalInt), neverPaysOff: months >= 600 };
+
+  // Fixed payment simulation
+  let bal2 = balance, months2 = 0, totalInt2 = 0;
+  while (bal2 > 0.5 && months2 < 600) {
+    const int = bal2 * r;
+    const pay = Math.max(fixedPayment, int + 1);
+    const prin = Math.min(pay - int, bal2);
+    bal2 = Math.max(0, bal2 - prin);
+    totalInt2 += int;
+    months2++;
+  }
+  const fixedResult = { months: months2, totalInterest: Math.round(totalInt2), neverPaysOff: months2 >= 600 };
+
+  return { minResult, fixedResult, rows, interestSaved: Math.round(totalInt - totalInt2), monthsSaved: months - months2 };
+}
+
+// ── Mortgage Calculator ─────────────────
+export function calcMortgage(price: number, downPctg: number, rate: number, years: number, propertyTaxRate: number, insuranceAnnual: number) {
+  const downPayment = Math.round(price * downPctg / 100);
+  const principal = price - downPayment;
+  const r = rate / 100 / 12;
+  const n = years * 12;
+  const emi = r === 0 ? Math.round(principal / n) : Math.round(principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1));
+  const totalInterest = Math.round(emi * n - principal);
+  const propertyTaxMonthly = Math.round(price * propertyTaxRate / 100 / 12);
+  const insuranceMonthly = Math.round(insuranceAnnual / 12);
+  const totalMonthly = emi + propertyTaxMonthly + insuranceMonthly;
+
+  const rows: { year: number; principal: number; interest: number; balance: number }[] = [];
+  let bal = principal;
+  for (let y = 1; y <= years; y++) {
+    let yPrin = 0, yInt = 0;
+    for (let m = 0; m < 12; m++) {
+      const int = bal * r;
+      const prin = Math.min(emi - int, bal);
+      bal = Math.max(0, bal - prin);
+      yPrin += prin; yInt += int;
+    }
+    rows.push({ year: y, principal: Math.round(yPrin), interest: Math.round(yInt), balance: Math.round(bal) });
+  }
+  return { emi, totalInterest, totalMonthly, downPayment, principal, propertyTaxMonthly, insuranceMonthly, rows };
+}
+
+// ── Mortgage Refinance ──────────────────
+export function calcRefinance(currentBalance: number, currentRate: number, currentMonthsLeft: number, newRate: number, newYears: number, closingCosts: number) {
+  const r1 = currentRate / 100 / 12;
+  const currentEMI = r1 === 0 ? Math.round(currentBalance / currentMonthsLeft) : Math.round(currentBalance * r1 * Math.pow(1 + r1, currentMonthsLeft) / (Math.pow(1 + r1, currentMonthsLeft) - 1));
+  const currentTotalLeft = currentEMI * currentMonthsLeft;
+
+  const r2 = newRate / 100 / 12;
+  const n2 = newYears * 12;
+  const newEMI = r2 === 0 ? Math.round(currentBalance / n2) : Math.round(currentBalance * r2 * Math.pow(1 + r2, n2) / (Math.pow(1 + r2, n2) - 1));
+  const newTotal = newEMI * n2 + closingCosts;
+
+  const monthlySavings = currentEMI - newEMI;
+  // A non-positive monthly saving means refinancing NEVER breaks even —
+  // that's a distinct state from "breaks even in 0 months" (immediately),
+  // so it's flagged explicitly rather than collapsed into the same 0.
+  const neverBreaksEven = monthlySavings <= 0;
+  const breakEvenMonths = neverBreaksEven ? 0 : Math.ceil(closingCosts / monthlySavings);
+  const totalSavings = currentTotalLeft - newTotal;
+
+  return { currentEMI, newEMI, monthlySavings, breakEvenMonths, neverBreaksEven, totalSavings, newTotal, currentTotalLeft };
+}
+
+// ── Pay Raise Calculator ────────────────
+export function calcPayRaise(currentSalary: number, raiseType: 'percent' | 'amount', raiseValue: number, payPeriod: 'annual' | 'monthly' | 'hourly', hoursPerWeek: number) {
+  const annualCurrent = payPeriod === 'annual' ? currentSalary : payPeriod === 'monthly' ? currentSalary * 12 : currentSalary * hoursPerWeek * 52;
+  const raiseAmount = raiseType === 'percent' ? annualCurrent * raiseValue / 100 : raiseValue * (payPeriod === 'annual' ? 1 : payPeriod === 'monthly' ? 12 : hoursPerWeek * 52);
+  const annualNew = annualCurrent + raiseAmount;
+  return {
+    currentAnnual: Math.round(annualCurrent),
+    newAnnual: Math.round(annualNew),
+    raiseAmount: Math.round(raiseAmount),
+    raisePct: +((raiseAmount / annualCurrent) * 100).toFixed(2),
+    currentMonthly: Math.round(annualCurrent / 12),
+    newMonthly: Math.round(annualNew / 12),
+    currentHourly: +(annualCurrent / (hoursPerWeek * 52)).toFixed(2),
+    newHourly: +(annualNew / (hoursPerWeek * 52)).toFixed(2),
+  };
+}
+
+// ── Salary to Hourly ────────────────────
+export function calcSalaryHourly(salary: number, period: 'annual' | 'monthly' | 'weekly' | 'daily', hoursPerWeek: number, weeksPerYear: number) {
+  const annual = period === 'annual' ? salary : period === 'monthly' ? salary * 12 : period === 'weekly' ? salary * weeksPerYear : salary * 5 * weeksPerYear;
+  const hourly = annual / (hoursPerWeek * weeksPerYear);
+  return {
+    annual: Math.round(annual),
+    monthly: Math.round(annual / 12),
+    weekly: Math.round(annual / weeksPerYear),
+    daily: Math.round(annual / (weeksPerYear * 5)),
+    hourly: +hourly.toFixed(2),
+    perMinute: +(hourly / 60).toFixed(4),
+  };
+}
+
+// ── Stock Average Calculator ────────────
+export function calcStockAverage(purchases: { shares: number; price: number }[]) {
+  const totalShares = purchases.reduce((s, p) => s + p.shares, 0);
+  const totalCost = purchases.reduce((s, p) => s + p.shares * p.price, 0);
+  const avgPrice = totalShares === 0 ? 0 : totalCost / totalShares;
+  return {
+    totalShares,
+    totalCost: Math.round(totalCost),
+    avgPrice: +avgPrice.toFixed(2),
+    breakEvenPrice: +avgPrice.toFixed(2),
+  };
+}
+
+// ── Margin Calculator ───────────────────
+export function calcMargin(cost: number, revenue: number) {
+  const profit = revenue - cost;
+  const grossMargin = revenue === 0 ? 0 : (profit / revenue) * 100;
+  const markup = cost === 0 ? 0 : (profit / cost) * 100;
+  return {
+    profit: Math.round(profit),
+    grossMargin: +grossMargin.toFixed(2),
+    markup: +markup.toFixed(2),
+    costRatio: revenue === 0 ? 0 : +((cost / revenue) * 100).toFixed(2),
+  };
+}
+
+// ── Cash Back Calculator ────────────────
+export function calcCashBack(monthlySpend: Record<string, number>, cashbackRates: Record<string, number>, annualFee: number) {
+  const grossAnnual = Object.entries(monthlySpend).reduce((sum, [cat, spend]) => sum + spend * 12 * (cashbackRates[cat] || 0) / 100, 0);
+  const netAnnual = grossAnnual - annualFee;
+  return { grossAnnual: Math.round(grossAnnual), netAnnual: Math.round(netAnnual), monthlyEquivalent: Math.round(netAnnual / 12) };
+}
+
+// ── Overtime Calculator ─────────────────
+export function calcOvertime(hourlyRate: number, regularHours: number, overtimeHours: number, overtimeMultiplier: number, period: 'weekly' | 'monthly') {
+  const regularPay = hourlyRate * regularHours;
+  const overtimePay = hourlyRate * overtimeMultiplier * overtimeHours;
+  const totalPay = regularPay + overtimePay;
+  const multiplier = period === 'monthly' ? 4.33 : 1;
+  return {
+    regularPay: Math.round(regularPay * multiplier),
+    overtimePay: Math.round(overtimePay * multiplier),
+    totalPay: Math.round(totalPay * multiplier),
+    effectiveHourlyRate: (regularHours + overtimeHours) === 0 ? 0 : +((totalPay / (regularHours + overtimeHours))).toFixed(2),
+    annualEquivalent: Math.round(totalPay * (period === 'weekly' ? 52 : 12)),
+  };
+}
+
+// ── Interest Rate Calculator ────────────
+export function calcInterestRate(pv: number, fv: number, years: number, pmt: number) {
+  // Bisection to find rate
+  let lo = 0, hi = 2;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    const r = mid / 12;
+    const n = years * 12;
+    const calcFV = pv * Math.pow(1 + r, n) + (pmt > 0 ? pmt * ((Math.pow(1 + r, n) - 1) / r) : 0);
+    if (calcFV < fv) lo = mid; else hi = mid;
+  }
+  const annualRate = ((lo + hi) / 2) * 100;
+  return { annualRate: +annualRate.toFixed(4), monthlyRate: +(annualRate / 12).toFixed(4) };
+}
+
+// ── FIRE with Age + Allocation ──────────
+export function calcFIREAdvanced(
+  currentAge: number, targetAge: number,
+  annualExp: number, portfolio: number,
+  monthlyInvest: number, stepUpPct: number,
+  inflation: number
+) {
+  const years = Math.max(1, targetAge - currentAge);
+  const fireNum = Math.round(annualExp * 25);
+  const leanFire = Math.round(annualExp * 0.7 * 25);
+  const fatFire = Math.round(annualExp * 1.5 * 25);
+
+  // Asset allocation based on years to target
+  let equityPct: number;
+  if (years > 20) equityPct = 90;
+  else if (years > 15) equityPct = 80;
+  else if (years > 10) equityPct = 70;
+  else if (years > 5) equityPct = 60;
+  else equityPct = 50;
+
+  const blendedReturn = (equityPct * 12 + (100 - equityPct) * 7) / 100;
+  const r = blendedReturn / 100 / 12;
+
+  // Inflation-adjusted FIRE number
+  const inflAdjFireNum = Math.round(fireNum * Math.pow(1 + inflation / 100, years));
+
+  let bal = portfolio, invested = 0, mc = monthlyInvest, months = 0;
+  const rows: { year: number; invested: number; value: number; target: number }[] = [];
+
+  while (bal < inflAdjFireNum && months < 600) {
+    bal = bal * (1 + r) + mc;
+    invested += mc;
+    months++;
+    if (months % 12 === 0) {
+      const y = months / 12;
+      const targetAtYear = Math.round(fireNum * Math.pow(1 + inflation / 100, y));
+      rows.push({ year: y, invested: Math.round(invested), value: Math.round(bal), target: targetAtYear });
+      mc *= 1 + stepUpPct / 100;
+    }
+  }
+
+  const onTrack = months <= years * 12;
+  const deficit = Math.max(0, inflAdjFireNum - portfolio);
+
+  // Monthly needed to hit target in exactly `years`
+  const targetMonths = years * 12;
+  const neededMonthly = Math.abs(r) < 1e-9
+    ? Math.round((inflAdjFireNum - portfolio) / targetMonths)
+    : Math.round((inflAdjFireNum - portfolio * Math.pow(1 + r, targetMonths)) * r / (Math.pow(1 + r, targetMonths) - 1));
+
+  return {
+    fireNum, leanFire, fatFire, inflAdjFireNum,
+    years, blendedReturn: +blendedReturn.toFixed(2),
+    equityPct, debtPct: 100 - equityPct,
+    months, yearsToFire: Math.floor(months / 12),
+    remMonths: months % 12,
+    onTrack, deficit, neededMonthly,
+    monthlyPassive: Math.round(inflAdjFireNum * 0.04 / 12),
+    rows,
+  };
+}

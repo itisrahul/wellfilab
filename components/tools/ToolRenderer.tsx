@@ -33,7 +33,7 @@ const WIDGETS: Record<string, React.ComponentType> = {
   'savings-goal':    dynamic(() => import('@/components/tools/widgets/finance/SavingsGoalCalc'), { loading, ssr: false }),
   'investment-goal': dynamic(() => import('@/components/tools/widgets/finance/InvGoalCalc'),      { loading, ssr: false }),
   'loan':            dynamic(() => import('@/components/tools/widgets/finance/LoanCalc'),         { loading, ssr: false }),
-  'mortgage':        dynamic(() => import('@/components/tools/widgets/finance/LoanCalc'),         { loading, ssr: false }),
+  'mortgage':        dynamic(() => import('@/components/tools/widgets/finance/MortgageCalc'),     { loading, ssr: false }),
   'debt-payoff':     dynamic(() => import('@/components/tools/widgets/finance/DebtPayoffCalc'),   { loading, ssr: false }),
   'retirement':      dynamic(() => import('@/components/tools/widgets/finance/RetirementCalc'),   { loading, ssr: false }),
   'fire':            dynamic(() => import('@/components/tools/widgets/finance/FIRECalc'),         { loading, ssr: false }),
@@ -86,6 +86,21 @@ const WIDGETS: Record<string, React.ComponentType> = {
   'one-rep-max-plates':  dynamic(() => import('@/components/tools/widgets/health/PlateLoadCalc'),  { loading, ssr: false }),
   // Health — Life
   'ovulation':       dynamic(() => import('@/components/tools/widgets/health/OvulationCalc'),      { loading, ssr: false }),
+  // ── New calculators (60 → 75 expansion) ────────────
+  'apy':                 dynamic(() => import('@/components/tools/widgets/finance/APYCalc'),                 { loading, ssr: false }),
+  'cagr':                dynamic(() => import('@/components/tools/widgets/finance/CAGRCalc'),                { loading, ssr: false }),
+  'future-value':        dynamic(() => import('@/components/tools/widgets/finance/FutureValueCalc'),         { loading, ssr: false }),
+  'irr':                 dynamic(() => import('@/components/tools/widgets/finance/IRRCalc'),                 { loading, ssr: false }),
+  'credit-card':         dynamic(() => import('@/components/tools/widgets/finance/CreditCardCalc'),          { loading, ssr: false }),
+  'mortgage-refinance':  dynamic(() => import('@/components/tools/widgets/finance/MortgageRefinanceCalc'),   { loading, ssr: false }),
+  'pay-raise':           dynamic(() => import('@/components/tools/widgets/finance/PayRaiseCalc'),            { loading, ssr: false }),
+  'salary-hourly':       dynamic(() => import('@/components/tools/widgets/finance/SalaryHourlyCalc'),        { loading, ssr: false }),
+  'stock-average':       dynamic(() => import('@/components/tools/widgets/finance/StockAverageCalc'),        { loading, ssr: false }),
+  'margin':              dynamic(() => import('@/components/tools/widgets/finance/MarginCalc'),              { loading, ssr: false }),
+  'cash-back':           dynamic(() => import('@/components/tools/widgets/finance/CashBackCalc'),            { loading, ssr: false }),
+  'overtime':            dynamic(() => import('@/components/tools/widgets/finance/OvertimeCalc'),            { loading, ssr: false }),
+  'interest-rate':       dynamic(() => import('@/components/tools/widgets/finance/InterestRateCalc'),        { loading, ssr: false }),
+  'loan-payoff':         dynamic(() => import('@/components/tools/widgets/finance/LoanPayoffCalc'),          { loading, ssr: false }),
 };
 
 export function CalcRenderer({ slug }: { slug: string }) {
