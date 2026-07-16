@@ -46,8 +46,11 @@ export default function LeanFIRECalc() {
             <p className="calc-num-lg text-orange-500 dark:text-orange-400">{C.sym}{fmtFull(r.fireNumber, 0)}</p>
           </div>
           <Stat label="Lean annual expenses" value={`${C.sym}${fmtFull(r.leanExp,0)}`} color={TC.gray}/>
-          <Stat label="Time to reach it" value={`${r.years}y ${r.remMonths}m`} color={TC.green}/>
+          <Stat label="Time to reach it" value={r.neverReaches?'100+ years':`${r.years}y ${r.remMonths}m`} color={TC.green}/>
         </div>
+        {r.neverReaches && (
+          <Box icon="⚠️ Not on track" color="red" text="At this monthly investment and return rate, this target won't be reached within 100 years. Increase your monthly investment or expected return to see a realistic timeline."/>
+        )}
         <Box icon="💡 What is Lean FIRE?" color="orange"
           text="Lean FIRE means reaching financial independence on a deliberately minimal, frugal budget — trading some lifestyle comfort for an earlier exit from full-time work. It uses the same 25x-expenses rule as standard FIRE, just applied to a smaller expense base."/>
       </>}

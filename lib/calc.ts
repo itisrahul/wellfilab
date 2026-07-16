@@ -38,7 +38,7 @@ export function calcSavingsGoal(goal: number, current: number, monthly: number, 
   const r = ratePercent / 100 / 12;
   let bal = current, mo = 0;
   while (bal < goal && mo < 1200) { bal = bal * (1 + r) + monthly; mo++; }
-  return { months: mo, years: Math.floor(mo / 12), remMonths: mo % 12, totalDeposited: Math.round(current + monthly * mo), interest: Math.round(bal - current - monthly * mo) };
+  return { months: mo, years: Math.floor(mo / 12), remMonths: mo % 12, totalDeposited: Math.round(current + monthly * mo), interest: Math.round(bal - current - monthly * mo), neverReaches: mo >= 1200 && bal < goal };
 }
 
 export function calcMonthlyNeeded(goal: number, current: number, months: number, ratePercent: number) {
@@ -66,7 +66,7 @@ export function calcLoan(principal: number, ratePercent: number, months: number,
       rows[y - 1].balance    = Math.round(bal);
     }
   }
-  return { emi, totalMonths: mo, interest: Math.round(totalInt), total: Math.round(emi * months), rows: rows.filter(Boolean) };
+  return { emi, totalMonths: mo, interest: Math.round(totalInt), total: Math.round(principal + totalInt), neverPaysOff: mo >= months + 360, rows: rows.filter(Boolean) };
 }
 
 export function calcDebtPayoff(debts: { name: string; balance: number; rate: number; minPayment: number }[], extraMonthly: number) {
@@ -149,7 +149,7 @@ export function calcFIRE(annualExp: number, portfolio: number, monthlyInvest: nu
   const r = roi / 100 / 12;
   let bal = portfolio, months = 0;
   while (bal < fireNum && months < 600) { bal = bal * (1 + r) + monthlyInvest; months++; }
-  return { fireNum, months, years: Math.floor(months / 12), remMonths: months % 12, deficit: Math.max(0, fireNum - portfolio), leanFire: Math.round(annualExp * 0.7 * 25), fatFire: Math.round(annualExp * 1.5 * 25) };
+  return { fireNum, months, years: Math.floor(months / 12), remMonths: months % 12, deficit: Math.max(0, fireNum - portfolio), leanFire: Math.round(annualExp * 0.7 * 25), fatFire: Math.round(annualExp * 1.5 * 25), neverReaches: months >= 600 && bal < fireNum };
 }
 
 /** Same as calcFIRE, but the monthly contribution grows by stepUpPct once per year — plus a year-by-year portfolio trajectory for the chart/table. */
@@ -166,7 +166,7 @@ export function calcFIREStepUp(fireNum: number, portfolio: number, startMonthly:
       mc *= 1 + stepUpPct / 100;
     }
   }
-  return { months, years: Math.floor(months / 12), remMonths: months % 12, rows };
+  return { months, years: Math.floor(months / 12), remMonths: months % 12, rows, neverReaches: months >= 600 && bal < fireNum };
 }
 
 export function calcBudget(income: number) {
@@ -440,19 +440,19 @@ export function calcPPF(yearlyDeposit: number, ratePercent: number, years = 15) 
 }
 
 /** Car Loan EMI — same amortization as calcLoan, exposed separately for category clarity + depreciation note. */
-export function calcCarLoan(price: number, downPaymentPct: number, ratePercent: number, years: number) {
+export function calcCarLoan(price: number, downPaymentPct: number, ratePercent: number, years: number, extraMonthly = 0) {
   const principal = Math.max(0, price * (1 - downPaymentPct / 100));
   const months = Math.max(1, Math.round(years * 12));
-  const loan = calcLoan(principal, ratePercent, months);
+  const loan = calcLoan(principal, ratePercent, months, extraMonthly);
   // Cars depreciate roughly 15-20%/year — useful context vs a home loan.
   const depreciatedValue = Math.round(price * Math.pow(0.82, years));
   return { ...loan, principal: Math.round(principal), downPayment: Math.round(price - principal), depreciatedValue };
 }
 
 /** Personal Loan EMI — unsecured, typically higher rate & shorter tenure than secured loans. */
-export function calcPersonalLoan(principal: number, ratePercent: number, years: number) {
+export function calcPersonalLoan(principal: number, ratePercent: number, years: number, extraMonthly = 0) {
   const months = Math.max(1, Math.round(years * 12));
-  return calcLoan(Math.max(0, principal), ratePercent, months, 0);
+  return calcLoan(Math.max(0, principal), ratePercent, months, extraMonthly);
 }
 
 /** Lean FIRE — minimal sustainable expense base, same 25x rule applied to a leaner number. */
@@ -462,7 +462,7 @@ export function calcLeanFIRE(currentAnnualExp: number, leanPct: number, currentP
   const r = roi / 100 / 12;
   let bal = currentPortfolio, months = 0;
   while (bal < fireNumber && months < 1200) { bal = bal * (1 + r) + monthlyInvest; months++; }
-  return { leanExp: Math.round(leanExp), fireNumber: Math.round(fireNumber), months, years: Math.floor(months / 12), remMonths: months % 12 };
+  return { leanExp: Math.round(leanExp), fireNumber: Math.round(fireNumber), months, years: Math.floor(months / 12), remMonths: months % 12, neverReaches: months >= 1200 && bal < fireNumber };
 }
 
 /** Coast FIRE — the point where existing investments alone, with zero further contributions, reach the target by a future date. */
@@ -520,7 +520,20 @@ export function calcCapitalGains(purchasePrice: number, salePrice: number, holdi
   return { gain: Math.round(gain), isLongTerm, taxRate, exemption, taxableGain: Math.round(taxableGain), tax, netGain: Math.round(gain - tax) };
 }
 
-/** Take-home salary from CTC — simplified breakup (basic, HRA, PF, taxable, in-hand). */
+/** India new-tax-regime slabs (FY 2024-25, incl. Sec 87A rebate + 4% cess) on annual taxable income. */
+function indiaNewRegimeTax(annualTaxable: number): number {
+  const t = Math.max(0, annualTaxable);
+  if (t <= 700000) return 0; // Sec 87A rebate — nil tax up to ₹7L taxable
+  const brackets: [number, number, number][] = [[0,300000,0],[300000,700000,5],[700000,1000000,10],[1000000,1200000,15],[1200000,1500000,20],[1500000,Infinity,30]];
+  let tax = 0;
+  for (const [lo, hi, rate] of brackets) {
+    if (t <= lo) break;
+    tax += Math.min(t - lo, hi - lo) * rate / 100;
+  }
+  return Math.round(tax * 1.04);
+}
+
+/** Take-home salary from CTC — simplified breakup (basic, HRA, PF, taxable, in-hand). Tax uses India's new-regime slabs. */
 export function calcTakeHome(ctc: number, basicPct: number, bonusAnnual: number) {
   const annualCtc = Math.max(0, ctc);
   const basic = annualCtc * (basicPct / 100);
@@ -530,9 +543,11 @@ export function calcTakeHome(ctc: number, basicPct: number, bonusAnnual: number)
   const grossAnnual = annualCtc - pf; // employer PF is part of CTC but not paid to employee directly each month
   const monthlyGross = Math.round((grossAnnual - bonus) / 12);
   const monthlyPF = Math.round(pf / 12);
-  const estimatedMonthlyTax = Math.round(Math.max(0, (grossAnnual - 700000)) * 0.1 / 12); // rough placeholder estimate, not a tax computation
+  const standardDeduction = 75000; // new-regime standard deduction for salaried employees
+  const annualTax = indiaNewRegimeTax(grossAnnual - standardDeduction);
+  const estimatedMonthlyTax = Math.round(annualTax / 12);
   const monthlyInHand = Math.max(0, monthlyGross - monthlyPF - estimatedMonthlyTax);
-  return { monthlyGross, monthlyPF, estimatedMonthlyTax, monthlyInHand, annualBonus: Math.round(bonus), basic: Math.round(basic), hra: Math.round(hra) };
+  return { monthlyGross, monthlyPF, estimatedMonthlyTax, monthlyInHand, annualTax, annualBonus: Math.round(bonus), basic: Math.round(basic), hra: Math.round(hra) };
 }
 
 /** Simple interest — companion/comparison to compound interest. */

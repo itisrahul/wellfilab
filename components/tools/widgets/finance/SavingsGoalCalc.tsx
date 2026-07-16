@@ -24,13 +24,17 @@ export default function SavingsGoalCalc() {
       <div className="grid grid-cols-2 gap-4">
         <div className="result-card col-span-2 md:col-span-1 bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
           <p className="result-label text-orange-600">Time to goal</p>
-          <p className="calc-num-lg text-orange-500">{rL.years>0?`${rL.years}y ${rL.remMonths}m`:`${rL.months} months`}</p>
+          <p className="calc-num-lg text-orange-500">{rL.neverReaches?'100+ years':rL.years>0?`${rL.years}y ${rL.remMonths}m`:`${rL.months} months`}</p>
         </div>
         <Stat label="Total deposited" value={C.sym+fmtFull(rL.totalDeposited,2)} color={TC.gray}/>
         <Stat label="Interest earned" value={C.sym+fmtFull(rL.interest,2)} color={TC.green}/>
         <Stat label="Your goal" value={C.sym+fmtFull(goal,2)} color={TC.teal}/>
       </div>
-      <Box icon="💡 Save faster" text={"Adding just "+C.sym+fmtFull(100,2)+" more per month could save roughly "+Math.round(100/(monthly/Math.max(1,rL.months)))+" months off your timeline."}/>
+      {rL.neverReaches ? (
+        <Box icon="⚠️ Not on track" color="red" text="At this monthly savings amount and rate, this goal won't be reached within 100 years. Increase your monthly savings or the interest rate to see a realistic timeline."/>
+      ) : (
+        <Box icon="💡 Save faster" text={"Adding just "+C.sym+fmtFull(100,2)+" more per month could save roughly "+Math.round(100/(monthly/Math.max(1,rL.months)))+" months off your timeline."}/>
+      )}
     </>:<>
       <h3 className="text-xl font-bold text-orange-500 dark:text-orange-400 border-b border-gray-100 dark:border-gray-800 pb-3">You need {C.sym+fmtFull(rM,2)}/month</h3>
       <div className="grid grid-cols-2 gap-4">
