@@ -303,9 +303,14 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
                   <p className="text-xs text-gray-400">{data.score.archetype.tagline}</p>
                 </div>
               </div>
-              <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex-shrink-0">
-                View full score →
-              </Link>
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
+                  View full score →
+                </Link>
+                <Link href="/score?retake=1" className="text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:underline">
+                  🔄 Retake score
+                </Link>
+              </div>
             </div>
 
             {/* 4 dimension progress bars */}
@@ -350,11 +355,12 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           {data.score.level === 'full' && data.score.annualHealthCost != null ? (
             <div className="grid sm:grid-cols-3 gap-4">
               <div className="sm:col-span-1 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 p-5 text-white">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Your health is costing you</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Estimated cost of your habits</p>
                 <p className="text-3xl font-black">₹{data.score.annualHealthCost.toLocaleString('en-IN')}<span className="text-sm font-bold text-white/60">/yr</span></p>
                 {data.score.lifetimeHealthCost != null && (
-                  <p className="text-xs text-white/80 mt-2">₹{(data.score.lifetimeHealthCost/10000000).toFixed(1)} Cr over your career</p>
+                  <p className="text-xs text-white/80 mt-2">≈ ₹{(data.score.lifetimeHealthCost/10000000).toFixed(1)} Cr over your career</p>
                 )}
+                <p className="text-[10px] text-white/60 mt-2">A directional estimate from sleep, stress and BMI — not a measured bill.</p>
               </div>
               {data.score.trajectories && (
                 <div className="sm:col-span-2 grid grid-cols-3 gap-2.5">

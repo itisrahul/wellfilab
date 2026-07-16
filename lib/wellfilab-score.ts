@@ -794,35 +794,49 @@ function generateTrajectories(
 ): Trajectory[] {
   const monthlyInv    = finance.monthlyInvestments || 0;
   const annualReturn  = 0.12;
+
+  // Future value of a monthly SIP annuity plus the user's EXISTING savings —
+  // both compounding forward to the same horizon. Previously totalSavings
+  // was added un-compounded (as if it earned 0% for the entire period),
+  // which massively understated net worth for anyone with real savings —
+  // e.g. ₹5L today at 12% over 30 years grows to ~₹1.5Cr on its own, not
+  // the flat ₹5L the old formula credited it.
   const fv = (pmt: number, r: number, n: number) =>
-    pmt * 12 * ((Math.pow(1 + r, n) - 1) / r) + finance.totalSavings;
+    pmt * 12 * ((Math.pow(1 + r, n) - 1) / r) + finance.totalSavings * Math.pow(1 + r, n);
+
+  const currentNW  = fv(monthlyInv, annualReturn, yearsWorking);
+  const improvedPmt = Math.max(monthlyInv, finance.monthlyIncome * 0.15);
+  const improvedNW = fv(improvedPmt, annualReturn, yearsWorking);
+  const optimalPmt = finance.monthlyIncome * 0.25;
+  const optimalR   = annualReturn + 0.02;
+  const optimalNW  = fv(optimalPmt, optimalR, yearsWorking);
 
   return [
     {
       scenario: 'current',
       label: 'Nothing changes',
-      netWorthAt60:         Math.round(fv(monthlyInv, annualReturn, yearsWorking)),
+      netWorthAt60:         Math.round(currentNW),
       lifeQuality:          Math.round(overall / 14),
       lifeExpectancy:       72 + (overall > 70 ? 3 : 0),
-      monthlyPassiveIncome: Math.round(fv(monthlyInv, annualReturn, yearsWorking) * 0.04 / 12),
+      monthlyPassiveIncome: Math.round(currentNW * 0.04 / 12),
       keyChange:            'Current trajectory maintained',
     },
     {
       scenario: 'improved',
       label: 'Fix top 3 issues',
-      netWorthAt60:         Math.round(fv(Math.max(monthlyInv, finance.monthlyIncome * 0.15), annualReturn, yearsWorking) * 1.15),
+      netWorthAt60:         Math.round(improvedNW),
       lifeQuality:          Math.min(9, Math.round(overall / 14) + 2),
       lifeExpectancy:       75 + (body.exerciseDays >= 3 ? 2 : 0),
-      monthlyPassiveIncome: Math.round(fv(Math.max(monthlyInv, finance.monthlyIncome * 0.15), annualReturn, yearsWorking) * 1.15 * 0.04 / 12),
+      monthlyPassiveIncome: Math.round(improvedNW * 0.04 / 12),
       keyChange:            `Sleep fix + ₹${Math.round(finance.monthlyIncome * 0.15 / 1000)}K SIP`,
     },
     {
       scenario: 'optimal',
       label: 'Full potential',
-      netWorthAt60:         Math.round(fv(finance.monthlyIncome * 0.25, annualReturn + 0.02, yearsWorking) * 1.3),
+      netWorthAt60:         Math.round(optimalNW),
       lifeQuality:          9,
       lifeExpectancy:       80,
-      monthlyPassiveIncome: Math.round(fv(finance.monthlyIncome * 0.25, annualReturn + 0.02, yearsWorking) * 1.3 * 0.04 / 12),
+      monthlyPassiveIncome: Math.round(optimalNW * 0.04 / 12),
       keyChange:            'All habits optimised',
     },
   ];

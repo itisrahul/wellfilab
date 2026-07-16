@@ -108,14 +108,19 @@ export default function ScorePage() {
 
   useEffect(() => {
     setMounted(true);
+    const wantsRetake = typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('retake') === '1';
     Promise.all([getLatestScore(), getScoreHistory()]).then(([latest, hist]) => {
       setHistory(hist);
-      if (latest) {
+      if (latest && !wantsRetake) {
         setScore(latest);
         const savedInputs = loadRawInputs();
         if (savedInputs) { setBody(savedInputs.body); setFinance(savedInputs.finance); }
         setStage('results');
       }
+      // wantsRetake (or no prior score): stay on stage 'A' for a fresh quiz.
+      // History stays loaded either way, so streak/trend still compare
+      // correctly against past scores once the new one is saved.
     });
   }, []);
 
@@ -558,14 +563,13 @@ function StageB({ finance, setFinance, body, income, savingsRate, sleepCostPrevi
           <div className="lg:col-span-2 lg:sticky lg:top-6 space-y-4">
             {income > 0 && sleepGap > 0 ? (
               <div className="bg-teal-600 rounded-2xl p-5 text-white">
-                <p className="text-xs font-bold uppercase tracking-widest text-teal-100 mb-3">💡 The real cost</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-teal-100 mb-3">💡 Estimated cost of your sleep deficit</p>
                 <p className="text-sm mb-3">Based on ₹{annualIncome.toLocaleString('en-IN')}/year:</p>
                 <p className="text-xs text-teal-100 leading-relaxed mb-2">
-                  Your sleep deficit costs:<br/>
-                  {sleepGap.toFixed(1)}hrs deficit × 2.4% productivity loss/hr × ₹{annualIncome.toLocaleString('en-IN')}
+                  {sleepGap.toFixed(1)}hrs deficit × 2.4% assumed productivity impact/hr × ₹{annualIncome.toLocaleString('en-IN')}
                 </p>
-                <p className="text-3xl font-black">= {fmtINR(sleepCostPreview)}<span className="text-sm font-bold text-teal-100">/year</span></p>
-                <p className="text-[11px] text-teal-100 mt-2">This is your number — not an average.</p>
+                <p className="text-3xl font-black">≈ {fmtINR(sleepCostPreview)}<span className="text-sm font-bold text-teal-100">/year</span></p>
+                <p className="text-[11px] text-teal-100 mt-2">An estimate built from your own income and sleep gap, not a generic average — but it's a directional model, not a measured fact.</p>
               </div>
             ) : (
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
@@ -617,6 +621,9 @@ function Results({ score, body, finance, onRetake }: ResultsProps) {
             {score.percentile != null && <span className="text-white/50">Top {score.percentile}% of people your age</span>}
           </div>
           <p className="text-white/40 text-xs">Based on {dataPointCount} real data points</p>
+          <button onClick={onRetake} className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
+            🔄 Retake with new numbers
+          </button>
         </div>
       </div>
 
@@ -634,22 +641,23 @@ function Results({ score, body, finance, onRetake }: ResultsProps) {
         {hasRawInputs && f.monthlyIncome > 0 && (
           <div className="space-y-4">
             {b.sleepHours < 7.5 && (
-              <MathCostCard emoji="💸" title="What your sleep costs you"
+              <MathCostCard emoji="💸" title="What your sleep deficit could be costing you"
                 lines={[
                   `You sleep ${b.sleepHours} hours per night. Optimal: 7.5 hours.`,
                   `Your deficit: ${(7.5 - b.sleepHours).toFixed(1)} hours per night.`,
                 ]}
-                formula={`${(7.5 - b.sleepHours).toFixed(1)} hrs deficit × 2.4% productivity loss/hr × ₹${(f.monthlyIncome * 12).toLocaleString('en-IN')} annual income`}
+                formula={`${(7.5 - b.sleepHours).toFixed(1)} hrs deficit × 2.4% assumed productivity impact/hr × ₹${(f.monthlyIncome * 12).toLocaleString('en-IN')} annual income`}
                 amount={Math.round(Math.max(0, 7.5 - b.sleepHours) * 0.024 * f.monthlyIncome * 12)}
-                note="This is not an estimate. This is your number."
-                howCalculated="Based on research published in Sleep journal showing 2.4% productivity loss per hour of sleep deficit below 7.5 hours." />
+                note="An estimate built from your own income and sleep gap — a directional model, not a measured fact about you specifically."
+                howCalculated="We apply a simplified 2.4%-per-hour productivity-impact assumption, in line with the general direction of published sleep-and-productivity research, to your own income. Individual results vary widely — treat this as a reason to take sleep seriously, not a precise bill." />
             )}
             {b.stressLevel > 6 && (
-              <MathCostCard emoji="🧠" title="What your stress costs you"
+              <MathCostCard emoji="🧠" title="What high stress could be costing you"
                 lines={[`Stress level: ${b.stressLevel}/10.`]}
-                formula={`(${b.stressLevel}-5)/5 × 18% × ₹${(f.monthlyIncome * 12).toLocaleString('en-IN')}`}
+                formula={`(${b.stressLevel}-5)/5 × 18% assumed impact × ₹${(f.monthlyIncome * 12).toLocaleString('en-IN')}`}
                 amount={Math.round(Math.max(0, (b.stressLevel - 5) / 5) * 0.18 * f.monthlyIncome * 12)}
-                howCalculated="High stress sustains elevated cortisol, which measurably reduces cognitive output and decision quality." />
+                note="An estimate, not a measured fact — sustained high stress is well-documented to reduce output, but the exact rupee figure is a simplified model."
+                howCalculated="Sustained high stress is associated with elevated cortisol, which is linked to reduced cognitive output and decision quality. We translate that into a simplified income-scaled estimate — useful as a directional signal, not an exact number." />
             )}
           </div>
         )}
@@ -839,6 +847,9 @@ function TrajectoriesSection({ trajectories }: { trajectories: Trajectory[] }) {
           </div>
         ))}
       </div>
+      <p className="text-[11px] text-gray-400 mt-3">
+        Projections from your current savings and SIP, compounding at an assumed 12% (14% for "Full potential") annual return until age 60 — real returns vary, this is a scenario model, not a guarantee.
+      </p>
     </div>
   );
 }
