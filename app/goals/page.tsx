@@ -6,7 +6,45 @@ import {
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
 import { getLatestScore } from '@/lib/scoreStorage';
-import type { WellFiScore } from '@/lib/wellfilab-score';
+import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
+
+// Same page-local companion key the /score and /roadmap pages already read —
+// duplicated deliberately rather than shared, matching the existing pattern.
+const INPUTS_KEY = 'wfl_score_inputs_v1';
+function loadRawInputs(): { body: BodyInputs; finance: FinanceInputs } | null {
+  try {
+    const raw = window.localStorage.getItem(INPUTS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
+
+function buildSuggestions(score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null, existing: Goal[]): SuggestedGoal[] {
+  const has = (t: GoalType) => existing.some(g => g.type === t);
+  const suggestions: SuggestedGoal[] = [];
+
+  if (!has('wellfilab-score')) {
+    suggestions.push({ type: 'wellfilab-score', target: Math.min(100, score.overall + 10), current: score.overall, reason: `You're at ${score.overall}/100 today — a realistic next milestone.` });
+  }
+  if (finance && !finance.hasEmergencyFund && !has('emergency-fund')) {
+    suggestions.push({ type: 'emergency-fund', target: Math.round(finance.monthlyExpenses * 3), current: Math.round(finance.totalSavings), reason: 'No emergency fund yet — 3 months of your real expenses is the standard target.' });
+  }
+  if (finance && finance.monthlyInvestments < finance.monthlyIncome * 0.1 && !has('sip-target')) {
+    suggestions.push({ type: 'sip-target', target: Math.round(Math.max(1000, finance.monthlyIncome * 0.15)), current: Math.round(finance.monthlyInvestments), reason: `You invest ${finance.monthlyIncome > 0 ? Math.round((finance.monthlyInvestments / finance.monthlyIncome) * 100) : 0}% of income today — 15% is a common target.` });
+  }
+  if (finance && finance.totalDebt > 0 && !has('debt-freedom')) {
+    suggestions.push({ type: 'debt-freedom', target: 0, current: Math.round(finance.totalDebt), reason: 'Tracking debt paydown to zero, even slowly, is real visible progress.' });
+  }
+  if (body && body.sleepHours < 7.5 && !has('sleep')) {
+    suggestions.push({ type: 'sleep', target: 7.5, current: body.sleepHours, reason: `You're sleeping ${body.sleepHours}h — 7.5h is the optimal target used in your score.` });
+  }
+  if (body && body.exerciseDays < 4 && !has('fitness')) {
+    suggestions.push({ type: 'fitness', target: 4, current: body.exerciseDays, reason: `${body.exerciseDays} days/week today — 4+ is where the score gives full credit.` });
+  }
+
+  return suggestions.slice(0, 3);
+}
 
 function fmtVal(n: number, unit: string): string {
   if (unit === '₹' || unit === '₹/month' || unit === '₹ remaining') {
@@ -68,9 +106,12 @@ export default function GoalsPage() {
   const [score, setScore] = useState<WellFiScore | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
+  const [rawInputs, setRawInputs] = useState<{ body: BodyInputs; finance: FinanceInputs } | null>(null);
+  const [dismissed, setDismissed] = useState<GoalType[]>([]);
 
   useEffect(() => {
     Promise.all([getGoals(), getLatestScore()]).then(([g, s]) => { setGoals(g); setScore(s); });
+    setRawInputs(loadRawInputs());
     // Deep link from a calculator's real result, e.g. /goals?prefill=net-worth&current=550000 —
     // read directly from the URL rather than useSearchParams, which would force this
     // otherwise-static page into a Suspense boundary just for this one optional feature.
@@ -89,6 +130,14 @@ export default function GoalsPage() {
   const refresh = () => getGoals().then(setGoals);
 
   const needsUpdate = (goals ?? []).some(g => !g.paused && Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
+  const suggestions = score
+    ? buildSuggestions(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, goals ?? []).filter(s => !dismissed.includes(s.type))
+    : [];
+
+  const addSuggested = async (s: SuggestedGoal) => {
+    await addGoal({ type: s.type, label: GOAL_TYPE_META[s.type].label, target: s.target, current: s.current });
+    refresh();
+  };
 
   if (goals === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
@@ -120,6 +169,28 @@ export default function GoalsPage() {
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
             <span className="text-lg flex-shrink-0">⏰</span>
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 flex-1">It's been a while since you updated a goal — a quick monthly check-in keeps your progress accurate.</p>
+          </div>
+        )}
+
+        {suggestions.length > 0 && !showAdd && (
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Suggested for you — based on your real score</p>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {suggestions.map(s => {
+                const meta = GOAL_TYPE_META[s.type];
+                return (
+                  <div key={s.type} className="relative p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                    <button onClick={() => setDismissed(d => [...d, s.type])} className="absolute top-2 right-2 text-gray-300 hover:text-gray-500 text-xs">✕</button>
+                    <span className="text-xl">{meta.icon}</span>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1.5">{meta.label}</p>
+                    <p className="text-xs text-gray-400 mt-1 mb-3 leading-relaxed">{s.reason}</p>
+                    <button onClick={() => addSuggested(s)} className="w-full py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all">
+                      + Add this goal
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

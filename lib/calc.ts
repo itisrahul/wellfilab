@@ -1072,3 +1072,41 @@ export function calcGovSchemeCompare(monthly: number, years: number, taxSlabPct:
     invested: Math.round(invested),
   };
 }
+
+// ── Old vs New Tax Regime Comparison ───────────────────
+/** India old-tax-regime slabs (FY 2024-25, incl. Sec 87A rebate at ₹5L + 4% cess) on annual taxable income. */
+function indiaOldRegimeTax(annualTaxable: number): number {
+  const t = Math.max(0, annualTaxable);
+  if (t <= 500000) return 0; // Sec 87A rebate — nil tax up to ₹5L taxable (old regime threshold, lower than new regime's ₹7L)
+  const brackets: [number, number, number][] = [[0,250000,0],[250000,500000,5],[500000,1000000,20],[1000000,Infinity,30]];
+  let tax = 0;
+  for (const [lo, hi, rate] of brackets) {
+    if (t <= lo) break;
+    tax += Math.min(t - lo, hi - lo) * rate / 100;
+  }
+  return Math.round(tax * 1.04);
+}
+
+export function calcTaxRegimeCompare(grossIncome: number, deductions80C: number, hraExemption: number, otherDeductions: number) {
+  const gross = Math.max(0, grossIncome);
+  const stdDeductionOld = 50000;
+  const stdDeductionNew = 75000;
+  const cap80C = Math.min(Math.max(0, deductions80C), 150000);
+
+  // Old regime allows 80C (capped), HRA exemption and other itemised deductions on top of its
+  // own standard deduction — the new regime allows none of these, only its (larger) standard deduction.
+  const oldTaxable = Math.max(0, gross - stdDeductionOld - cap80C - Math.max(0, hraExemption) - Math.max(0, otherDeductions));
+  const newTaxable = Math.max(0, gross - stdDeductionNew);
+
+  const oldTax = indiaOldRegimeTax(oldTaxable);
+  const newTax = indiaNewRegimeTax(newTaxable);
+  const better: 'old' | 'new' = oldTax <= newTax ? 'old' : 'new';
+
+  return {
+    old: { taxable: Math.round(oldTaxable), tax: oldTax, inHand: Math.round(gross - oldTax), deductionsUsed: Math.round(stdDeductionOld + cap80C + Math.max(0, hraExemption) + Math.max(0, otherDeductions)) },
+    new: { taxable: Math.round(newTaxable), tax: newTax, inHand: Math.round(gross - newTax), deductionsUsed: stdDeductionNew },
+    better,
+    savings: Math.abs(oldTax - newTax),
+    breakEvenDeductions: Math.round(cap80C + Math.max(0, hraExemption) + Math.max(0, otherDeductions)),
+  };
+}

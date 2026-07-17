@@ -41,6 +41,7 @@ const WIDGETS: Record<string, React.ComponentType> = {
   'net-worth':       dynamic(() => import('@/components/tools/widgets/finance/NetWorthCalc'),     { loading, ssr: false }),
   'money-last':      dynamic(() => import('@/components/tools/widgets/finance/MoneyLastCalc'),    { loading, ssr: false }),
   'income-tax':      dynamic(() => import('@/components/tools/widgets/finance/IncomeTaxCalc'),    { loading, ssr: false }),
+  'tax-regime-compare': dynamic(() => import('@/components/tools/widgets/finance/TaxRegimeCompareCalc'), { loading, ssr: false }),
   'salary':          dynamic(() => import('@/components/tools/widgets/finance/SalaryCalc'),       { loading, ssr: false }),
   'gst':             dynamic(() => import('@/components/tools/widgets/finance/GSTCalc'),          { loading, ssr: false }),
   'currency':        dynamic(() => import('@/components/tools/widgets/finance/CurrencyCalc'),     { loading, ssr: false }),
