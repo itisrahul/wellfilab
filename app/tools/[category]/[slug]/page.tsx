@@ -88,12 +88,22 @@ export default function ToolPage({ params }: { params: { category: string; slug:
 
         {/* Calculator → Score banner — subtle, not intrusive */}
         <Link href="/score"
-          className="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 hover:border-teal-300 dark:hover:border-teal-700 transition-colors group">
+          className="flex items-center gap-3 mb-3 px-4 py-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 hover:border-teal-300 dark:hover:border-teal-700 transition-colors group">
           <span className="text-lg flex-shrink-0">📊</span>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">See how this fits your bigger picture → Get your free score</p>
           </div>
           <span className="flex-shrink-0 text-xs font-bold text-teal-700 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">60 seconds →</span>
+        </Link>
+
+        {/* Calculator → Goals banner — turn this result into a tracked target */}
+        <Link href="/goals"
+          className="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
+          <span className="text-lg flex-shrink-0">🎯</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Like this number? Turn it into a goal and track it monthly</p>
+          </div>
+          <span className="flex-shrink-0 text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
         </Link>
 
         <div className="flex justify-end mb-6">

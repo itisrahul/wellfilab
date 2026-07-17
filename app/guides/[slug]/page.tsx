@@ -125,6 +125,16 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
           <ScoreCTA variant="compact" />
         </div>
 
+        {/* Goals cross-link — turn what you just read into a tracked target */}
+        <Link href="/goals"
+          className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
+          <span className="text-lg flex-shrink-0">🎯</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Set a goal based on what you just read</p>
+          </div>
+          <span className="flex-shrink-0 text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:translate-x-0.5 transition-transform">Add a goal →</span>
+        </Link>
+
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-10 pt-8 border-t border-gray-100 dark:border-gray-800">
           {post.tags.map(tag => (
