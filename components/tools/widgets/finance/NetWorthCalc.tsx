@@ -1,9 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcNetWorth } from '@/lib/calc';
 import { Shell, CurrPills, useCurr, fmtFull, fmtSmart } from '@/components/tools/shared';
 import { getSnapshots, addSnapshot, deleteSnapshot, clearSnapshots, type NetWorthSnapshot } from '@/lib/netWorthHistory';
+import { getLatestScore } from '@/lib/scoreStorage';
+import type { WellFiScore } from '@/lib/wellfilab-score';
+
+const MILESTONES = [100000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000];
 
 export default function NetWorthCalc() {
   const [curr,setCurr]=useState('INR');
@@ -11,11 +16,21 @@ export default function NetWorthCalc() {
   const [liabs,setLiabs]=useState([{label:'Home Loan',value:1800000},{label:'Car Loan',value:120000},{label:'Credit Card',value:30000}]);
   const [history, setHistory] = useState<NetWorthSnapshot[]>([]);
   const [saved, setSaved] = useState(false);
+  const [score, setScore] = useState<WellFiScore | null>(null);
   const C=useCurr(curr); const r=calcNetWorth(assets,liabs);
   const ua=(i:number,f:string,v:string|number)=>{const a=[...assets];(a[i] as Record<string,string|number>)[f]=v;setAssets(a);};
   const ul=(i:number,f:string,v:string|number)=>{const l=[...liabs];(l[i] as Record<string,string|number>)[f]=v;setLiabs(l);};
 
-  useEffect(() => { getSnapshots().then(setHistory); }, []);
+  useEffect(() => { getSnapshots().then(setHistory); getLatestScore().then(setScore); }, []);
+
+  const nextMilestone = MILESTONES.find(m => m > r.netWorth) ?? null;
+  const prevMilestone = [...MILESTONES].reverse().find(m => m <= r.netWorth) ?? 0;
+  const milestonePct = nextMilestone ? Math.max(0, Math.min(100, ((r.netWorth - prevMilestone) / (nextMilestone - prevMilestone)) * 100)) : 100;
+
+  const currentTrajectory = score?.trajectories?.find(t => t.scenario === 'current');
+  const fireProgress = currentTrajectory && currentTrajectory.netWorthAt60 > 0
+    ? Math.min(100, Math.round((r.netWorth / currentTrajectory.netWorthAt60) * 100))
+    : null;
 
   const saveSnapshot = async () => {
     await addSnapshot(r.totalAssets, r.totalLiab);
@@ -51,6 +66,30 @@ export default function NetWorthCalc() {
       <button onClick={saveSnapshot} className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-all">
         {saved ? '✓ Snapshot saved!' : '📌 Save this month\'s snapshot'}
       </button>
+
+      {nextMilestone && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="font-semibold text-gray-600 dark:text-gray-300">Next milestone: {C.sym}{fmtSmart(nextMilestone, C.sym)}</span>
+            <span className="text-gray-400">{Math.round(milestonePct)}%</span>
+          </div>
+          <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-orange-400 rounded-full transition-all duration-700" style={{ width: `${milestonePct}%` }} />
+          </div>
+        </div>
+      )}
+
+      {score && fireProgress != null && (
+        <div className="rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 p-3.5">
+          <p className="text-xs font-bold text-teal-700 dark:text-teal-400 mb-1">🔥 {fireProgress}% of your current-trajectory net worth at 60</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">From your WellFiLab Score's projections, based on your real income and SIP. <Link href="/roadmap" className="underline hover:text-teal-600 dark:hover:text-teal-400">See the actions that move this number →</Link></p>
+        </div>
+      )}
+      {!score && (
+        <Link href="/score" className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400">
+          📊 Get your WellFiLab Score to see this against your real retirement trajectory →
+        </Link>
+      )}
     </>}/>
 
     <div className="p-6 border-t border-gray-100 dark:border-gray-800">
