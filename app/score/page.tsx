@@ -647,7 +647,10 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
           <CalculationBreakdown score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
         )}
 
-        {/* SECTION 2B: How you compare */}
+        {/* SECTION 2B: What your score means for your life */}
+        <ScoreImpactSection score={score} />
+
+        {/* SECTION 2B-ii: How you compare */}
         <BenchmarkSection score={score} history={history} />
 
         {/* SECTION 2C: What-if simulator — interactive only, not meaningful in a printed report */}
@@ -865,6 +868,57 @@ const SCORE_BANDS = [
   { label: 'Good',        lo: 60, hi: 79,  color: '#0d9488' },
   { label: 'Excellent',   lo: 80, hi: 100, color: '#10b981' },
 ];
+
+function ScoreImpactSection({ score }: { score: WellFiScore }) {
+  const body = score.body, wealth = score.wealth;
+
+  const healthText = body < 50
+    ? "Your physical habits are costing you energy and focus daily. People with scores above 70 report significantly higher productivity."
+    : body <= 70
+    ? "Solid foundation. Small improvements here have outsized life impact."
+    : "Strong physical score. Maintain these habits — they're protecting your future.";
+
+  const financialText = wealth < 50
+    ? "Your financial foundation needs attention. Without an emergency fund and investments, one unexpected event can set you back years."
+    : wealth <= 70
+    ? "Decent foundation. The gap between where you are and financial independence is closeable."
+    : "Strong financial habits. Focus on optimising returns and accelerating toward your goals.";
+
+  const bothLow = body < 60 && wealth < 60;
+  const bothHigh = body >= 70 && wealth >= 70;
+  const healthHighWealthLow = body >= 70 && wealth < 60;
+  const wealthHighHealthLow = wealth >= 70 && body < 60;
+
+  const connectionText = bothHigh
+    ? "Both engines are firing. Most people never get body and wealth working together like this — the discipline that built one is now compounding the other."
+    : bothLow
+    ? "Your health and finances are connected. Stress raises cortisol → impulse spending. Poor sleep → poor decisions → financial mistakes. Fixing one helps the other."
+    : healthHighWealthLow
+    ? "Your health score suggests strong discipline. Apply that same discipline to finances — the habits that built your body will build your wealth."
+    : wealthHighHealthLow
+    ? "Financial success built on poor health is fragile. Your body is your most important asset. Protect it."
+    : "Your body and wealth scores are both moving in a reasonable direction — keep closing the gap between them, since each one makes the other easier.";
+
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">What your score means for your life</p>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1.5">💪 Health</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{healthText}</p>
+        </div>
+        <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5">💰 Financial</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{financialText}</p>
+        </div>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-teal-50 dark:from-purple-950/20 dark:to-teal-950/20 border border-purple-100 dark:border-purple-900">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-1.5">🔗 The connection</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{connectionText}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BenchmarkSection({ score, history }: { score: WellFiScore; history: WellFiScore[] }) {
   const sorted = [...history].filter(h => h.date).sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
