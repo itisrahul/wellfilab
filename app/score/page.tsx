@@ -607,6 +607,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
   const sortedDims = [...score.dimensions].sort((a, b2) => a.score - b2.score);
   const lowestDim = sortedDims[0];
 
+  const priorScores = history.filter(h => h.id !== score.id);
+  const isNewBest = priorScores.length > 0 && score.overall > Math.max(...priorScores.map(h => h.overall));
+
   return (
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
 
@@ -614,6 +617,11 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
       <div className="relative overflow-hidden bg-gray-950">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-3xl mx-auto px-4 py-16 text-center">
+          {isNewBest && (
+            <div className="inline-flex items-center gap-1.5 mb-4 px-3.5 py-1.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-bold animate-pulse">
+              🎉 New personal best!
+            </div>
+          )}
           <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">Your WellFiLab Score</p>
           <p className="text-7xl font-black text-white leading-none mb-2">{animatedOverall}</p>
           <div className="flex items-center justify-center gap-3 mb-4 text-sm flex-wrap">
@@ -724,6 +732,12 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
           <p className="text-2xl mb-2">🔥</p>
           <p className="font-bold text-gray-900 dark:text-white text-sm">{score.streakDays} day streak</p>
+          {[7, 30, 100].includes(score.streakDays) && (
+            <p className="text-xs font-bold text-amber-500 mt-1">🏅 {score.streakDays}-day milestone reached!</p>
+          )}
+          {priorScores.length >= 4 && (
+            <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-1">📊 {priorScores.length + 1} assessments tracked — that's real, visible history.</p>
+          )}
           <p className="text-xs text-gray-400 mt-1 mb-4">Score saved on this device. Come back in 30 days to track your progress.</p>
           <button onClick={onRetake} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
             Retake with new numbers

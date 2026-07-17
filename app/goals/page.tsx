@@ -142,12 +142,19 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
   const meta = GOAL_TYPE_META[goal.type];
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(goal.current);
+  const [justCompleted, setJustCompleted] = useState(false);
   const pct = progressPct(goal);
   const complete = isComplete(goal);
   const pace = paceLabel(goal);
   const eta = !complete ? estimatedCompletion(goal) : null;
 
-  const save = async () => { await updateGoalProgress(goal.id, val); onChange(); setEditing(false); };
+  const save = async () => {
+    const willComplete = !complete && isComplete({ ...goal, current: val });
+    await updateGoalProgress(goal.id, val);
+    onChange();
+    setEditing(false);
+    if (willComplete) { setJustCompleted(true); setTimeout(() => setJustCompleted(false), 4000); }
+  };
   const remove = async () => { if (confirm(`Delete "${goal.label}"?`)) { await deleteGoal(goal.id); onChange(); } };
   const pause = async () => { await toggleGoalPause(goal.id); onChange(); };
 
@@ -168,6 +175,11 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
         <button onClick={remove} className="text-gray-300 hover:text-red-500 text-sm flex-shrink-0">✕</button>
       </div>
 
+      {justCompleted && (
+        <div className="mb-3 px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-bold text-center animate-pulse">
+          🎉 Goal reached! Great work.
+        </div>
+      )}
       <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
         <span>{fmtVal(goal.current, meta.unit)}</span>
         <span>{fmtVal(goal.target, meta.unit)}</span>
