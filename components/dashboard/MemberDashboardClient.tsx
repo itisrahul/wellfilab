@@ -10,6 +10,7 @@ import {
 } from '@/lib/subscriptionStorage';
 import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
 import { getOnboarding } from '@/lib/onboardingStorage';
+import { getGoals, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
 import { AICoach } from './AICoach';
 import { PlanStatus } from './PlanStatus';
 import { QuickTools } from './QuickTools';
@@ -37,6 +38,7 @@ interface DashboardData {
   roadmapStarted: boolean;
   phase1Done: boolean;
   calcHistory: CalcHistoryEntry[];
+  goals: Goal[];
   greeting: string;
   dateStr: string;
 }
@@ -171,6 +173,79 @@ function RoadmapCard({ score, started }: { score: WellFiScore; started: boolean 
   );
 }
 
+function MonthlyReviewBanner({ score, goals }: { score: WellFiScore; goals: Goal[] }) {
+  const daysSinceScore = score.date ? Math.floor((Date.now() - new Date(score.date).getTime()) / 86400000) : 0;
+  const staleGoals = goals.filter(g => !g.paused && Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
+  const reviewDue = daysSinceScore >= 28;
+  if (!reviewDue && staleGoals.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-5 text-white flex-wrap">
+      <span className="text-3xl flex-shrink-0">🗓️</span>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-sm">{reviewDue ? "It's time for your monthly review" : 'A few goals need a quick update'}</p>
+        <p className="text-xs text-white/70 mt-0.5">
+          {reviewDue ? `Your score is ${daysSinceScore} days old — retake it to see what's changed, and check your roadmap and goals.` : `${staleGoals.length} goal${staleGoals.length > 1 ? 's haven\'t' : ' hasn\'t'} been updated in 25+ days.`}
+        </p>
+      </div>
+      <div className="flex gap-2 flex-shrink-0">
+        {reviewDue && <Link href="/score?retake=1" className="px-3.5 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-bold transition-colors">Retake score</Link>}
+        <Link href="/goals" className="px-3.5 py-2 rounded-lg bg-white text-purple-700 text-xs font-bold hover:bg-white/90 transition-colors">Review goals</Link>
+      </div>
+    </div>
+  );
+}
+
+function GoalsSummaryCard({ goals }: { goals: Goal[] }) {
+  const active = goals.filter(g => !g.paused);
+  if (active.length === 0) {
+    return (
+      <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+        <span className="text-3xl flex-shrink-0">🎯</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-gray-900 dark:text-white text-sm">No goals set yet</p>
+          <p className="text-xs text-gray-400 mt-0.5">Set a health or wealth target and track it every month.</p>
+        </div>
+        <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Add a goal →</span>
+      </Link>
+    );
+  }
+
+  const progressPct = (g: Goal) => {
+    const span = g.target - g.startValue;
+    if (span === 0) return g.current === g.target ? 100 : 0;
+    return Math.max(0, Math.min(100, ((g.current - g.startValue) / span) * 100));
+  };
+  const avgPct = Math.round(active.reduce((s, g) => s + progressPct(g), 0) / active.length);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Your goals — {avgPct}% average progress</p>
+        <Link href="/goals" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">View all →</Link>
+      </div>
+      <div className="grid sm:grid-cols-3 gap-3">
+        {active.slice(0, 3).map(g => {
+          const meta = GOAL_TYPE_META[g.type];
+          const pct = Math.round(progressPct(g));
+          return (
+            <div key={g.id} className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">{meta.icon}</span>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{g.label}</p>
+              </div>
+              <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
+                <div className="h-full bg-teal-500 rounded-full" style={{ width: `${pct}%` }} />
+              </div>
+              <p className="text-[11px] text-gray-400">{pct}% complete</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const firstName = userName.split(' ')[0];
@@ -178,8 +253,8 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   useEffect(() => {
     const hour = new Date().getHours();
-    Promise.all([getLatestScore(), getScoreHistory(), getAccountSubscription(), getSubscription()])
-      .then(async ([score, history, accountSub, localSub]) => {
+    Promise.all([getLatestScore(), getScoreHistory(), getAccountSubscription(), getSubscription(), getGoals()])
+      .then(async ([score, history, accountSub, localSub, goals]) => {
         // Account metadata (Clerk) is authoritative. If it's empty but this
         // browser has a local record — e.g. checkout happened as a guest,
         // then the same person signed in — link it to the account now so it
@@ -197,6 +272,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           roadmapStarted: roadmap.started,
           phase1Done:     roadmap.phase1Done,
           calcHistory:  getCalcHistory(),
+          goals,
           greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
           dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         });
@@ -278,6 +354,12 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
           {/* Roadmap quick link — vivid "ready" banner until started, then a calmer continue-card */}
           <RoadmapCard score={data.score} started={data.roadmapStarted} />
+
+          {/* Monthly review nudge — the main reason to come back once the first flush of activity fades */}
+          <MonthlyReviewBanner score={data.score} goals={data.goals} />
+
+          {/* Goals summary */}
+          <GoalsSummaryCard goals={data.goals} />
 
           {/* Member stats strip */}
           <div className="grid grid-cols-3 gap-3">

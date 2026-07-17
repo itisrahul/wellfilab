@@ -710,6 +710,15 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         {/* SECTION 8: Trajectories + Save & share */}
         {score.trajectories && <TrajectoriesSection trajectories={score.trajectories} />}
 
+        <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+          <span className="text-3xl flex-shrink-0">🎯</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-gray-900 dark:text-white text-sm">Turn this score into a tracked goal</p>
+            <p className="text-xs text-gray-400 mt-0.5">Set a target — {score.overall + 10}/100, a net worth number, a sleep target — and check progress monthly.</p>
+          </div>
+          <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
+        </Link>
+
         <ShareCard score={score} />
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">

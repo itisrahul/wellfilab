@@ -397,6 +397,16 @@ export default function RoadmapPage() {
         {/* SECTION 7: 90-day timeline */}
         <NinetyDayTimeline daysSinceStart={daysSinceStart} lowestLabel={lowestDim.label} />
 
+        {/* SECTION 7B: Turn this into a tracked goal */}
+        <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+          <span className="text-3xl flex-shrink-0">🎯</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-gray-900 dark:text-white text-sm">Turn this roadmap into a tracked goal</p>
+            <p className="text-xs text-gray-400 mt-0.5">Set a target for {lowestDim.label.toLowerCase()} (or anything else) and check your progress monthly.</p>
+          </div>
+          <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
+        </Link>
+
         {/* SECTION 8: Tools for your roadmap */}
         <ToolsSection lowestDim={lowestDim} secondDim={secondDim} />
 
