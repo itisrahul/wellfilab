@@ -3,8 +3,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
 import { CALCULATORS, getBySlug } from '@/config/tools';
-import type { WellFiScore, Dimension, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
+import { calculateFullScore, type WellFiScore, type Dimension, type BodyInputs, type FinanceInputs, type QuickInputs } from '@/lib/wellfilab-score';
 import { getRelevantAffiliates, type Affiliate } from '@/lib/affiliates';
+
+// QuickInputs is accepted but ignored by calculateFullScore once real body/finance
+// data exists — this placeholder exists only to satisfy the function signature.
+const DUMMY_QUICK: QuickInputs = { healthFeeling: 3, financeFeeling: 3, stressFeeling: 3 };
 
 function fmtINR(n: number): string {
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
@@ -240,6 +244,18 @@ export default function RoadmapPage() {
   const totalAnnualImpact = [...phase1Extras, ...phase2Actions, ...phase3Actions]
     .reduce((sum, a) => sum + (a.impactValue ?? 0), 0);
 
+  // Estimated score after completing this roadmap — real algorithm, real inputs,
+  // targets matched to the actual actions shown above (sleep 7.5h, 4 days/week
+  // movement, stress brought down, emergency fund + insurance in place, SIP
+  // raised to 15% of income) rather than an invented "your score will improve" claim.
+  const projectedScore = rBody && rFinance ? calculateFullScore(
+    DUMMY_QUICK,
+    { ...rBody, sleepHours: 7.5, exerciseDays: Math.max(rBody.exerciseDays, 4), stressLevel: Math.min(rBody.stressLevel, 4) },
+    { ...rFinance, hasEmergencyFund: true, hasInsurance: true, monthlyInvestments: Math.max(rFinance.monthlyInvestments, rFinance.monthlyIncome * 0.15) },
+    []
+  ) : null;
+  const scoreGain = projectedScore ? projectedScore.overall - score.overall : 0;
+
   const activePhaseNum: 1 | 2 | 3 = phase3Unlocked ? 3 : phase2Unlocked ? 2 : 1;
   const relevantAffiliates = getRelevantAffiliates(score, activePhaseNum, 2);
   const affiliatesForPhase = (n: 1 | 2 | 3) => relevantAffiliates.filter(a => a.showWhen.minPhase === n);
@@ -302,6 +318,20 @@ export default function RoadmapPage() {
 
         {/* SECTION 2: Root cause diagnosis */}
         <RootCauseCard lowestDim={lowestDim} findDim={findDim} annualHealthCost={score.annualHealthCost} />
+
+        {/* SECTION 2B: What completing this roadmap could do to your score */}
+        {projectedScore && scoreGain > 0 && (
+          <div className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl p-6 text-white">
+            <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-2">If you complete this roadmap</p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div>
+                <p className="text-4xl font-black">{score.overall} → {projectedScore.overall}</p>
+                <p className="text-sm text-white/80 mt-1">+{scoreGain} points — from sleeping 7.5h, moving 4 days/week, lower stress, an emergency fund, insurance, and a SIP at 15% of income.</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-white/60 mt-3">Computed with the exact same scoring formula as your real score — not a promise, a projection from these specific target values.</p>
+          </div>
+        )}
 
         {/* SECTION 3: Dimension scores */}
         <div>
