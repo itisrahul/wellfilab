@@ -169,6 +169,27 @@ export default function ToolPage({ params }: { params: { category: string; slug:
               </section>
             )}
 
+            {calc.interpretation && (
+              <section className={`rounded-2xl border p-5 ${relBg}`}>
+                <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${accent}`}>How to read your result</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{calc.interpretation}</p>
+              </section>
+            )}
+
+            {calc.commonMistakes && calc.commonMistakes.length > 0 && (
+              <section>
+                <h2 className="font-bold text-gray-900 dark:text-gray-100 mb-3">⚠️ Common Mistakes</h2>
+                <div className="space-y-2">
+                  {calc.commonMistakes.map((m, i) => (
+                    <div key={i} className="p-3.5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                      <p className="text-sm font-semibold text-red-600 dark:text-red-400">✕ {m.mistake}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mt-1">✓ {m.fix}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <PairWith calc={calc} />
 
             {calc.faq.length > 0 && (
