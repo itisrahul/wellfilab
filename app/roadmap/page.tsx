@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
 import { CALCULATORS, getBySlug } from '@/config/tools';
-import type { WellFiScore, Dimension } from '@/lib/wellfilab-score';
+import type { WellFiScore, Dimension, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
 import { getRelevantAffiliates, type Affiliate } from '@/lib/affiliates';
 
 function fmtINR(n: number): string {
@@ -15,46 +15,124 @@ function fmtINR(n: number): string {
 
 const CHECKS_KEY = 'wfl_roadmap_checks';
 const START_KEY = 'wfl_roadmap_start';
+// Same page-local companion key the /score page uses to keep the raw BodyInputs/
+// FinanceInputs that produced a score (not just the computed score itself) —
+// duplicated here deliberately rather than shared, same pattern as other
+// page-local localStorage keys in this codebase.
+const INPUTS_KEY = 'wfl_score_inputs_v1';
+function loadRawInputs(): { body: BodyInputs; finance: FinanceInputs } | null {
+  try {
+    const raw = window.localStorage.getItem(INPUTS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
 
 // ── Action banks, one per fine-grained dimension id ─────────────────────
 interface RoadmapAction {
-  title: string; whyTemplate: string; impact: string; ease: string;
+  title: string; why: string; impact: string;
+  /** Annual ₹ figure, only set when genuinely a recurring annual saving/cost —
+   * never a long-term corpus number (those live in the trajectories section,
+   * a single source of truth, so they're not duplicated/re-derived here). */
+  impactValue?: number;
   priority: 'Today' | 'This week'; category: 'Health' | 'Finance' | 'Mind';
   toolSlug?: string; toolCat?: 'health' | 'finance';
 }
 
-const DIM_ACTIONS: Record<string, RoadmapAction[]> = {
-  sleep: [
-    { title: 'Set a bedtime alarm tonight', whyTemplate: '{insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.', impact: 'Sleep quality improves within 3-5 days. Costs nothing.', ease: 'Costs nothing', priority: 'Today', category: 'Health', toolSlug: 'sleep', toolCat: 'health' },
-    { title: 'No phone 30 min before bed — start tonight', whyTemplate: 'Blue light suppresses melatonin for 3+ hours after exposure.', impact: 'Sleep onset up to 40% faster within 1 week.', ease: '5 minutes', priority: 'Today', category: 'Health' },
-    { title: 'Keep a consistent wake time, even on weekends', whyTemplate: 'Circadian rhythm consistency matters more than total hours for how rested you actually feel.', impact: 'Noticeable energy improvement within 2 weeks.', ease: 'Costs nothing', priority: 'This week', category: 'Health' },
-  ],
-  movement: [
-    { title: 'Walk for 20 minutes tomorrow morning', whyTemplate: 'Before checking your phone — this sets your cortisol rhythm for the whole day.', impact: 'Mood and energy improve same-day. Costs nothing.', ease: '20 minutes', priority: 'Today', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
-    { title: 'Pick one recurring time slot this week for movement', whyTemplate: '{insight}. A fixed slot beats a vague intention every time.', impact: 'Consistency compounds — most people quit from lack of a schedule, not lack of motivation.', ease: '5 minutes setup', priority: 'This week', category: 'Health' },
-    { title: 'Try a beginner routine this week (bodyweight or a 20-min video)', whyTemplate: 'Structure removes the "what do I even do" barrier that stops most people before they start.', impact: 'A repeatable routine beats a one-off workout.', ease: '20 minutes', priority: 'This week', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
-  ],
-  stress: [
-    { title: 'Write your 3 biggest stressors now', whyTemplate: '{insight}. Writing externalises stress — it reduces it immediately, before you solve anything.', impact: 'Cortisol reduces within minutes. Free. Immediate.', ease: '5 minutes', priority: 'Today', category: 'Mind' },
-    { title: 'Set one boundary today', whyTemplate: 'Chronic stress is sustained by unprotected time and energy — one boundary interrupts that.', impact: 'Compounds over weeks as the pattern breaks.', ease: 'Costs nothing', priority: 'Today', category: 'Mind' },
-    { title: 'Try 4-7-8 breathing before your next stressful moment', whyTemplate: 'A simple pattern — 4s in, 7s hold, 8s out — activates your parasympathetic nervous system directly.', impact: 'Measurable heart-rate drop within 60 seconds.', ease: 'Costs nothing', priority: 'This week', category: 'Mind' },
-  ],
-  savings: [
-    { title: 'Open a separate savings account', whyTemplate: '{insight}. Separation prevents spending from savings automatically.', impact: 'Removes the temptation entirely — out of sight, out of spend.', ease: '15 minutes setup', priority: 'This week', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance' },
-    { title: 'List every subscription you pay', whyTemplate: 'Most people underestimate fixed expenses by 20-30%.', impact: 'Usually surfaces one or two you forgot you had.', ease: '15 minutes', priority: 'Today', category: 'Finance', toolSlug: 'budget', toolCat: 'finance' },
-    { title: 'Automate one transfer to savings on payday', whyTemplate: 'Automatic beats willpower — money saved before you see it never gets the chance to be spent.', impact: 'A savings habit that runs itself.', ease: '5 minutes setup', priority: 'This week', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance' },
-  ],
-  investing: [
-    { title: 'Calculate your first SIP amount', whyTemplate: '{insight}.', impact: 'A concrete monthly number beats a vague "I should invest more."', ease: '5 minutes', priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance' },
-    { title: 'Set a calendar reminder to review your SIP in 90 days', whyTemplate: 'Consistency matters more than perfection — review, don\'t obsess over daily market moves.', impact: 'Keeps the habit alive without turning into anxiety.', ease: '2 minutes', priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance' },
-    { title: 'Open a demat account when ready', whyTemplate: 'The single blocking step between "planning to invest" and actually investing.', impact: 'Takes about 15 minutes online, most providers.', ease: '15 minutes', priority: 'This week', category: 'Finance' },
-  ],
-  debt: [
-    { title: 'List every debt with its interest rate', whyTemplate: '{insight}. You can\'t attack what you haven\'t mapped.', impact: 'Usually surfaces one obvious highest-priority target.', ease: '10 minutes', priority: 'Today', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
-    { title: 'Pick your highest-interest debt and pay ₹500 extra this month', whyTemplate: 'Extra payments on the highest-rate debt save the most over time (the avalanche method).', impact: 'Reduces total interest paid — see the exact amount in the Debt Payoff calculator.', ease: '5 minutes', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
-    { title: 'Call one lender and ask about a lower rate', whyTemplate: 'Many lenders will negotiate for an existing customer with a good payment history — it costs nothing to ask.', impact: 'Even a 1-2% rate cut compounds significantly over the loan term.', ease: '15 minutes', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
-  ],
-};
+/** Builds real, numbered actions from the user's own body/finance data when available,
+ * falling back to the existing generic-but-good text when they're not (quick-level score). */
+function getDimActions(id: string, dim: Dimension, body: BodyInputs | null, finance: FinanceInputs | null): RoadmapAction[] {
+  switch (id) {
+    case 'sleep': {
+      const gap = body ? Math.max(0, 7.5 - body.sleepHours) : null;
+      const annualIncome = finance ? finance.monthlyIncome * 12 : null;
+      const sleepCost = gap != null && annualIncome != null ? Math.round(gap * 0.024 * annualIncome) : null;
+      return [
+        {
+          title: gap && gap > 0 ? `Go to bed ${gap.toFixed(1)}h earlier tonight` : 'Set a consistent bedtime alarm tonight',
+          why: body ? `You currently sleep ${body.sleepHours} hours — ${dim.insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.`
+                    : `${dim.insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.`,
+          impact: sleepCost && sleepCost > 0 ? `💰 Recovers an estimated ${fmtINR(sleepCost)}/year in productivity` : '⚡ Energy improves within 3-5 days. Costs nothing.',
+          impactValue: sleepCost && sleepCost > 0 ? sleepCost : undefined,
+          priority: 'Today', category: 'Health', toolSlug: 'sleep', toolCat: 'health',
+        },
+        { title: 'No phone 30 min before bed — start tonight', why: 'Blue light suppresses melatonin for 3+ hours after exposure.', impact: '⚡ Sleep onset up to 40% faster within 1 week.', priority: 'Today', category: 'Health' },
+        { title: 'Keep a consistent wake time, even on weekends', why: 'Circadian rhythm consistency matters more than total hours for how rested you actually feel.', impact: '⚡ Noticeable energy improvement within 2 weeks.', priority: 'This week', category: 'Health' },
+      ];
+    }
+    case 'movement': {
+      const currentSave = body ? (body.exerciseDays >= 3 ? 24000 : body.exerciseDays >= 1 ? 12000 : 0) : null;
+      const potential = currentSave != null ? 24000 - currentSave : null;
+      const daysNeeded = body ? Math.max(0, 3 - body.exerciseDays) : null;
+      return [
+        { title: 'Walk for 20 minutes tomorrow morning', why: 'Before checking your phone — this sets your cortisol rhythm for the whole day.', impact: '⚡ Mood and energy improve same-day. Costs nothing.', priority: 'Today', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
+        {
+          title: daysNeeded && daysNeeded > 0 ? `Move ${daysNeeded} more day${daysNeeded > 1 ? 's' : ''}/week — pick fixed time slots now` : 'Pick one recurring time slot this week for movement',
+          why: `${dim.insight}. A fixed slot beats a vague intention every time.`,
+          impact: potential && potential > 0 ? `💰 Worth up to ${fmtINR(potential)}/year more in medical-cost savings at 3+ days/week` : 'Consistency compounds — most people quit from lack of a schedule, not lack of motivation.',
+          impactValue: potential && potential > 0 ? potential : undefined,
+          priority: 'This week', category: 'Health',
+        },
+        { title: 'Try a beginner routine this week (bodyweight or a 20-min video)', why: 'Structure removes the "what do I even do" barrier that stops most people before they start.', impact: 'A repeatable routine beats a one-off workout.', priority: 'This week', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
+      ];
+    }
+    case 'stress': {
+      const monthlyImpact = finance ? Math.round(finance.monthlyExpenses * 0.05) : null;
+      return [
+        { title: 'Write your 3 biggest stressors now', why: `${dim.insight}. Writing externalises stress — it reduces it immediately, before you solve anything.`, impact: '⚡ Cortisol reduces within minutes. Free. Immediate.', priority: 'Today', category: 'Mind' },
+        { title: 'Set one boundary today', why: 'Chronic stress is sustained by unprotected time and energy — one boundary interrupts that.', impact: 'Compounds over weeks as the pattern breaks.', priority: 'Today', category: 'Mind' },
+        {
+          title: 'Walk outside for 20 min on Mon, Wed, Fri — before checking your phone',
+          why: `Morning light exposure is linked to a healthier cortisol rhythm for the day. ${body ? `Your stress level of ${body.stressLevel}/10 suggests an elevated baseline.` : dim.insight}`,
+          impact: monthlyImpact ? `⚡ Stress-related studies show reductions of 15-20% within 2 weeks. 💰 May cut impulse spending by an estimated ${fmtINR(monthlyImpact)}/month` : '⚡ Stress reduces 15-20% within 2 weeks in published studies.',
+          impactValue: monthlyImpact ? monthlyImpact * 12 : undefined,
+          priority: 'This week', category: 'Mind',
+        },
+      ];
+    }
+    case 'savings': {
+      const target = finance ? finance.monthlyExpenses * 3 : null;
+      const autoTransfer = finance ? Math.round(finance.monthlyIncome * 0.05) : null;
+      const monthsToTarget = finance && target != null && autoTransfer && autoTransfer > 0 ? Math.max(1, Math.ceil(Math.max(0, target - finance.totalSavings) / autoTransfer)) : null;
+      return [
+        {
+          title: 'Open a separate savings account for your emergency fund',
+          why: finance ? `Your current savings of ${fmtINR(finance.totalSavings)} are mixed with spending money. Separation makes it automatic.` : `${dim.insight}. Separation prevents spending from savings automatically.`,
+          impact: '🛡️ Protects against unexpected expenses that currently could set you back months',
+          priority: 'Today', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance',
+        },
+        {
+          title: autoTransfer ? `Set auto-transfer of ${fmtINR(autoTransfer)} on every payday` : 'Automate one transfer to savings on payday',
+          why: target != null && autoTransfer && monthsToTarget != null ? `Target: ${fmtINR(target)} emergency fund (3 months of expenses). At ${fmtINR(autoTransfer)}/month, that's about ${monthsToTarget} month${monthsToTarget > 1 ? 's' : ''} to build it.` : 'Automatic beats willpower — money saved before you see it never gets the chance to be spent.',
+          impact: '💰 Eliminates financial anxiety that is currently costing you sleep and focus',
+          priority: 'This week', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance',
+        },
+        { title: 'List every subscription you pay this weekend', why: 'Most people underestimate fixed expenses by 20-30%.', impact: '💰 Typically finds ₹500-2,000/month in unused subscriptions', impactValue: 12000, priority: 'Today', category: 'Finance', toolSlug: 'budget', toolCat: 'finance' },
+      ];
+    }
+    case 'investing': {
+      const sipAmount = finance ? Math.max(1000, Math.round(finance.monthlyIncome * 0.1)) : null;
+      const fv20 = sipAmount ? Math.round(sipAmount * 12 * ((Math.pow(1.12, 20) - 1) / 0.12)) : null;
+      return [
+        {
+          title: sipAmount ? `Start a ₹${(sipAmount / 1000).toFixed(0)}K/month SIP in a Nifty 50 index fund` : 'Calculate your first SIP amount',
+          why: sipAmount && fv20 && finance ? `You currently invest ${fmtINR(finance.monthlyInvestments)}/month. At 10% of income, ${fmtINR(sipAmount)}/month grows to roughly ${fmtINR(fv20)} in 20 years at an assumed 12% annual return.` : `${dim.insight}.`,
+          impact: fv20 ? `📈 See the exact "with vs. without" comparison in the impact section below` : 'A concrete monthly number beats a vague "I should invest more."',
+          priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance',
+        },
+        { title: 'Set a calendar reminder to review your SIP in 90 days', why: 'Consistency matters more than perfection — review, don\'t obsess over daily market moves.', impact: 'Keeps the habit alive without turning into anxiety.', priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance' },
+        { title: 'Open a demat account when ready', why: 'The single blocking step between "planning to invest" and actually investing.', impact: 'Takes about 15 minutes online, most providers.', priority: 'This week', category: 'Finance' },
+      ];
+    }
+    case 'debt':
+    default: {
+      return [
+        { title: 'List every debt with its interest rate', why: finance && finance.totalDebt > 0 ? `You're carrying ${fmtINR(finance.totalDebt)} in debt. ${dim.insight}. You can't attack what you haven't mapped.` : `${dim.insight}. You can't attack what you haven't mapped.`, impact: 'Usually surfaces one obvious highest-priority target.', priority: 'Today', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
+        { title: 'Pick your highest-interest debt and pay ₹500 extra this month', why: 'Extra payments on the highest-rate debt save the most over time (the avalanche method).', impact: 'Reduces total interest paid — see the exact amount in the Debt Payoff calculator.', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
+        { title: 'Call one lender and ask about a lower rate', why: 'Many lenders will negotiate for an existing customer with a good payment history — it costs nothing to ask.', impact: 'Even a 1-2% rate cut compounds significantly over the loan term.', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
+      ];
+    }
+  }
+}
 
 const DIM_CATEGORY_TITLE: Record<string, string> = {
   sleep: 'Physical Foundation', movement: 'Physical Foundation',
@@ -81,9 +159,11 @@ export default function RoadmapPage() {
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [rawInputs, setRawInputs] = useState<{ body: BodyInputs; finance: FinanceInputs } | null>(null);
 
   useEffect(() => {
     setChecks(loadJSON(CHECKS_KEY, {}));
+    setRawInputs(loadRawInputs());
     let started = window.localStorage.getItem(START_KEY);
     Promise.all([getLatestScore(), getScoreHistory()]).then(([s, h]) => {
       setScore(s);
@@ -134,24 +214,31 @@ export default function RoadmapPage() {
   const thirdDim: Dimension | undefined = sortedDims[2];
 
   const findDim = (id: string) => score.dimensions.find(d => d.id === id);
+  const rBody = rawInputs?.body ?? null;
+  const rFinance = rawInputs?.finance ?? null;
 
   // ── Phase 1 actions: algorithm's top actions + 1-2 dimension-specific extras
-  const dimBank = (id: string): RoadmapAction[] => DIM_ACTIONS[id] ?? DIM_ACTIONS.sleep;
-  const phase1Extras = dimBank(lowestDim.id).slice(0, 2);
+  const phase1Extras = getDimActions(lowestDim.id, lowestDim, rBody, rFinance).slice(0, 2);
   const phase1AlgoActions = score.actions.slice(0, 3);
   const phase1Total = phase1AlgoActions.length + phase1Extras.length;
   const phase1CheckedCount = phase1AlgoActions.map((_, i) => checks[`p1-alg-${i}`]).filter(Boolean).length
     + phase1Extras.map((_, i) => checks[`p1-extra-${i}`]).filter(Boolean).length;
 
-  const phase2Actions = secondDim ? dimBank(secondDim.id) : [];
+  const phase2Actions = secondDim ? getDimActions(secondDim.id, secondDim, rBody, rFinance) : [];
   const phase2CheckedCount = phase2Actions.map((_, i) => checks[`p2-${i}`]).filter(Boolean).length;
   const phase2Unlocked = phase1CheckedCount >= 2;
 
-  const phase3Actions = thirdDim ? dimBank(thirdDim.id) : [];
+  const phase3Actions = thirdDim ? getDimActions(thirdDim.id, thirdDim, rBody, rFinance) : [];
   const phase3Unlocked = phase2CheckedCount >= 2;
 
   const totalActions = phase1Total + phase2Actions.length + phase3Actions.length;
   const totalChecked = Object.values(checks).filter(Boolean).length;
+
+  // Only genuinely-annual, non-overlapping impactValue figures — never mixed with
+  // the long-term corpus numbers below (those come from trajectories, a separate
+  // single source of truth, to avoid two different "what investing is worth" numbers).
+  const totalAnnualImpact = [...phase1Extras, ...phase2Actions, ...phase3Actions]
+    .reduce((sum, a) => sum + (a.impactValue ?? 0), 0);
 
   const activePhaseNum: 1 | 2 | 3 = phase3Unlocked ? 3 : phase2Unlocked ? 2 : 1;
   const relevantAffiliates = getRelevantAffiliates(score, activePhaseNum, 2);
@@ -252,7 +339,7 @@ export default function RoadmapPage() {
             ))}
             {phase1Extras.map((a, i) => (
               <ActionCard key={`extra-${i}`} id={`p1-extra-${i}`} checked={!!checks[`p1-extra-${i}`]} onToggle={toggleCheck}
-                title={a.title} why={a.whyTemplate.replace('{insight}', lowestDim.insight ?? '')} impact={a.impact}
+                title={a.title} why={a.why} impact={a.impact}
                 priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
             ))}
             {affiliatesForPhase(1).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
@@ -265,7 +352,7 @@ export default function RoadmapPage() {
           >
             {secondDim && phase2Actions.map((a, i) => (
               <ActionCard key={i} id={`p2-${i}`} checked={!!checks[`p2-${i}`]} onToggle={toggleCheck} disabled={!phase2Unlocked}
-                title={a.title} why={a.whyTemplate.replace('{insight}', secondDim.insight ?? '')} impact={a.impact}
+                title={a.title} why={a.why} impact={a.impact}
                 priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
             ))}
             {phase2Unlocked && affiliatesForPhase(2).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
@@ -279,7 +366,7 @@ export default function RoadmapPage() {
           >
             {thirdDim && phase3Actions.map((a, i) => (
               <ActionCard key={i} id={`p3-${i}`} checked={!!checks[`p3-${i}`]} onToggle={toggleCheck} disabled={!phase3Unlocked}
-                title={a.title} why={a.whyTemplate.replace('{insight}', thirdDim.insight ?? '')} impact={a.impact}
+                title={a.title} why={a.why} impact={a.impact}
                 priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
             ))}
             {phase3Unlocked && thirdDim && (
@@ -293,6 +380,13 @@ export default function RoadmapPage() {
         </div>
 
         {/* SECTION 5: Financial impact */}
+        {score.level === 'full' && totalAnnualImpact > 0 && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">If you complete this roadmap</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mb-1">~{fmtINR(totalAnnualImpact)}<span className="text-sm font-normal text-gray-400"> recovered or saved per year</span></p>
+            <p className="text-xs text-gray-400">Sum of the recurring annual impacts on the actions above — sleep, movement, stress and subscription savings. Estimates based on your actual income and spending, not averages. Long-term retirement impact from investing is shown separately below, since that's a different kind of number entirely.</p>
+          </div>
+        )}
         {score.level === 'full' && trajectories && current && improved && optimal && (
           <FinancialImpact current={current} improved={improved} optimal={optimal} score={score} />
         )}
