@@ -293,6 +293,9 @@ export default function RoadmapPage() {
                 <p className="text-lg font-black text-white">{totalChecked} <span className="text-xs font-normal text-white/40">of {totalActions}</span></p>
                 <p className="text-[10px] text-white/40">Actions completed</p>
               </div>
+              <button onClick={() => window.print()} className="print:hidden self-start bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-white/70 hover:text-white transition-colors">
+                🖨️ Download / print
+              </button>
             </div>
           </div>
 
@@ -428,7 +431,7 @@ export default function RoadmapPage() {
         <NinetyDayTimeline daysSinceStart={daysSinceStart} lowestLabel={lowestDim.label} />
 
         {/* SECTION 7B: Turn this into a tracked goal */}
-        <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+        <Link href="/goals" className="print:hidden flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
           <span className="text-3xl flex-shrink-0">🎯</span>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-gray-900 dark:text-white text-sm">Turn this roadmap into a tracked goal</p>
@@ -438,10 +441,10 @@ export default function RoadmapPage() {
         </Link>
 
         {/* SECTION 8: Tools for your roadmap */}
-        <ToolsSection lowestDim={lowestDim} secondDim={secondDim} />
+        <div className="print:hidden"><ToolsSection lowestDim={lowestDim} secondDim={secondDim} /></div>
 
         {/* SECTION 9: Upgrade (subtle) */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 text-center">
+        <div className="print:hidden bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 text-center">
           <p className="font-bold text-gray-900 dark:text-white text-sm mb-1.5">Want this taken further?</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-md mx-auto mb-3">
             This roadmap is generated from your score. A personalised plan is created specifically for you — built by a real person, not an algorithm. You can ask questions.
@@ -620,7 +623,7 @@ function GrowthRecCard({ type, dim }: { type: 'book' | 'tool'; dim: string }) {
 function AffiliateCard({ affiliate, score }: { affiliate: Affiliate; score: WellFiScore }) {
   const dim = score.dimensions.find(d => d.id === affiliate.showWhen.dimensionId);
   return (
-    <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 border-l-4 border-l-teal-500 rounded-xl p-4">
+    <div className="print:hidden bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 border-l-4 border-l-teal-500 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
         <span className="text-lg">{affiliate.logo}</span>
         <span className="font-bold text-sm text-gray-900 dark:text-white">{affiliate.name}</span>

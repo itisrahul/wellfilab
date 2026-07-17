@@ -629,9 +629,14 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
             <span className="text-white/50">{scoreLabel(score.overall)} band</span>
           </div>
           <p className="text-white/40 text-xs">Based on {dataPointCount} real data points</p>
-          <button onClick={onRetake} className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
-            🔄 Retake with new numbers
-          </button>
+          <div className="print:hidden flex items-center justify-center gap-2 mt-5 flex-wrap">
+            <button onClick={onRetake} className="inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
+              🔄 Retake with new numbers
+            </button>
+            <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
+              🖨️ Download / print report
+            </button>
+          </div>
         </div>
       </div>
 
@@ -645,8 +650,8 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         {/* SECTION 2B: How you compare */}
         <BenchmarkSection score={score} history={history} />
 
-        {/* SECTION 2C: What-if simulator */}
-        {hasRawInputs && <WhatIfSimulator body={b} finance={f} baseline={score} />}
+        {/* SECTION 2C: What-if simulator — interactive only, not meaningful in a printed report */}
+        {hasRawInputs && <div className="print:hidden"><WhatIfSimulator body={b} finance={f} baseline={score} /></div>}
 
         {/* SECTION 3: Archetype */}
         <ArchetypeCard score={score} />
@@ -718,7 +723,7 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         {/* SECTION 8: Trajectories + Save & share */}
         {score.trajectories && <TrajectoriesSection trajectories={score.trajectories} />}
 
-        <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+        <Link href="/goals" className="print:hidden flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
           <span className="text-3xl flex-shrink-0">🎯</span>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-gray-900 dark:text-white text-sm">Turn this score into a tracked goal</p>
@@ -727,7 +732,7 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
           <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
         </Link>
 
-        <ShareCard score={score} />
+        <div className="print:hidden"><ShareCard score={score} /></div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
           <p className="text-2xl mb-2">🔥</p>
@@ -739,7 +744,7 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
             <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-1">📊 {priorScores.length + 1} assessments tracked — that's real, visible history.</p>
           )}
           <p className="text-xs text-gray-400 mt-1 mb-4">Score saved on this device. Come back in 30 days to track your progress.</p>
-          <button onClick={onRetake} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
+          <button onClick={onRetake} className="print:hidden text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
             Retake with new numbers
           </button>
         </div>
