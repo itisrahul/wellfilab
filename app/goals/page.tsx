@@ -67,9 +67,23 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[] | null>(null);
   const [score, setScore] = useState<WellFiScore | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
 
   useEffect(() => {
     Promise.all([getGoals(), getLatestScore()]).then(([g, s]) => { setGoals(g); setScore(s); });
+    // Deep link from a calculator's real result, e.g. /goals?prefill=net-worth&current=550000 —
+    // read directly from the URL rather than useSearchParams, which would force this
+    // otherwise-static page into a Suspense boundary just for this one optional feature.
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get('prefill') as GoalType | null;
+      const current = params.get('current');
+      const target = params.get('target');
+      if (type && GOAL_TYPE_META[type] && current != null && !Number.isNaN(+current)) {
+        setPrefill({ type, current: +current, target: target != null && !Number.isNaN(+target) ? +target : undefined });
+        setShowAdd(true);
+      }
+    }
   }, []);
 
   const refresh = () => getGoals().then(setGoals);
@@ -109,7 +123,7 @@ export default function GoalsPage() {
           </div>
         )}
 
-        {showAdd && <AddGoalForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refresh(); }} />}
+        {showAdd && <AddGoalForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refresh(); }} prefill={prefill} />}
 
         {goals.length === 0 && !showAdd ? (
           <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
@@ -219,10 +233,10 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
 
 const TYPE_OPTIONS: GoalType[] = ['net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus', 'weight', 'sleep', 'fitness', 'hydration', 'wellfilab-score'];
 
-function AddGoalForm({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
-  const [type, setType] = useState<GoalType | null>(null);
-  const [target, setTarget] = useState('');
-  const [current, setCurrent] = useState('');
+function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdded: () => void; prefill?: { type: GoalType; current: number; target?: number } | null }) {
+  const [type, setType] = useState<GoalType | null>(prefill?.type ?? null);
+  const [target, setTarget] = useState(prefill?.target != null ? String(prefill.target) : '');
+  const [current, setCurrent] = useState(prefill ? String(prefill.current) : '');
   const [targetDate, setTargetDate] = useState('');
 
   const meta = type ? GOAL_TYPE_META[type] : null;
@@ -257,6 +271,11 @@ function AddGoalForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
             <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{meta!.label}</p>
             <button onClick={() => setType(null)} className="text-xs text-gray-400 hover:underline ml-auto">Change type</button>
           </div>
+          {prefill && (
+            <p className="text-[11px] text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/20 rounded-lg px-2.5 py-1.5">
+              ✓ Current value filled in from your calculator result — just set a target.
+            </p>
+          )}
           <div>
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
             <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"

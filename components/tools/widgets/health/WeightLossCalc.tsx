@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { calcWeightLoss } from '@/lib/calc';
 import { Shell, Label, Toggle, NumIn, SelectIn, Box } from '@/components/tools/shared';
 
@@ -8,7 +9,9 @@ export default function WeightLossCalc() {
   const [kg,setKg]=useState(85), [gkg,setGkg]=useState(72), [cm,setCm]=useState(170), [age,setAge]=useState(30);
   const [lbs,setLbs]=useState(187), [glbs,setGlbs]=useState(159), [ft,setFt]=useState(5), [inch,setInch]=useState(7);
   const [act,setAct]=useState('moderate');
-  const r = calcWeightLoss(imp?lbs*0.453592:kg, imp?glbs*0.453592:gkg, imp?(ft*12+inch)*2.54:cm, age, female?'female':'male', act);
+  const currentKg = imp ? lbs*0.453592 : kg;
+  const goalKg = imp ? glbs*0.453592 : gkg;
+  const r = calcWeightLoss(currentKg, goalKg, imp?(ft*12+inch)*2.54:cm, age, female?'female':'male', act);
   const d = (n:number) => imp ? `${+(n*2.20462).toFixed(0)} lbs` : `${n} kg`;
   return (
     <Shell left={<>
@@ -42,6 +45,9 @@ export default function WeightLossCalc() {
         ))}
       </div>
       <Box icon="⚠️ Safety note" text="Never eat below 1,200 kcal/day (women) or 1,500 kcal/day (men). Combine with strength training to preserve muscle." color="orange"/>
+      <Link href={`/goals?prefill=weight&current=${currentKg.toFixed(1)}&target=${goalKg.toFixed(1)}`} className="block text-center text-xs font-bold text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline">
+        Track this weight goal →
+      </Link>
     </>}/>
   );
 }

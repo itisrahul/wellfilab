@@ -7,6 +7,7 @@ import { ToolSEOContent } from '@/components/tools/ToolSEOContent';
 import { PairWith }       from '@/components/tools/PairWith';
 import { ExploreTools }   from '@/components/tools/ExploreTools';
 import { EmbedButton }    from '@/components/tools/EmbedButton';
+import { PrintButton }    from '@/components/tools/PrintButton';
 import { CalcHistory }    from '@/components/ui/CalcHistory';
 import { ScoreCTA }       from '@/components/ui/ScoreCTA';
 import { StructuredData, BreadcrumbSchema } from '@/components/ui/StructuredData';
@@ -64,7 +65,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
 
       <div className="max-w-5xl mx-auto px-4 py-6">
 
-        <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-5 flex-wrap">
+        <nav className="print:hidden flex items-center gap-1.5 text-xs text-gray-400 mb-5 flex-wrap">
           <Link href="/" className="hover:text-teal-600 transition-colors">Home</Link>
           <span>/</span>
           <Link href="/tools" className="hover:text-teal-600 transition-colors">Tools</Link>
@@ -88,7 +89,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
 
         {/* Calculator → Score banner — subtle, not intrusive */}
         <Link href="/score"
-          className="flex items-center gap-3 mb-3 px-4 py-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 hover:border-teal-300 dark:hover:border-teal-700 transition-colors group">
+          className="print:hidden flex items-center gap-3 mb-3 px-4 py-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 hover:border-teal-300 dark:hover:border-teal-700 transition-colors group">
           <span className="text-lg flex-shrink-0">📊</span>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">See how this fits your bigger picture → Get your free score</p>
@@ -98,7 +99,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
 
         {/* Calculator → Goals banner — turn this result into a tracked target */}
         <Link href="/goals"
-          className="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
+          className="print:hidden flex items-center gap-3 mb-6 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
           <span className="text-lg flex-shrink-0">🎯</span>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Like this number? Turn it into a goal and track it monthly</p>
@@ -106,7 +107,8 @@ export default function ToolPage({ params }: { params: { category: string; slug:
           <span className="flex-shrink-0 text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
         </Link>
 
-        <div className="flex justify-end mb-6">
+        <div className="print:hidden flex justify-end gap-2 mb-6">
+          <PrintButton />
           <EmbedButton url={pageUrl} title={calc.title} />
         </div>
 

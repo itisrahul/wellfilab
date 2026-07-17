@@ -66,6 +66,9 @@ export default function NetWorthCalc() {
       <button onClick={saveSnapshot} className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-all">
         {saved ? '✓ Snapshot saved!' : '📌 Save this month\'s snapshot'}
       </button>
+      <Link href={`/goals?prefill=net-worth&current=${Math.round(r.netWorth)}`} className="block text-center text-xs font-bold text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline">
+        Set this as a tracked goal →
+      </Link>
 
       {nextMilestone && (
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5">

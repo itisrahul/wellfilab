@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcSIP, calcMonthlyNeeded, calcInflation } from '@/lib/calc';
 import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Toggle, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
@@ -93,6 +94,9 @@ export default function SIPCalc() {
         <Stat label="Total invested" value={`${C.sym}${fmtFull(r.invested,2)}`} color={TC.gray}/>
         <Stat label="CAGR" value={`↑ ${cagr}%`} color={TC.green}/>
       </div>
+      <Link href={`/goals?prefill=sip-target&current=${Math.round(effectiveMonthly)}`} className="block text-center text-xs font-bold text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline">
+        Track this SIP amount as a goal →
+      </Link>
       {goalMode && inflAdjusted != null && (
         <Box icon="💡 In today's money" text={`${C.sym}${fmtFull(goalAmount,2)} in ${yrs} years = ${C.sym}${fmtFull(inflAdjusted,2)} in today's money (at 6% inflation). Plan for the number that actually matters — what it can buy.`} color="orange"/>
       )}
