@@ -166,7 +166,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
                 <h2 className="font-bold text-gray-900 dark:text-gray-100 mb-3">Frequently Asked</h2>
                 <div className="space-y-2">
                   {calc.faq.map((item, i) => (
-                    <details key={i} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                    <details key={i} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 border-l-4 border-l-transparent open:border-l-teal-500 overflow-hidden transition-colors">
                       <summary className="flex items-center justify-between p-4 cursor-pointer font-semibold text-sm text-gray-900 dark:text-gray-100 list-none">
                         {item.q}
                         <span className="text-gray-400 group-open:rotate-180 transition-transform ml-3 flex-shrink-0">▾</span>
