@@ -816,7 +816,9 @@ function CalculationBreakdown({ score, whyOpen, setWhyOpen }: {
             rule-based model reflecting general, published health and financial research — not a medical or financial
             diagnosis, and not measured against other WellFiLab users' real data.
           </p>
-          <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">Scoring methodology v2 · Algorithm last updated 17 Jul 2026</p>
+          <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+            Scoring methodology v2 · Algorithm last updated 17 Jul 2026 · <Link href="/score/methodology" className="underline hover:text-teal-600 dark:hover:text-teal-400">Full methodology, every formula →</Link>
+          </p>
         </div>
       )}
     </div>

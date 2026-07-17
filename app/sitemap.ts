@@ -8,6 +8,7 @@ export default function sitemap() {
     { url: `${SITE_URL}/tools`, changeFrequency: 'monthly' as const, priority: 0.9, lastModified: UPD },
     { url: `${SITE_URL}/guides`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: UPD },
     { url: `${SITE_URL}/score`, changeFrequency: 'monthly' as const, priority: 0.9, lastModified: UPD },
+    { url: `${SITE_URL}/score/methodology`, changeFrequency: 'monthly' as const, priority: 0.5, lastModified: new Date() },
     { url: `${SITE_URL}/roadmap`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: new Date() },
     { url: `${SITE_URL}/goals`, changeFrequency: 'weekly' as const, priority: 0.8, lastModified: new Date() },
     { url: `${SITE_URL}/plan`, changeFrequency: 'monthly' as const, priority: 0.6 },
