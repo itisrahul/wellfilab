@@ -74,6 +74,7 @@ const WIDGETS: Record<string, React.ComponentType> = {
   'discount':        dynamic(() => import('@/components/tools/widgets/finance/DiscountCalc'),      { loading, ssr: false }),
   // Finance — Insurance (new group)
   'term-insurance':  dynamic(() => import('@/components/tools/widgets/finance/TermInsuranceCalc'), { loading, ssr: false }),
+  'term-vs-ulip':    dynamic(() => import('@/components/tools/widgets/finance/TermVsUlipCalc'),    { loading, ssr: false }),
   'health-insurance':dynamic(() => import('@/components/tools/widgets/finance/HealthInsuranceCalc'),{ loading, ssr: false }),
   'car-insurance':   dynamic(() => import('@/components/tools/widgets/finance/CarInsuranceCalc'),  { loading, ssr: false }),
   // Health — Body & Weight

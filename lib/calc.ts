@@ -1110,3 +1110,34 @@ export function calcTaxRegimeCompare(grossIncome: number, deductions80C: number,
     breakEvenDeductions: Math.round(cap80C + Math.max(0, hraExemption) + Math.max(0, otherDeductions)),
   };
 }
+
+// ── Term Insurance vs ULIP/Endowment ("buy term, invest the rest") ────
+function fvAnnualAnnuity(pmt: number, ratePercent: number, years: number): number {
+  const r = ratePercent / 100;
+  if (Math.abs(r) < 1e-9) return pmt * years;
+  return pmt * ((Math.pow(1 + r, years) - 1) / r);
+}
+
+export function calcTermVsUlip(sumAssured: number, age: number, years: number, ulipAnnualPremium: number) {
+  // Illustrative term-insurance premium benchmark (₹ per lakh of cover per year) — real quotes
+  // vary by insurer, health and smoker status; this is a directional estimate, not a quote.
+  const ratePerLakh = age < 30 ? 80 : age < 40 ? 100 : age < 50 ? 200 : 400;
+  const termPremium = Math.round((Math.max(0, sumAssured) / 100000) * ratePerLakh);
+  const difference = Math.max(0, ulipAnnualPremium - termPremium);
+
+  // "Buy term, invest the rest": the premium saved vs a ULIP goes into equity-like investing.
+  const termPlusInvestFV = fvAnnualAnnuity(difference, 12, years);
+  // ULIPs/endowment plans bundle insurance charges + fund management fees that historically
+  // drag net returns well below raw equity — 6% is a commonly-cited realistic long-run estimate.
+  const ulipFV = fvAnnualAnnuity(Math.max(0, ulipAnnualPremium), 6, years);
+
+  return {
+    termPremium, difference,
+    termPlusInvestFV: Math.round(termPlusInvestFV),
+    ulipFV: Math.round(ulipFV),
+    better: termPlusInvestFV >= ulipFV ? 'term' as const : 'ulip' as const,
+    advantage: Math.round(Math.abs(termPlusInvestFV - ulipFV)),
+    totalTermPremiumPaid: Math.round(termPremium * years),
+    totalUlipPremiumPaid: Math.round(Math.max(0, ulipAnnualPremium) * years),
+  };
+}
