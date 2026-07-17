@@ -54,6 +54,7 @@ const WIDGETS: Record<string, React.ComponentType> = {
   // ── New calculators (36 → 60 expansion) ────────────
   // Finance — Grow Money
   'fd':              dynamic(() => import('@/components/tools/widgets/finance/FDCalc'),            { loading, ssr: false }),
+  'gov-scheme-compare': dynamic(() => import('@/components/tools/widgets/finance/GovSchemeCompareCalc'), { loading, ssr: false }),
   'rd':              dynamic(() => import('@/components/tools/widgets/finance/RDCalc'),            { loading, ssr: false }),
   'ppf':             dynamic(() => import('@/components/tools/widgets/finance/PPFCalc'),           { loading, ssr: false }),
   // Finance — Borrow Money

@@ -1026,3 +1026,49 @@ export function calcFIREAdvanced(
     rows,
   };
 }
+
+// ── Government Scheme Comparison (PPF vs EPF vs NPS vs FD) ────────────
+/** Future value of a fixed monthly contribution, monthly compounding. */
+function monthlyFV(contribution: number, annualRatePct: number, months: number): number {
+  const mr = annualRatePct / 100 / 12;
+  let bal = 0;
+  for (let m = 0; m < months; m++) bal = (bal + contribution) * (1 + mr);
+  return bal;
+}
+
+export function calcGovSchemeCompare(monthly: number, years: number, taxSlabPct: number) {
+  const months = Math.max(1, Math.round(years * 12));
+  const invested = Math.max(0, monthly) * months;
+
+  // PPF: 7.1% p.a., fully tax-free (EEE), 15-year lock-in, capped at ₹1.5L/year (₹12,500/month)
+  const ppfMonthly = Math.min(Math.max(0, monthly), 12500);
+  const ppfMaturity = monthlyFV(ppfMonthly, 7.1, months);
+  const ppfInvested = ppfMonthly * months;
+
+  // EPF: 8.25% p.a., fully tax-free (EEE), locked till retirement — employer matches
+  // your contribution rupee-for-rupee (12% + 12% of basic), so your money is doubled
+  // going in. We model that structural benefit directly: 2x your monthly amount.
+  const epfMonthly = Math.max(0, monthly) * 2;
+  const epfMaturity = monthlyFV(epfMonthly, 8.25, months);
+  const epfInvested = epfMonthly * months;
+
+  // NPS: ~10% blended (equity+debt) average, market-linked so not guaranteed;
+  // 40% of the corpus must buy an annuity at maturity, 60% can be withdrawn tax-free.
+  const npsMaturity = monthlyFV(Math.max(0, monthly), 10, months);
+  const npsLumpsum = npsMaturity * 0.6;
+  const npsAnnuityCorpus = npsMaturity * 0.4;
+
+  // FD (via monthly RD-style deposits): ~7% p.a., fully taxable at your slab rate every year
+  const fdMaturity = monthlyFV(Math.max(0, monthly), 7, months);
+  const fdInterest = fdMaturity - invested;
+  const fdTax = Math.max(0, fdInterest) * (taxSlabPct / 100);
+  const fdPostTax = fdMaturity - fdTax;
+
+  return {
+    ppf: { maturity: Math.round(ppfMaturity), invested: Math.round(ppfInvested), interest: Math.round(ppfMaturity - ppfInvested), monthlyUsed: ppfMonthly, capped: monthly > 12500, rate: 7.1 },
+    epf: { maturity: Math.round(epfMaturity), invested: Math.round(epfInvested), interest: Math.round(epfMaturity - epfInvested), monthlyUsed: epfMonthly, rate: 8.25 },
+    nps: { maturity: Math.round(npsMaturity), lumpsum: Math.round(npsLumpsum), annuityCorpus: Math.round(npsAnnuityCorpus), invested: Math.round(invested), interest: Math.round(npsMaturity - invested), rate: 10 },
+    fd: { maturity: Math.round(fdMaturity), postTax: Math.round(fdPostTax), invested: Math.round(invested), interest: Math.round(fdInterest), tax: Math.round(fdTax), rate: 7 },
+    invested: Math.round(invested),
+  };
+}
