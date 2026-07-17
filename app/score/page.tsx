@@ -766,8 +766,12 @@ function CalculationBreakdown({ score, whyOpen, setWhyOpen }: {
   const sortedDims = [...score.dimensions].sort((a, b) => b.score - a.score);
   const strongest = sortedDims[0];
   const weakest = sortedDims[sortedDims.length - 1];
-  const biggestRisk = [...factors].sort((a, b) => a.points - b.points)[0];
+  const biggestOpportunity = [...factors].sort((a, b) => a.points - b.points)[0];
   const gains = factors.filter(f => f.points > 0);
+  // Distinct from "biggest opportunity" (most points to gain): this flags exposure to a
+  // single catastrophic event, regardless of how many points it costs day-to-day.
+  const RISK_IDS = ['emergency-fund', 'insurance', 'debt-wealth'];
+  const catastrophicRisk = factors.find(f => RISK_IDS.includes(f.id) && f.points < 0);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
@@ -807,10 +811,20 @@ function CalculationBreakdown({ score, whyOpen, setWhyOpen }: {
           <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400 mb-0.5">Weakest area</p>
           <p className="text-sm font-bold text-gray-900 dark:text-white">{weakest.label} — {weakest.score}/100</p>
         </div>
-        {biggestRisk && biggestRisk.points < 0 && (
+        {catastrophicRisk && (
+          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 sm:col-span-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400 mb-0.5">Biggest risk</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">
+              {catastrophicRisk.id === 'emergency-fund' ? 'No emergency fund — one unexpected expense could set you back years, not just points'
+                : catastrophicRisk.id === 'insurance' ? 'No health insurance — a single hospitalisation can cost ₹3-15L out of pocket'
+                : 'High debt load relative to income — a rate rise or income dip hits hard here first'}
+            </p>
+          </div>
+        )}
+        {biggestOpportunity && biggestOpportunity.points < 0 && (
           <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 sm:col-span-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-0.5">Biggest opportunity</p>
-            <p className="text-sm font-bold text-gray-900 dark:text-white">Fixing {biggestRisk.label.toLowerCase()} is worth the most points ({biggestRisk.points})</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">Fixing {biggestOpportunity.label.toLowerCase()} is worth the most points ({biggestOpportunity.points})</p>
           </div>
         )}
       </div>

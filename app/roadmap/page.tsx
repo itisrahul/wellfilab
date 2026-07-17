@@ -39,6 +39,8 @@ interface RoadmapAction {
    * a single source of truth, so they're not duplicated/re-derived here). */
   impactValue?: number;
   priority: 'Today' | 'This week'; category: 'Health' | 'Finance' | 'Mind';
+  /** How long this specific action takes to DO — distinct from priority (when to start it). */
+  timeEstimate: string;
   toolSlug?: string; toolCat?: 'health' | 'finance';
 }
 
@@ -57,10 +59,10 @@ function getDimActions(id: string, dim: Dimension, body: BodyInputs | null, fina
                     : `${dim.insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.`,
           impact: sleepCost && sleepCost > 0 ? `💰 Recovers an estimated ${fmtINR(sleepCost)}/year in productivity` : '⚡ Energy improves within 3-5 days. Costs nothing.',
           impactValue: sleepCost && sleepCost > 0 ? sleepCost : undefined,
-          priority: 'Today', category: 'Health', toolSlug: 'sleep', toolCat: 'health',
+          priority: 'Today', category: 'Health', timeEstimate: '30 seconds to set', toolSlug: 'sleep', toolCat: 'health',
         },
-        { title: 'No phone 30 min before bed — start tonight', why: 'Blue light suppresses melatonin for 3+ hours after exposure.', impact: '⚡ Sleep onset up to 40% faster within 1 week.', priority: 'Today', category: 'Health' },
-        { title: 'Keep a consistent wake time, even on weekends', why: 'Circadian rhythm consistency matters more than total hours for how rested you actually feel.', impact: '⚡ Noticeable energy improvement within 2 weeks.', priority: 'This week', category: 'Health' },
+        { title: 'No phone 30 min before bed — start tonight', why: 'Blue light suppresses melatonin for 3+ hours after exposure.', impact: '⚡ Sleep onset up to 40% faster within 1 week.', priority: 'Today', category: 'Health', timeEstimate: 'Costs nothing' },
+        { title: 'Keep a consistent wake time, even on weekends', why: 'Circadian rhythm consistency matters more than total hours for how rested you actually feel.', impact: '⚡ Noticeable energy improvement within 2 weeks.', priority: 'This week', category: 'Health', timeEstimate: 'Costs nothing' },
       ];
     }
     case 'movement': {
@@ -68,28 +70,28 @@ function getDimActions(id: string, dim: Dimension, body: BodyInputs | null, fina
       const potential = currentSave != null ? 24000 - currentSave : null;
       const daysNeeded = body ? Math.max(0, 3 - body.exerciseDays) : null;
       return [
-        { title: 'Walk for 20 minutes tomorrow morning', why: 'Before checking your phone — this sets your cortisol rhythm for the whole day.', impact: '⚡ Mood and energy improve same-day. Costs nothing.', priority: 'Today', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
+        { title: 'Walk for 20 minutes tomorrow morning', why: 'Before checking your phone — this sets your cortisol rhythm for the whole day.', impact: '⚡ Mood and energy improve same-day. Costs nothing.', priority: 'Today', category: 'Health', timeEstimate: '20 minutes', toolSlug: 'calories-burned', toolCat: 'health' },
         {
           title: daysNeeded && daysNeeded > 0 ? `Move ${daysNeeded} more day${daysNeeded > 1 ? 's' : ''}/week — pick fixed time slots now` : 'Pick one recurring time slot this week for movement',
           why: `${dim.insight}. A fixed slot beats a vague intention every time.`,
           impact: potential && potential > 0 ? `💰 Worth up to ${fmtINR(potential)}/year more in medical-cost savings at 3+ days/week` : 'Consistency compounds — most people quit from lack of a schedule, not lack of motivation.',
           impactValue: potential && potential > 0 ? potential : undefined,
-          priority: 'This week', category: 'Health',
+          priority: 'This week', category: 'Health', timeEstimate: '5 minutes to plan',
         },
-        { title: 'Try a beginner routine this week (bodyweight or a 20-min video)', why: 'Structure removes the "what do I even do" barrier that stops most people before they start.', impact: 'A repeatable routine beats a one-off workout.', priority: 'This week', category: 'Health', toolSlug: 'calories-burned', toolCat: 'health' },
+        { title: 'Try a beginner routine this week (bodyweight or a 20-min video)', why: 'Structure removes the "what do I even do" barrier that stops most people before they start.', impact: 'A repeatable routine beats a one-off workout.', priority: 'This week', category: 'Health', timeEstimate: '20 minutes', toolSlug: 'calories-burned', toolCat: 'health' },
       ];
     }
     case 'stress': {
       const monthlyImpact = finance ? Math.round(finance.monthlyExpenses * 0.05) : null;
       return [
-        { title: 'Write your 3 biggest stressors now', why: `${dim.insight}. Writing externalises stress — it reduces it immediately, before you solve anything.`, impact: '⚡ Cortisol reduces within minutes. Free. Immediate.', priority: 'Today', category: 'Mind' },
-        { title: 'Set one boundary today', why: 'Chronic stress is sustained by unprotected time and energy — one boundary interrupts that.', impact: 'Compounds over weeks as the pattern breaks.', priority: 'Today', category: 'Mind' },
+        { title: 'Write your 3 biggest stressors now', why: `${dim.insight}. Writing externalises stress — it reduces it immediately, before you solve anything.`, impact: '⚡ Cortisol reduces within minutes. Free. Immediate.', priority: 'Today', category: 'Mind', timeEstimate: '5 minutes' },
+        { title: 'Set one boundary today', why: 'Chronic stress is sustained by unprotected time and energy — one boundary interrupts that.', impact: 'Compounds over weeks as the pattern breaks.', priority: 'Today', category: 'Mind', timeEstimate: 'Costs nothing' },
         {
           title: 'Walk outside for 20 min on Mon, Wed, Fri — before checking your phone',
           why: `Morning light exposure is linked to a healthier cortisol rhythm for the day. ${body ? `Your stress level of ${body.stressLevel}/10 suggests an elevated baseline.` : dim.insight}`,
           impact: monthlyImpact ? `⚡ Stress-related studies show reductions of 15-20% within 2 weeks. 💰 May cut impulse spending by an estimated ${fmtINR(monthlyImpact)}/month` : '⚡ Stress reduces 15-20% within 2 weeks in published studies.',
           impactValue: monthlyImpact ? monthlyImpact * 12 : undefined,
-          priority: 'This week', category: 'Mind',
+          priority: 'This week', category: 'Mind', timeEstimate: '20 min, 3x/week',
         },
       ];
     }
@@ -102,15 +104,15 @@ function getDimActions(id: string, dim: Dimension, body: BodyInputs | null, fina
           title: 'Open a separate savings account for your emergency fund',
           why: finance ? `Your current savings of ${fmtINR(finance.totalSavings)} are mixed with spending money. Separation makes it automatic.` : `${dim.insight}. Separation prevents spending from savings automatically.`,
           impact: '🛡️ Protects against unexpected expenses that currently could set you back months',
-          priority: 'Today', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance',
+          priority: 'Today', category: 'Finance', timeEstimate: '15 minutes', toolSlug: 'savings-goal', toolCat: 'finance',
         },
         {
           title: autoTransfer ? `Set auto-transfer of ${fmtINR(autoTransfer)} on every payday` : 'Automate one transfer to savings on payday',
           why: target != null && autoTransfer && monthsToTarget != null ? `Target: ${fmtINR(target)} emergency fund (3 months of expenses). At ${fmtINR(autoTransfer)}/month, that's about ${monthsToTarget} month${monthsToTarget > 1 ? 's' : ''} to build it.` : 'Automatic beats willpower — money saved before you see it never gets the chance to be spent.',
           impact: '💰 Eliminates financial anxiety that is currently costing you sleep and focus',
-          priority: 'This week', category: 'Finance', toolSlug: 'savings-goal', toolCat: 'finance',
+          priority: 'This week', category: 'Finance', timeEstimate: '5 minutes to set up', toolSlug: 'savings-goal', toolCat: 'finance',
         },
-        { title: 'List every subscription you pay this weekend', why: 'Most people underestimate fixed expenses by 20-30%.', impact: '💰 Typically finds ₹500-2,000/month in unused subscriptions', impactValue: 12000, priority: 'Today', category: 'Finance', toolSlug: 'budget', toolCat: 'finance' },
+        { title: 'List every subscription you pay this weekend', why: 'Most people underestimate fixed expenses by 20-30%.', impact: '💰 Typically finds ₹500-2,000/month in unused subscriptions', impactValue: 12000, priority: 'Today', category: 'Finance', timeEstimate: '15 minutes', toolSlug: 'budget', toolCat: 'finance' },
       ];
     }
     case 'investing': {
@@ -121,18 +123,18 @@ function getDimActions(id: string, dim: Dimension, body: BodyInputs | null, fina
           title: sipAmount ? `Start a ₹${(sipAmount / 1000).toFixed(0)}K/month SIP in a Nifty 50 index fund` : 'Calculate your first SIP amount',
           why: sipAmount && fv20 && finance ? `You currently invest ${fmtINR(finance.monthlyInvestments)}/month. At 10% of income, ${fmtINR(sipAmount)}/month grows to roughly ${fmtINR(fv20)} in 20 years at an assumed 12% annual return.` : `${dim.insight}.`,
           impact: fv20 ? `📈 See the exact "with vs. without" comparison in the impact section below` : 'A concrete monthly number beats a vague "I should invest more."',
-          priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance',
+          priority: 'This week', category: 'Finance', timeEstimate: '5 minutes', toolSlug: 'sip', toolCat: 'finance',
         },
-        { title: 'Set a calendar reminder to review your SIP in 90 days', why: 'Consistency matters more than perfection — review, don\'t obsess over daily market moves.', impact: 'Keeps the habit alive without turning into anxiety.', priority: 'This week', category: 'Finance', toolSlug: 'sip', toolCat: 'finance' },
-        { title: 'Open a demat account when ready', why: 'The single blocking step between "planning to invest" and actually investing.', impact: 'Takes about 15 minutes online, most providers.', priority: 'This week', category: 'Finance' },
+        { title: 'Set a calendar reminder to review your SIP in 90 days', why: 'Consistency matters more than perfection — review, don\'t obsess over daily market moves.', impact: 'Keeps the habit alive without turning into anxiety.', priority: 'This week', category: 'Finance', timeEstimate: '2 minutes', toolSlug: 'sip', toolCat: 'finance' },
+        { title: 'Open a demat account when ready', why: 'The single blocking step between "planning to invest" and actually investing.', impact: 'Takes about 15 minutes online, most providers.', priority: 'This week', category: 'Finance', timeEstimate: '15 minutes' },
       ];
     }
     case 'debt':
     default: {
       return [
-        { title: 'List every debt with its interest rate', why: finance && finance.totalDebt > 0 ? `You're carrying ${fmtINR(finance.totalDebt)} in debt. ${dim.insight}. You can't attack what you haven't mapped.` : `${dim.insight}. You can't attack what you haven't mapped.`, impact: 'Usually surfaces one obvious highest-priority target.', priority: 'Today', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
-        { title: 'Pick your highest-interest debt and pay ₹500 extra this month', why: 'Extra payments on the highest-rate debt save the most over time (the avalanche method).', impact: 'Reduces total interest paid — see the exact amount in the Debt Payoff calculator.', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
-        { title: 'Call one lender and ask about a lower rate', why: 'Many lenders will negotiate for an existing customer with a good payment history — it costs nothing to ask.', impact: 'Even a 1-2% rate cut compounds significantly over the loan term.', priority: 'This week', category: 'Finance', toolSlug: 'debt-payoff', toolCat: 'finance' },
+        { title: 'List every debt with its interest rate', why: finance && finance.totalDebt > 0 ? `You're carrying ${fmtINR(finance.totalDebt)} in debt. ${dim.insight}. You can't attack what you haven't mapped.` : `${dim.insight}. You can't attack what you haven't mapped.`, impact: 'Usually surfaces one obvious highest-priority target.', priority: 'Today', category: 'Finance', timeEstimate: '10 minutes', toolSlug: 'debt-payoff', toolCat: 'finance' },
+        { title: 'Pick your highest-interest debt and pay ₹500 extra this month', why: 'Extra payments on the highest-rate debt save the most over time (the avalanche method).', impact: 'Reduces total interest paid — see the exact amount in the Debt Payoff calculator.', priority: 'This week', category: 'Finance', timeEstimate: '5 minutes', toolSlug: 'debt-payoff', toolCat: 'finance' },
+        { title: 'Call one lender and ask about a lower rate', why: 'Many lenders will negotiate for an existing customer with a good payment history — it costs nothing to ask.', impact: 'Even a 1-2% rate cut compounds significantly over the loan term.', priority: 'This week', category: 'Finance', timeEstimate: '15 minutes', toolSlug: 'debt-payoff', toolCat: 'finance' },
       ];
     }
   }
@@ -152,6 +154,10 @@ const BOOK_REC: Record<'stress' | 'finance' | 'body', { title: string; author: s
   finance: { title: 'The Psychology of Money', author: 'Morgan Housel', note: 'All chapters, ~30 min each' },
   body: { title: 'Atomic Habits', author: 'James Clear', note: 'Start at Chapter 3' },
 };
+
+function howEasyTime(howEasy: 'today' | 'this-week' | 'this-month'): string {
+  return howEasy === 'today' ? 'Under 15 minutes' : howEasy === 'this-week' ? '30-60 minutes' : 'A few hours';
+}
 
 function loadJSON<T>(key: string, fallback: T): T {
   try { const raw = window.localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
@@ -368,12 +374,13 @@ export default function RoadmapPage() {
               <ActionCard key={`alg-${i}`} id={`p1-alg-${i}`} checked={!!checks[`p1-alg-${i}`]} onToggle={toggleCheck}
                 title={a.title} why={a.why} impact={a.impact} priority={a.howEasy === 'today' ? 'Today' : 'This week'}
                 category={a.category === 'health' ? 'Health' : a.category === 'finance' ? 'Finance' : a.category === 'mind' ? 'Mind' : 'Health'}
+                timeEstimate={howEasyTime(a.howEasy)}
                 toolSlug={a.toolSlug} toolCat={a.toolCat as 'health' | 'finance' | undefined} />
             ))}
             {phase1Extras.map((a, i) => (
               <ActionCard key={`extra-${i}`} id={`p1-extra-${i}`} checked={!!checks[`p1-extra-${i}`]} onToggle={toggleCheck}
                 title={a.title} why={a.why} impact={a.impact}
-                priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
+                priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat} />
             ))}
             {affiliatesForPhase(1).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
             <PhaseProgress checked={phase1CheckedCount} total={phase1Total} complete={phase1CheckedCount >= phase1Total} nextLabel="Phase 2 is now active." />
@@ -386,7 +393,7 @@ export default function RoadmapPage() {
             {secondDim && phase2Actions.map((a, i) => (
               <ActionCard key={i} id={`p2-${i}`} checked={!!checks[`p2-${i}`]} onToggle={toggleCheck} disabled={!phase2Unlocked}
                 title={a.title} why={a.why} impact={a.impact}
-                priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
+                priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat} />
             ))}
             {phase2Unlocked && affiliatesForPhase(2).map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
             {secondDim && <PhaseProgress checked={phase2CheckedCount} total={phase2Actions.length} complete={phase2CheckedCount >= phase2Actions.length} nextLabel="Phase 3 is now active." />}
@@ -400,7 +407,7 @@ export default function RoadmapPage() {
             {thirdDim && phase3Actions.map((a, i) => (
               <ActionCard key={i} id={`p3-${i}`} checked={!!checks[`p3-${i}`]} onToggle={toggleCheck} disabled={!phase3Unlocked}
                 title={a.title} why={a.why} impact={a.impact}
-                priority={a.priority} category={a.category} toolSlug={a.toolSlug} toolCat={a.toolCat} />
+                priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat} />
             ))}
             {phase3Unlocked && thirdDim && (
               <div className="space-y-3">
@@ -538,10 +545,10 @@ function PhaseBlock({ label, weeks, status, focusLabel, subtitle, children, isLa
   );
 }
 
-function ActionCard({ id, checked, onToggle, disabled, title, why, impact, priority, category, toolSlug, toolCat }: {
+function ActionCard({ id, checked, onToggle, disabled, title, why, impact, priority, category, timeEstimate, toolSlug, toolCat }: {
   id: string; checked: boolean; onToggle: (id: string) => void; disabled?: boolean;
   title: string; why: string; impact: string; priority: 'Today' | 'This week'; category: 'Health' | 'Finance' | 'Mind';
-  toolSlug?: string; toolCat?: 'health' | 'finance';
+  timeEstimate?: string; toolSlug?: string; toolCat?: 'health' | 'finance';
 }) {
   const catStyle = category === 'Health' ? 'bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400'
     : category === 'Finance' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
@@ -554,6 +561,7 @@ function ActionCard({ id, checked, onToggle, disabled, title, why, impact, prior
         <div className="flex items-center gap-1.5 flex-wrap mb-1">
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{priority}</span>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${catStyle}`}>{category}</span>
+          {timeEstimate && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-50 text-gray-400 dark:bg-gray-800/50 dark:text-gray-500">⏱ {timeEstimate}</span>}
         </div>
         <p className={`text-sm font-bold ${checked ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>{title}</p>
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-1">{why}</p>
