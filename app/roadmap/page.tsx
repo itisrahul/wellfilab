@@ -262,6 +262,26 @@ export default function RoadmapPage() {
   ) : null;
   const scoreGain = projectedScore ? projectedScore.overall - score.overall : 0;
 
+  // Per-phase score gain — each phase's OWN target lever only, computed independently
+  // against the real score (not cumulative), using the same real algorithm as above.
+  const scoreGainForDim = (dimId?: string): number | null => {
+    if (!dimId || !rBody || !rFinance) return null;
+    let adjBody = rBody, adjFinance = rFinance;
+    if (dimId === 'sleep') adjBody = { ...rBody, sleepHours: 7.5 };
+    else if (dimId === 'movement') adjBody = { ...rBody, exerciseDays: Math.max(rBody.exerciseDays, 4) };
+    else if (dimId === 'stress') adjBody = { ...rBody, stressLevel: Math.min(rBody.stressLevel, 4) };
+    else if (dimId === 'savings') adjFinance = { ...rFinance, hasEmergencyFund: true };
+    else if (dimId === 'investing') adjFinance = { ...rFinance, monthlyInvestments: Math.max(rFinance.monthlyInvestments, rFinance.monthlyIncome * 0.15) };
+    else if (dimId === 'debt') adjFinance = { ...rFinance, totalDebt: rFinance.totalDebt * 0.5 };
+    else return null;
+    const projected = calculateFullScore(DUMMY_QUICK, adjBody, adjFinance, []);
+    const gain = projected.overall - score.overall;
+    return gain > 0 ? gain : null;
+  };
+  const phase1ScoreGain = scoreGainForDim(lowestDim.id);
+  const phase2ScoreGain = scoreGainForDim(secondDim?.id);
+  const phase3ScoreGain = scoreGainForDim(thirdDim?.id);
+
   const activePhaseNum: 1 | 2 | 3 = phase3Unlocked ? 3 : phase2Unlocked ? 2 : 1;
   const relevantAffiliates = getRelevantAffiliates(score, activePhaseNum, 2);
   const affiliatesForPhase = (n: 1 | 2 | 3) => relevantAffiliates.filter(a => a.showWhen.minPhase === n);
@@ -368,7 +388,7 @@ export default function RoadmapPage() {
 
           <PhaseBlock
             label="Right Now" weeks="Weeks 1-2: Start Here" status="active"
-            focusLabel={lowestDim.label} subtitle={lowestDim.insight}
+            focusLabel={lowestDim.label} subtitle={lowestDim.insight} scoreGain={phase1ScoreGain}
           >
             {phase1AlgoActions.map((a, i) => (
               <ActionCard key={`alg-${i}`} id={`p1-alg-${i}`} checked={!!checks[`p1-alg-${i}`]} onToggle={toggleCheck}
@@ -388,7 +408,7 @@ export default function RoadmapPage() {
 
           <PhaseBlock
             label="Building" weeks="Weeks 3-6: Build On It" status={phase2Unlocked ? 'active' : 'locked'}
-            focusLabel={secondDim?.label ?? '—'} subtitle={phase2Unlocked ? secondDim?.insight : 'Complete at least 2 actions in Phase 1 to unlock'}
+            focusLabel={secondDim?.label ?? '—'} subtitle={phase2Unlocked ? secondDim?.insight : 'Complete at least 2 actions in Phase 1 to unlock'} scoreGain={phase2ScoreGain}
           >
             {secondDim && phase2Actions.map((a, i) => (
               <ActionCard key={i} id={`p2-${i}`} checked={!!checks[`p2-${i}`]} onToggle={toggleCheck} disabled={!phase2Unlocked}
@@ -401,7 +421,7 @@ export default function RoadmapPage() {
 
           <PhaseBlock
             label="Growing" weeks="Month 2-3: Grow" status={phase3Unlocked ? 'active' : 'locked'}
-            focusLabel={thirdDim?.label ?? '—'} subtitle={phase3Unlocked ? 'Strengthening and growth' : 'Complete at least 2 actions in Phase 2 to unlock'}
+            focusLabel={thirdDim?.label ?? '—'} subtitle={phase3Unlocked ? 'Strengthening and growth' : 'Complete at least 2 actions in Phase 2 to unlock'} scoreGain={phase3ScoreGain}
             isLast
           >
             {thirdDim && phase3Actions.map((a, i) => (
@@ -507,15 +527,22 @@ function RootCauseCard({ lowestDim, findDim, annualHealthCost }: { lowestDim: Di
           <p>Finance → Stress: {lowestDim.insight}. Building stability removes background anxiety from everything else.</p>
         </div>
       )}
+      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 leading-relaxed">
+        <strong className="text-gray-500 dark:text-gray-400">If this stays unaddressed:</strong>{' '}
+        {category === 'body' && 'nothing dramatic happens overnight — the cost compounds quietly, in energy, decisions, and the everyday cortisol load on your other scores, not in a single event.'}
+        {category === 'stress' && 'the connection to your sleep and spending tends to stay a closed loop, each one keeping the other from improving on its own.'}
+        {category === 'finance' && "the buffer stays thin, so the next unplanned expense lands as a shock instead of an inconvenience — that's the actual risk, not a specific number."}
+        {' '}This isn't urgent in a crisis sense — it's worth starting because it compounds, same as the fixes below.
+      </div>
     </div>
   );
 }
 
 // ── Section 4 pieces ──────────────────────────────────────────────────────
 
-function PhaseBlock({ label, weeks, status, focusLabel, subtitle, children, isLast }: {
+function PhaseBlock({ label, weeks, status, focusLabel, subtitle, scoreGain, children, isLast }: {
   label: string; weeks: string; status: 'active' | 'locked'; focusLabel: string; subtitle?: string;
-  children: React.ReactNode; isLast?: boolean;
+  scoreGain?: number | null; children: React.ReactNode; isLast?: boolean;
 }) {
   const dotColor = status === 'active' ? (label === 'Building' ? 'bg-amber-500 ring-4 ring-amber-100 dark:ring-amber-900/40' : label === 'Growing' ? 'bg-green-500 ring-4 ring-green-100 dark:ring-green-900/40' : 'bg-teal-600 ring-4 ring-teal-100 dark:ring-teal-900/40') : 'bg-gray-300 dark:bg-gray-700';
   const borderColor = status !== 'active' ? 'border-gray-100 dark:border-gray-800' : label === 'Building' ? 'border-amber-300 dark:border-amber-700' : label === 'Growing' ? 'border-green-300 dark:border-green-700' : 'border-teal-300 dark:border-teal-700';
@@ -533,7 +560,12 @@ function PhaseBlock({ label, weeks, status, focusLabel, subtitle, children, isLa
       <div className={`flex-1 rounded-2xl border p-5 mb-6 bg-white dark:bg-gray-900 ${borderColor} ${status === 'locked' ? 'opacity-60' : ''}`}>
         <p className="sm:hidden text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{weeks}</p>
         <p className="hidden sm:block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{weeks}</p>
-        <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">Focus: {focusLabel}</p>
+        <div className="flex items-center gap-2 flex-wrap mb-1">
+          <p className="text-sm font-bold text-gray-900 dark:text-white">Focus: {focusLabel}</p>
+          {scoreGain != null && scoreGain > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">+{scoreGain} score pts</span>
+          )}
+        </div>
         {subtitle && <p className="text-xs text-gray-400 mb-4">{subtitle}</p>}
         {status === 'locked' ? (
           <p className="text-xs text-gray-400 italic">🔒 Locked — {subtitle}</p>
