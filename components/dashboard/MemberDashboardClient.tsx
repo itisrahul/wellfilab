@@ -12,6 +12,7 @@ import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
 import { getOnboarding } from '@/lib/onboardingStorage';
 import { getGoals, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
 import { AICoach } from './AICoach';
+import { HabitTracker } from './HabitTracker';
 import { PlanStatus } from './PlanStatus';
 import { QuickTools } from './QuickTools';
 
@@ -360,6 +361,9 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
           {/* Goals summary */}
           <GoalsSummaryCard goals={data.goals} />
+
+          {/* Daily habits — distinct from roadmap's one-time actions: checked off fresh every day */}
+          <HabitTracker />
 
           {/* Member stats strip */}
           <div className="grid grid-cols-3 gap-3">
