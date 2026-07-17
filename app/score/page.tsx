@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
-  calculateBodyScore, calculateFullScore, scoreColor,
+  calculateBodyScore, calculateFullScore, scoreColor, scoreLabel,
   type QuickInputs, type BodyInputs, type FinanceInputs, type WellFiScore,
   type Insight, type Action, type Trajectory, type Dimension,
 } from '@/lib/wellfilab-score';
@@ -253,7 +253,7 @@ export default function ScorePage() {
   if (!score) return null;
   return (
     <div ref={resultsRef}>
-      <Results score={score} body={body} finance={finance} onRetake={retake} />
+      <Results score={score} body={body} finance={finance} history={history} onRetake={retake} />
     </div>
   );
 }
@@ -588,10 +588,10 @@ function StageB({ finance, setFinance, body, income, savingsRate, sleepCostPrevi
 // ════════════════════════════════════════════════════════════════════════
 
 interface ResultsProps {
-  score: WellFiScore; body: Partial<BodyInputs>; finance: Partial<FinanceInputs>; onRetake: () => void;
+  score: WellFiScore; body: Partial<BodyInputs>; finance: Partial<FinanceInputs>; history: WellFiScore[]; onRetake: () => void;
 }
 
-function Results({ score, body, finance, onRetake }: ResultsProps) {
+function Results({ score, body, finance, history, onRetake }: ResultsProps) {
   const animatedOverall = useCountUp(score.overall);
   const [whyOpen, setWhyOpen] = useState(false);
 
@@ -618,7 +618,7 @@ function Results({ score, body, finance, onRetake }: ResultsProps) {
           <p className="text-7xl font-black text-white leading-none mb-2">{animatedOverall}</p>
           <div className="flex items-center justify-center gap-3 mb-4 text-sm flex-wrap">
             {trendArrow && <span className={`font-bold ${trendColor}`}>{trendArrow} {Math.abs(score.scoreChange ?? 0)} from last time</span>}
-            {score.percentile != null && <span className="text-white/50">Top {score.percentile}% of people your age</span>}
+            <span className="text-white/50">{scoreLabel(score.overall)} band</span>
           </div>
           <p className="text-white/40 text-xs">Based on {dataPointCount} real data points</p>
           <button onClick={onRetake} className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
@@ -631,8 +631,14 @@ function Results({ score, body, finance, onRetake }: ResultsProps) {
 
         {/* SECTION 2: Calculation breakdown */}
         {hasRawInputs && (
-          <CalculationBreakdown body={b} finance={f} score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
+          <CalculationBreakdown score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
         )}
+
+        {/* SECTION 2B: How you compare */}
+        <BenchmarkSection score={score} history={history} />
+
+        {/* SECTION 2C: What-if simulator */}
+        {hasRawInputs && <WhatIfSimulator body={b} finance={f} baseline={score} />}
 
         {/* SECTION 3: Archetype */}
         <ArchetypeCard score={score} />
@@ -720,58 +726,265 @@ function Results({ score, body, finance, onRetake }: ResultsProps) {
   );
 }
 
-function CalculationBreakdown({ body, finance, score, whyOpen, setWhyOpen }: {
-  body: BodyInputs; finance: FinanceInputs; score: WellFiScore; whyOpen: boolean; setWhyOpen: (v: boolean) => void;
+const DIM_GROUP_LABEL: Record<'body' | 'mind' | 'wealth', string> = { body: '💪 Body', mind: '🧠 Mind', wealth: '💰 Wealth' };
+
+function CalculationBreakdown({ score, whyOpen, setWhyOpen }: {
+  score: WellFiScore; whyOpen: boolean; setWhyOpen: (v: boolean) => void;
 }) {
-  const bmi = body.weight / Math.pow(body.height / 100, 2);
-  const sleepGap = Math.max(0, 7.5 - body.sleepHours);
-  const savingsRate = finance.monthlyIncome > 0 ? (finance.monthlyIncome - finance.monthlyExpenses) / finance.monthlyIncome : 0;
-  const investRate = finance.monthlyIncome > 0 ? finance.monthlyInvestments / finance.monthlyIncome : 0;
+  const factors = score.scoreFactors ?? [];
+  if (factors.length === 0) return null;
 
-  const bmiImpact = (bmi < 18.5 || bmi > 30) ? -20 : bmi > 25 ? -10 : 0;
-  const sleepImpact = -Math.round(sleepGap * 8);
-  const exerciseImpact = -Math.round(Math.max(0, (4 - body.exerciseDays) * 5));
-  const savingsImpact = savingsRate >= 0.3 ? 0 : savingsRate >= 0.2 ? -10 : savingsRate >= 0.1 ? -20 : savingsRate >= 0 ? -30 : -40;
-  const efImpact = finance.hasEmergencyFund ? 0 : -20;
-  const investImpact = investRate >= 0.2 ? 0 : investRate >= 0.1 ? -10 : investRate > 0 ? -18 : -25;
-
-  const dim = (id: string) => score.dimensions.find(d => d.id === id);
-
-  const rows = [
-    { label: 'Sleep', value: `${body.sleepHours} hours`, impact: sleepImpact, note: dim('sleep')?.insight ?? '' },
-    { label: 'Exercise', value: `${body.exerciseDays} days/week`, impact: exerciseImpact, note: dim('movement')?.insight ?? '' },
-    { label: 'BMI', value: bmi.toFixed(1), impact: bmiImpact, note: bmi < 18.5 ? 'below range' : bmi > 30 ? 'above range' : bmi > 25 ? 'slightly above range' : 'healthy range' },
-    { label: 'Savings rate', value: `${Math.round(savingsRate * 100)}%`, impact: savingsImpact, note: savingsRate >= 0.2 ? 'above 20% target' : 'below 20% target' },
-    { label: 'Emergency fund', value: finance.hasEmergencyFund ? 'Yes' : 'No', impact: efImpact, note: finance.hasEmergencyFund ? 'Have one' : 'Missing safety net' },
-    { label: 'Investments', value: `₹${finance.monthlyInvestments.toLocaleString('en-IN')}/mo`, impact: investImpact, note: dim('investing')?.insight ?? '' },
-  ];
+  const groups: ('body' | 'mind' | 'wealth')[] = ['body', 'mind', 'wealth'];
+  const sortedDims = [...score.dimensions].sort((a, b) => b.score - a.score);
+  const strongest = sortedDims[0];
+  const weakest = sortedDims[sortedDims.length - 1];
+  const biggestRisk = [...factors].sort((a, b) => a.points - b.points)[0];
+  const gains = factors.filter(f => f.points > 0);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
       <p className="font-bold text-gray-900 dark:text-white mb-1">How your score was calculated</p>
-      <p className="text-xs text-gray-400 mb-5">Based on published health and financial research.</p>
-      <div className="divide-y divide-gray-50 dark:divide-gray-800">
-        <div className="grid grid-cols-3 gap-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-          <span>Input</span><span className="text-center">Your value</span><span className="text-right">Score impact</span>
+      <p className="text-xs text-gray-400 mb-5">Every factor below is pulled directly from the same numbers that computed your score — nothing here is reconstructed after the fact.</p>
+
+      {groups.map(g => {
+        const rows = factors.filter(f => f.dimension === g);
+        if (rows.length === 0) return null;
+        return (
+          <div key={g} className="mb-5 last:mb-0">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{DIM_GROUP_LABEL[g]}</p>
+            <div className="divide-y divide-gray-50 dark:divide-gray-800">
+              <div className="grid grid-cols-3 gap-2 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-gray-600">
+                <span>Factor</span><span className="text-center">Your value</span><span className="text-right">Score impact</span>
+              </div>
+              {rows.map(r => (
+                <div key={r.id} className="grid grid-cols-3 gap-2 py-2.5 items-center">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{r.label}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 text-center">{r.value}</span>
+                  <span className={`text-sm font-bold text-right ${r.points < 0 ? 'text-red-500' : r.points > 0 ? 'text-green-500' : 'text-gray-400'}`}>
+                    {r.points === 0 ? '±0' : r.points > 0 ? `+${r.points}` : r.points}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="grid sm:grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 mb-0.5">Strongest area</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{strongest.label} — {strongest.score}/100</p>
         </div>
-        {rows.map(r => (
-          <div key={r.label} className="grid grid-cols-3 gap-2 py-2.5 items-center">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{r.label}</span>
-            <span className="text-sm text-gray-500 dark:text-gray-400 text-center">{r.value}</span>
-            <span className={`text-sm font-bold text-right ${r.impact < 0 ? 'text-red-500' : 'text-green-500'}`}>{r.impact === 0 ? '±0' : r.impact}</span>
+        <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400 mb-0.5">Weakest area</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{weakest.label} — {weakest.score}/100</p>
+        </div>
+        {biggestRisk && biggestRisk.points < 0 && (
+          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 sm:col-span-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-0.5">Biggest opportunity</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">Fixing {biggestRisk.label.toLowerCase()} is worth the most points ({biggestRisk.points})</p>
+          </div>
+        )}
+      </div>
+
+      {gains.length === 0 && (
+        <p className="text-xs text-gray-400 mt-3">No factor is currently adding points — every row above is either neutral or costing you. That also means every fix compounds cleanly.</p>
+      )}
+
+      <button onClick={() => setWhyOpen(!whyOpen)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline mt-4">
+        See methodology {whyOpen ? '▲' : '▼'}
+      </button>
+      {whyOpen && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
+          <p>
+            Body, Mind and Wealth each start at 100 and lose points for every factor above that falls short of a healthy
+            reference range (e.g. under 7.5 hours of sleep, a savings rate below 20%, no emergency fund). Life blends
+            all three, weighted down further when they're far apart from each other — because one struggling area tends
+            to drag the others with it. Overall blends Body, Mind and Wealth equally (28% each) plus Life (16%).
+          </p>
+          <p>
+            Right now that's your {weakest.label.toLowerCase()}, which is why the roadmap below starts there. This is a
+            rule-based model reflecting general, published health and financial research — not a medical or financial
+            diagnosis, and not measured against other WellFiLab users' real data.
+          </p>
+          <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">Scoring methodology v2 · Algorithm last updated 17 Jul 2026</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SCORE_BANDS = [
+  { label: 'Critical',    lo: 0,  hi: 19,  color: '#ef4444' },
+  { label: 'Needs Work',  lo: 20, hi: 39,  color: '#f59e0b' },
+  { label: 'Average',     lo: 40, hi: 59,  color: '#eab308' },
+  { label: 'Good',        lo: 60, hi: 79,  color: '#0d9488' },
+  { label: 'Excellent',   lo: 80, hi: 100, color: '#10b981' },
+];
+
+function BenchmarkSection({ score, history }: { score: WellFiScore; history: WellFiScore[] }) {
+  const sorted = [...history].filter(h => h.date).sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
+  const first = sorted[0];
+  const best = sorted.reduce<WellFiScore | null>((b, h) => (!b || h.overall > b.overall) ? h : b, null);
+  const vsFirst = first && first.id !== score.id ? score.overall - first.overall : null;
+  const vsBest = best && best.id !== score.id ? score.overall - best.overall : null;
+
+  const dims: { label: string; score: number }[] = [
+    { label: 'Body', score: score.body }, { label: 'Mind', score: score.mind },
+    { label: 'Wealth', score: score.wealth }, { label: 'Life', score: score.life },
+  ];
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+      <p className="font-bold text-gray-900 dark:text-white mb-1">How you compare</p>
+      <p className="text-xs text-gray-400 mb-5">
+        Against WellFiLab's own rating scale — not other users' scores. We don't collect or share real population data, so we won't claim we do.
+      </p>
+
+      <div className="mb-2 flex h-3 rounded-full overflow-hidden">
+        {SCORE_BANDS.map(band => (
+          <div key={band.label} style={{ width: `${band.hi - band.lo + 1}%`, background: band.color }} />
+        ))}
+      </div>
+      <div className="relative h-4 mb-1">
+        <div className="absolute top-0 -translate-x-1/2 flex flex-col items-center" style={{ left: `${score.overall}%` }}>
+          <div className="w-0.5 h-3 bg-gray-900 dark:bg-white" />
+        </div>
+      </div>
+      <div className="flex justify-between text-[10px] text-gray-400 mb-4">
+        {SCORE_BANDS.map(b => <span key={b.label}>{b.label}</span>)}
+      </div>
+
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+        Your overall score of <strong className="text-gray-900 dark:text-white">{score.overall}/100</strong> falls in the <strong style={{ color: scoreColor(score.overall) }}>{scoreLabel(score.overall)}</strong> band.
+      </p>
+
+      {(vsFirst != null || vsBest != null) && (
+        <div className="grid sm:grid-cols-2 gap-3 mb-5">
+          {vsFirst != null && (
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">vs your first assessment</p>
+              <p className={`text-sm font-bold ${vsFirst > 0 ? 'text-green-500' : vsFirst < 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                {vsFirst > 0 ? `↑ +${vsFirst}` : vsFirst < 0 ? `↓ ${vsFirst}` : 'No change'}
+              </p>
+            </div>
+          )}
+          {vsBest != null && (
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">vs your best score</p>
+              <p className={`text-sm font-bold ${vsBest >= 0 ? 'text-green-500' : 'text-amber-500'}`}>
+                {vsBest === 0 ? 'This is your best yet 🎉' : vsBest > 0 ? `↑ +${vsBest} — new best 🎉` : `↓ ${vsBest} from your best`}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="divide-y divide-gray-50 dark:divide-gray-800">
+        <div className="grid grid-cols-3 gap-2 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-gray-600">
+          <span>Dimension</span><span className="text-center">Your score</span><span className="text-right">Band</span>
+        </div>
+        {dims.map(d => (
+          <div key={d.label} className="grid grid-cols-3 gap-2 py-2.5 items-center">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{d.label}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 text-center">{d.score}/100</span>
+            <span className="text-sm font-bold text-right" style={{ color: scoreColor(d.score) }}>{scoreLabel(d.score)}</span>
           </div>
         ))}
       </div>
-      <button onClick={() => setWhyOpen(!whyOpen)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline mt-4">
-        Why do I have this score? {whyOpen ? '▲' : '▼'}
-      </button>
-      {whyOpen && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-          Your overall score blends your body, mind, and wealth scores, weighted toward whichever is lowest — because
-          one struggling area tends to drag the others down with it. Right now that's your {score.dimensions.slice().sort((a, b) => a.score - b.score)[0].label.toLowerCase()},
-          which is why the roadmap below starts there. As {score.dimensions.slice().sort((a, b) => a.score - b.score)[0].label.toLowerCase()} improves, expect the ripple effects on your other numbers too.
-        </p>
-      )}
+    </div>
+  );
+}
+
+// QuickInputs is accepted but ignored by calculateFullScore (real inputs drive everything
+// once finance data exists) — this placeholder exists only to satisfy the signature.
+const DUMMY_QUICK: QuickInputs = { healthFeeling: 3, financeFeeling: 3, stressFeeling: 3 };
+
+function WhatIfSimulator({ body, finance, baseline }: { body: BodyInputs; finance: FinanceInputs; baseline: WellFiScore }) {
+  const [sleepHours, setSleepHours] = useState(body.sleepHours);
+  const [exerciseDays, setExerciseDays] = useState(body.exerciseDays);
+  const [stressLevel, setStressLevel] = useState(body.stressLevel);
+  const [hasEmergencyFund, setHasEmergencyFund] = useState(finance.hasEmergencyFund);
+  const [monthlyInvestments, setMonthlyInvestments] = useState(finance.monthlyInvestments);
+
+  const changed = sleepHours !== body.sleepHours || exerciseDays !== body.exerciseDays ||
+    stressLevel !== body.stressLevel || hasEmergencyFund !== finance.hasEmergencyFund ||
+    monthlyInvestments !== finance.monthlyInvestments;
+
+  // Real algorithm, real inputs — this is not a separate re-implementation of the
+  // scoring math, so it can never drift from what actually determines your score.
+  const projected = calculateFullScore(
+    DUMMY_QUICK,
+    { ...body, sleepHours, exerciseDays, stressLevel },
+    { ...finance, hasEmergencyFund, monthlyInvestments },
+    []
+  );
+
+  const reset = () => {
+    setSleepHours(body.sleepHours); setExerciseDays(body.exerciseDays);
+    setStressLevel(body.stressLevel); setHasEmergencyFund(finance.hasEmergencyFund);
+    setMonthlyInvestments(finance.monthlyInvestments);
+  };
+
+  const delta = projected.overall - baseline.overall;
+  const dimDeltas = [
+    { label: 'Body', d: projected.body - baseline.body },
+    { label: 'Mind', d: projected.mind - baseline.mind },
+    { label: 'Wealth', d: projected.wealth - baseline.wealth },
+  ];
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+      <div className="flex items-center justify-between mb-1">
+        <p className="font-bold text-gray-900 dark:text-white">What-if simulator</p>
+        {changed && <button onClick={reset} className="text-xs font-bold text-gray-400 hover:text-teal-600 dark:hover:text-teal-400">Reset to my numbers</button>}
+      </div>
+      <p className="text-xs text-gray-400 mb-5">Drag the levers below to see how your score would change — computed with the exact same formula as your real score.</p>
+
+      <div className="space-y-4 mb-5">
+        <div>
+          <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-gray-600 dark:text-gray-300">Sleep</span><span className="text-gray-400">{sleepHours}h</span></div>
+          <input type="range" min={4} max={9} step={0.5} value={sleepHours} onChange={e => setSleepHours(+e.target.value)} className="w-full accent-teal-600" />
+        </div>
+        <div>
+          <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-gray-600 dark:text-gray-300">Exercise</span><span className="text-gray-400">{exerciseDays} days/week</span></div>
+          <input type="range" min={0} max={7} step={1} value={exerciseDays} onChange={e => setExerciseDays(+e.target.value)} className="w-full accent-teal-600" />
+        </div>
+        <div>
+          <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-gray-600 dark:text-gray-300">Stress level</span><span className="text-gray-400">{stressLevel}/10</span></div>
+          <input type="range" min={1} max={10} step={1} value={stressLevel} onChange={e => setStressLevel(+e.target.value)} className="w-full accent-teal-600" />
+        </div>
+        <div>
+          <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-gray-600 dark:text-gray-300">Monthly investments</span><span className="text-gray-400">₹{monthlyInvestments.toLocaleString('en-IN')}</span></div>
+          <input type="range" min={0} max={Math.max(50000, finance.monthlyIncome)} step={500} value={monthlyInvestments} onChange={e => setMonthlyInvestments(+e.target.value)} className="w-full accent-teal-600" />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={hasEmergencyFund} onChange={e => setHasEmergencyFund(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Have an emergency fund</span>
+        </label>
+      </div>
+
+      <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Projected score</p>
+            <p className="text-3xl font-black" style={{ color: scoreColor(projected.overall) }}>{projected.overall}<span className="text-sm text-gray-400">/100</span></p>
+          </div>
+          {changed && (
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">vs your real score</p>
+              <p className={`text-lg font-black ${delta > 0 ? 'text-green-500' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>{delta > 0 ? `+${delta}` : delta}</p>
+            </div>
+          )}
+        </div>
+        {changed && (
+          <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+            {dimDeltas.filter(d => d.d !== 0).map(d => (
+              <span key={d.label}>{d.label} <strong className={d.d > 0 ? 'text-green-500' : 'text-red-500'}>{d.d > 0 ? `+${d.d}` : d.d}</strong></span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -879,7 +1092,7 @@ function DimensionGrid({ dimensions }: { dimensions: Dimension[] }) {
 
 function ShareCard({ score }: { score: WellFiScore }) {
   const [copied, setCopied] = useState<'text' | 'link' | null>(null);
-  const shareText = `I just discovered I'm ${score.archetype.name} on WellFiLab ${score.archetype.emoji}\nMy score: ${score.overall}/100\n${score.percentile != null ? `Top ${score.percentile}% of people my age\n\n` : '\n'}Find your archetype free at ${SITE_URL}/score`;
+  const shareText = `I just discovered I'm ${score.archetype.name} on WellFiLab ${score.archetype.emoji}\nMy score: ${score.overall}/100 (${scoreLabel(score.overall)})\n\nFind your archetype free at ${SITE_URL}/score`;
   const shareUrl = `${SITE_URL}/score`;
 
   const copy = async (text: string, which: 'text' | 'link') => {

@@ -57,7 +57,8 @@ export interface WellFiScore {
   insights: Insight[];
   actions: Action[];
   trajectories?: Trajectory[];
-  percentile?: number;
+  /** Itemized point-by-point breakdown behind body/mind/wealth — 'full' level only, since it needs real finance data. */
+  scoreFactors?: ScoreFactor[];
 
   previousScore?: number;
   scoreChange?: number;
@@ -107,6 +108,17 @@ export interface Action {
   category: 'health' | 'finance' | 'mind' | 'both';
   toolSlug?: string;
   toolCat?: string;
+}
+
+/** One line item behind a score — captured at the exact point each deduction/bonus is
+ * applied inside calculateFullScore, never reconstructed after the fact, so the "Why
+ * this score?" table on the results page can never drift from the real arithmetic. */
+export interface ScoreFactor {
+  id: string;
+  label: string;
+  value: string;
+  points: number;
+  dimension: 'body' | 'mind' | 'wealth';
 }
 
 export interface Trajectory {
@@ -375,50 +387,78 @@ export function calculateFullScore(
 ): WellFiScore {
   const bmi = body.weight / Math.pow(body.height / 100, 2);
   const annualIncome = finance.monthlyIncome * 12;
+  const factors: ScoreFactor[] = [];
 
   // ── Body Score (0-100) ──────────────────────────
   let bodyScore = 100;
-  if (bmi < 18.5 || bmi > 30) bodyScore -= 20;
-  else if (bmi > 25)           bodyScore -= 10;
+  const bmiDelta = bmi < 18.5 || bmi > 30 ? -20 : bmi > 25 ? -10 : 0;
+  bodyScore += bmiDelta;
+  factors.push({ id: 'bmi', label: 'BMI', value: bmi.toFixed(1), points: bmiDelta, dimension: 'body' });
+
   const sleepGap = Math.max(0, 7.5 - body.sleepHours);
-  bodyScore -= sleepGap * 8;
-  bodyScore -= Math.max(0, (4 - body.exerciseDays) * 5);
-  bodyScore -= (5 - body.dietQuality) * 4;
+  const sleepBodyDelta = -(sleepGap * 8);
+  bodyScore += sleepBodyDelta;
+  factors.push({ id: 'sleep-body', label: 'Sleep', value: `${body.sleepHours} hours`, points: Math.round(sleepBodyDelta * 10) / 10, dimension: 'body' });
+
+  const exerciseDelta = -Math.max(0, (4 - body.exerciseDays) * 5);
+  bodyScore += exerciseDelta;
+  factors.push({ id: 'exercise', label: 'Exercise', value: `${body.exerciseDays} days/week`, points: exerciseDelta, dimension: 'body' });
+
+  const dietDelta = -((5 - body.dietQuality) * 4);
+  bodyScore += dietDelta;
+  factors.push({ id: 'diet', label: 'Diet quality', value: `${body.dietQuality}/5`, points: dietDelta, dimension: 'body' });
+
   const optimalWater = body.weight * 0.033;
-  if (body.waterLiters < optimalWater * 0.8) bodyScore -= 5;
-  if (body.age > 40) bodyScore -= Math.min((body.age - 40) * 0.3, 8);
+  const waterDelta = body.waterLiters < optimalWater * 0.8 ? -5 : 0;
+  bodyScore += waterDelta;
+  factors.push({ id: 'water', label: 'Hydration', value: `${body.waterLiters}L/day`, points: waterDelta, dimension: 'body' });
+
+  const ageDelta = body.age > 40 ? -Math.min((body.age - 40) * 0.3, 8) : 0;
+  bodyScore += ageDelta;
+  if (ageDelta !== 0) factors.push({ id: 'age', label: 'Age factor', value: `${body.age} years`, points: Math.round(ageDelta * 10) / 10, dimension: 'body' });
+
   bodyScore = Math.max(10, Math.min(98, bodyScore));
 
   // ── Mind Score (0-100) ──────────────────────────
   let mindScore = 100;
-  mindScore -= (body.stressLevel - 1) * 7;
-  if (body.sleepHours < 6) mindScore -= 20;
-  else if (body.sleepHours < 7) mindScore -= 10;
+  const stressDelta = -((body.stressLevel - 1) * 7);
+  mindScore += stressDelta;
+  factors.push({ id: 'stress', label: 'Stress level', value: `${body.stressLevel}/10`, points: stressDelta, dimension: 'mind' });
+
+  const sleepMindDelta = body.sleepHours < 6 ? -20 : body.sleepHours < 7 ? -10 : 0;
+  mindScore += sleepMindDelta;
+  factors.push({ id: 'sleep-mind', label: 'Sleep (mental impact)', value: `${body.sleepHours} hours`, points: sleepMindDelta, dimension: 'mind' });
+
   const debtToIncome = finance.totalDebt / (annualIncome || 1);
-  if (debtToIncome > 3) mindScore -= 15;
-  else if (debtToIncome > 1) mindScore -= 7;
+  const debtMindDelta = debtToIncome > 3 ? -15 : debtToIncome > 1 ? -7 : 0;
+  mindScore += debtMindDelta;
+  if (finance.totalDebt > 0) factors.push({ id: 'debt-mind', label: 'Debt (mental load)', value: `${debtToIncome.toFixed(1)}× income`, points: debtMindDelta, dimension: 'mind' });
+
   mindScore = Math.max(10, Math.min(98, mindScore));
 
   // ── Wealth Score (0-100) ────────────────────────
   let wealthScore = 100;
   const savingsRate = (finance.monthlyIncome - finance.monthlyExpenses) / (finance.monthlyIncome || 1);
-  if (savingsRate >= 0.3)      wealthScore -= 0;
-  else if (savingsRate >= 0.2) wealthScore -= 10;
-  else if (savingsRate >= 0.1) wealthScore -= 20;
-  else if (savingsRate >= 0)   wealthScore -= 30;
-  else                         wealthScore -= 40;
+  const savingsDelta = savingsRate >= 0.3 ? 0 : savingsRate >= 0.2 ? -10 : savingsRate >= 0.1 ? -20 : savingsRate >= 0 ? -30 : -40;
+  wealthScore += savingsDelta;
+  factors.push({ id: 'savings-rate', label: 'Savings rate', value: `${Math.round(savingsRate * 100)}%`, points: savingsDelta, dimension: 'wealth' });
 
-  if (!finance.hasEmergencyFund) wealthScore -= 20;
-  if (!finance.hasInsurance)     wealthScore -= 10;
+  const emergencyDelta = finance.hasEmergencyFund ? 0 : -20;
+  wealthScore += emergencyDelta;
+  factors.push({ id: 'emergency-fund', label: 'Emergency fund', value: finance.hasEmergencyFund ? 'Yes' : 'No', points: emergencyDelta, dimension: 'wealth' });
+
+  const insuranceDelta = finance.hasInsurance ? 0 : -10;
+  wealthScore += insuranceDelta;
+  factors.push({ id: 'insurance', label: 'Health insurance', value: finance.hasInsurance ? 'Yes' : 'No', points: insuranceDelta, dimension: 'wealth' });
 
   const investRate = finance.monthlyInvestments / (finance.monthlyIncome || 1);
-  if (investRate >= 0.2)      wealthScore -= 0;
-  else if (investRate >= 0.1) wealthScore -= 10;
-  else if (investRate > 0)    wealthScore -= 18;
-  else                        wealthScore -= 25;
+  const investDelta = investRate >= 0.2 ? 0 : investRate >= 0.1 ? -10 : investRate > 0 ? -18 : -25;
+  wealthScore += investDelta;
+  factors.push({ id: 'investing', label: 'Investments', value: finance.monthlyInvestments > 0 ? `₹${finance.monthlyInvestments.toLocaleString('en-IN')}/month` : '₹0/month', points: investDelta, dimension: 'wealth' });
 
-  if (debtToIncome > 5)      wealthScore -= 15;
-  else if (debtToIncome > 2) wealthScore -= 8;
+  const debtWealthDelta = debtToIncome > 5 ? -15 : debtToIncome > 2 ? -8 : 0;
+  wealthScore += debtWealthDelta;
+  if (finance.totalDebt > 0) factors.push({ id: 'debt-wealth', label: 'Debt (financial load)', value: `${debtToIncome.toFixed(1)}× income`, points: debtWealthDelta, dimension: 'wealth' });
 
   wealthScore = Math.max(10, Math.min(98, wealthScore));
 
@@ -513,9 +553,6 @@ export function calculateFullScore(
     body, finance, overall, yearsWorking
   );
 
-  // ── Percentile ───────────────────────────────────
-  const percentile = calculatePercentile(overall);
-
   const previous    = history[0]?.overall;
   const scoreChange = previous != null ? overall - previous : undefined;
   const streakDays  = calculateStreak(history);
@@ -531,7 +568,7 @@ export function calculateFullScore(
     insights,
     actions,
     trajectories,
-    percentile,
+    scoreFactors: factors,
     previousScore: previous,
     scoreChange,
     streakDays,
@@ -860,15 +897,6 @@ export function scoreLabel(score: number): 'Excellent' | 'Good' | 'Average' | 'N
 }
 
 // ── HELPERS ───────────────────────────────────────
-
-function calculatePercentile(score: number): number {
-  if (score >= 90) return 5;
-  if (score >= 80) return 15;
-  if (score >= 70) return 30;
-  if (score >= 60) return 50;
-  if (score >= 50) return 65;
-  return 80;
-}
 
 /**
  * Consecutive-day streak from real dates on saved history entries, ending
