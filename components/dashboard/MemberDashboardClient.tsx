@@ -11,6 +11,7 @@ import {
 import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
 import { getOnboarding } from '@/lib/onboardingStorage';
 import { getGoals, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
+import { getReminderPrefs, setReminderOptIn } from '@/lib/reminderPreference';
 import { AICoach } from './AICoach';
 import { HabitTracker } from './HabitTracker';
 import { PlanStatus } from './PlanStatus';
@@ -197,6 +198,37 @@ function MonthlyReviewBanner({ score, goals }: { score: WellFiScore; goals: Goal
   );
 }
 
+function ReminderToggle() {
+  const [optedIn, setOptedIn] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { getReminderPrefs().then(p => setOptedIn(p.optedIn)); }, []);
+
+  const toggle = async () => {
+    if (optedIn == null) return;
+    setSaving(true);
+    const next = !optedIn;
+    setOptedIn(next);
+    await setReminderOptIn(next);
+    setSaving(false);
+  };
+
+  if (optedIn == null) return null;
+
+  return (
+    <div className="flex items-center justify-between gap-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-gray-900 dark:text-white">📧 Monthly email reminder</p>
+        <p className="text-xs text-gray-400 mt-0.5">A once-a-month nudge to check your dashboard — nothing else, unsubscribe any time.</p>
+      </div>
+      <button onClick={toggle} disabled={saving}
+        className={`flex-shrink-0 relative w-11 h-6 rounded-full transition-colors ${optedIn ? 'bg-teal-600' : 'bg-gray-200 dark:bg-gray-700'} disabled:opacity-50`}>
+        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${optedIn ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+      </button>
+    </div>
+  );
+}
+
 function GoalsSummaryCard({ goals }: { goals: Goal[] }) {
   const active = goals.filter(g => !g.paused);
   if (active.length === 0) {
@@ -364,6 +396,9 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
           {/* Daily habits — distinct from roadmap's one-time actions: checked off fresh every day */}
           <HabitTracker />
+
+          {/* Monthly email reminder opt-in — real Resend email via a Vercel Cron job, deliberately generic content since score/goals data never leaves the browser */}
+          <ReminderToggle />
 
           {/* Member stats strip */}
           <div className="grid grid-cols-3 gap-3">
