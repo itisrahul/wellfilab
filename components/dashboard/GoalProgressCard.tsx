@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA } from '@/lib/goalPace';
 import { fmtINR } from '@/lib/roadmapActions';
+import { LinkChip, LinkBar } from './LinkChip';
 
 function fmtValue(n: number, unit: string): string {
   if (unit.startsWith('₹')) return `${fmtINR(Math.round(n))}${unit.slice(1)}`;
@@ -19,7 +20,7 @@ export function GoalProgressCard({ goals }: { goals: Goal[] }) {
 
   if (active.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-5 h-full flex flex-col items-center justify-center text-center min-h-[220px]">
+      <div id="goal-progress" className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-5 h-full flex flex-col items-center justify-center text-center min-h-[220px]">
         <p className="text-3xl mb-3">🧭</p>
         <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">No goals set</p>
         <p className="text-xs text-gray-400 mb-4 max-w-xs">Set a health or wealth target and track real progress toward it every month.</p>
@@ -29,7 +30,7 @@ export function GoalProgressCard({ goals }: { goals: Goal[] }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
+    <div id="goal-progress" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
       <div className="flex items-center justify-between mb-4">
         <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Goal progress</p>
         <Link href="/goals" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">View all →</Link>
@@ -59,6 +60,10 @@ export function GoalProgressCard({ goals }: { goals: Goal[] }) {
           );
         })}
       </div>
+      <LinkBar>
+        <LinkChip targetId="net-worth">Backed by your Net Worth snapshots</LinkChip>
+        <LinkChip targetId="roadmap-progress">Next lever — see Roadmap Progress</LinkChip>
+      </LinkBar>
     </div>
   );
 }

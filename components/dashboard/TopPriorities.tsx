@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Action } from '@/lib/wellfilab-score';
 import { howEasyTime } from '@/lib/roadmapActions';
+import { LinkChip, LinkBar } from './LinkChip';
 
 function difficulty(howEasy: Action['howEasy']): string {
   return howEasy === 'today' ? 'Easy' : 'Moderate';
@@ -21,7 +22,7 @@ export function TopPriorities({ actions }: { actions: Action[] }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
+    <div id="top-priorities" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
       <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Top 3 priorities</p>
       <div className="space-y-3">
         {top.map(a => (
@@ -46,6 +47,10 @@ export function TopPriorities({ actions }: { actions: Action[] }) {
           </div>
         ))}
       </div>
+      <LinkBar>
+        <LinkChip targetId="next-steps">Do #1 now — open Next Steps</LinkChip>
+        <LinkChip targetId="roadmap-progress">These are Roadmap Phase 1</LinkChip>
+      </LinkBar>
     </div>
   );
 }

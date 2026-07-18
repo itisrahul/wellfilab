@@ -4,6 +4,8 @@
  * a future real backend only needs new function bodies here.
  */
 
+import type { Goal } from './goalsStorage';
+
 export interface NetWorthSnapshot {
   id: string;
   date: string;
@@ -48,4 +50,19 @@ export async function deleteSnapshot(id: string): Promise<void> {
 
 export async function clearSnapshots(): Promise<void> {
   writeSnapshots([]);
+}
+
+/**
+ * A 'net-worth' goal is set once and otherwise sits stale unless the user
+ * remembers to open Goals and update it by hand — but the Net Worth
+ * Calculator already produces a real, dated number every time it's run.
+ * This overrides the goal's *displayed* current/lastUpdated from the latest
+ * snapshot (never writes back to goal storage) so progress and the pace-based
+ * ETA both reflect the real, most recent figure automatically. Goals of any
+ * other type, or a 'net-worth' goal with no snapshots yet, pass through unchanged.
+ */
+export function syncNetWorthGoal(goal: Goal, snapshots: NetWorthSnapshot[]): Goal {
+  if (goal.type !== 'net-worth' || snapshots.length === 0) return goal;
+  const latest = snapshots[snapshots.length - 1]; // getSnapshots() sorts oldest → newest
+  return { ...goal, current: latest.netWorth, lastUpdated: latest.date };
 }

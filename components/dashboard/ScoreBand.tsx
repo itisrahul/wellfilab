@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
 import { DIMENSIONS } from '@/lib/dimensionTheme';
+import { LinkChip, LinkBar } from './LinkChip';
 
 export function ScoreBand({ score }: { score: WellFiScore }) {
   const delta = score.scoreChange;
+  const weakest = DIMENSIONS.reduce((a, b) => (score[b.key] < score[a.key] ? b : a));
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6">
+    <div id="score-band" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-6">
 
         {/* Score hero + delta */}
@@ -52,6 +54,10 @@ export function ScoreBand({ score }: { score: WellFiScore }) {
           </Link>
         </div>
       </div>
+      <LinkBar>
+        <LinkChip targetId="top-priorities">{weakest.label} is lowest — see Top Priorities</LinkChip>
+        <LinkChip targetId="risk-alerts">{weakest.label} is lowest — see Risk Alerts</LinkChip>
+      </LinkBar>
     </div>
   );
 }

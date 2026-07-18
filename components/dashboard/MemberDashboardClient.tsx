@@ -6,6 +6,7 @@ import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
 import { loadRawInputs } from '@/lib/scoreInputs';
 import { getGoals, type Goal } from '@/lib/goalsStorage';
+import { getSnapshots, syncNetWorthGoal, type NetWorthSnapshot } from '@/lib/netWorthHistory';
 import { getRiskAlerts } from '@/lib/riskAlerts';
 import { computeRoadmapProgress, type RoadmapProgressSummary } from '@/lib/roadmapProgress';
 import { getAchievements } from '@/lib/achievements';
@@ -13,6 +14,7 @@ import { ScoreBand } from './ScoreBand';
 import { TopPriorities } from './TopPriorities';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
+import { NetWorthCard } from './NetWorthCard';
 import { RoadmapProgressCard } from './RoadmapProgressCard';
 import { AchievementsCard } from './AchievementsCard';
 import { NextStepsCard } from './NextStepsCard';
@@ -37,6 +39,7 @@ interface DashboardData {
   score: WellFiScore | null;
   history: WellFiScore[];
   goals: Goal[];
+  netWorthSnapshots: NetWorthSnapshot[];
   rawInputs: ReturnType<typeof loadRawInputs>;
   roadmapStarted: boolean;
   roadmapProgress: RoadmapProgressSummary | null;
@@ -59,13 +62,16 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   useEffect(() => {
     const hour = new Date().getHours();
-    Promise.all([getLatestScore(), getScoreHistory(), getGoals()])
-      .then(([score, history, goals]) => {
+    Promise.all([getLatestScore(), getScoreHistory(), getGoals(), getSnapshots()])
+      .then(([score, history, rawGoals, netWorthSnapshots]) => {
         const rawInputs = loadRawInputs();
         const roadmap = readRoadmapState();
         const roadmapProgress = score ? computeRoadmapProgress(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, roadmap.checks) : null;
+        // A 'net-worth' goal reads its current value from the latest real
+        // snapshot instead of a stale manual entry — see syncNetWorthGoal.
+        const goals = rawGoals.map(g => syncNetWorthGoal(g, netWorthSnapshots));
         setData({
-          score, history, goals, rawInputs,
+          score, history, goals, netWorthSnapshots, rawInputs,
           roadmapStarted:  roadmap.started,
           roadmapProgress,
           greeting: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
@@ -150,6 +156,8 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
             <GoalProgressCard goals={data.goals} />
             <RoadmapProgressCard started={data.roadmapStarted} progress={data.roadmapProgress} />
           </div>
+
+          <NetWorthCard snapshots={data.netWorthSnapshots} />
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
             <div className="lg:col-span-3"><ScoreHistoryChart history={data.history} /></div>

@@ -119,6 +119,17 @@ input[type=number] { -moz-appearance: textfield; }
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
 
+/* ── Dashboard cross-links: brief highlight on the scroll target ── */
+@keyframes wfl-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(13,148,136,.45); }
+  35%  { box-shadow: 0 0 0 8px rgba(13,148,136,0); }
+  100% { box-shadow: 0 0 0 0 rgba(13,148,136,0); }
+}
+.wfl-pulse { outline: 2px solid #0d9488; outline-offset: 2px; border-radius: 1rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .wfl-pulse { animation: wfl-pulse-ring 1.5s ease; }
+}
+
 /* ── Print ── */
 @media print {
   .print\:hidden { display: none !important; }

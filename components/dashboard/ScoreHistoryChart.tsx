@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { WellFiScore } from '@/lib/wellfilab-score';
+import { LinkChip, LinkBar } from './LinkChip';
 
 export function ScoreHistoryChart({ history }: { history: WellFiScore[] }) {
   const points = history
@@ -15,7 +16,7 @@ export function ScoreHistoryChart({ history }: { history: WellFiScore[] }) {
 
   if (points.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-8 text-center h-full flex flex-col items-center justify-center">
+      <div id="score-history" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-8 text-center h-full flex flex-col items-center justify-center">
         <p className="text-3xl mb-3">📈</p>
         <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">No score history yet</p>
         <p className="text-xs text-gray-400 mb-4 max-w-xs">Take the WellFiLab Score to start tracking your trend over time.</p>
@@ -31,7 +32,7 @@ export function ScoreHistoryChart({ history }: { history: WellFiScore[] }) {
   const delta = current.score - oldest.score;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
+    <div id="score-history" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
       <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Score history</p>
 
       {points.length > 1 && (
@@ -62,6 +63,9 @@ export function ScoreHistoryChart({ history }: { history: WellFiScore[] }) {
           <Line type="monotone" dataKey="score" name="WellFiLab Score" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
+      <LinkBar>
+        <LinkChip targetId="achievements">What explains the jump? Achievements</LinkChip>
+      </LinkBar>
     </div>
   );
 }

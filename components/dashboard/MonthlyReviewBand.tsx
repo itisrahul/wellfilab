@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { WellFiScore } from '@/lib/wellfilab-score';
 import { getReminderPrefs, setReminderOptIn } from '@/lib/reminderPreference';
+import { LinkChip, LinkBar } from './LinkChip';
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -43,7 +44,7 @@ export function MonthlyReviewBand({ score }: { score: WellFiScore }) {
   const reviewDue = daysSinceScore >= 28;
 
   return (
-    <div className="rounded-2xl bg-gray-950 dark:bg-black p-6 text-white">
+    <div id="monthly-review" className="rounded-2xl bg-gray-950 dark:bg-black p-6 text-white">
       <div className="flex flex-col sm:flex-row sm:items-center gap-6 justify-between">
         <div className="grid grid-cols-3 gap-6 flex-1">
           <div>
@@ -69,6 +70,10 @@ export function MonthlyReviewBand({ score }: { score: WellFiScore }) {
           </Link>
         </div>
       </div>
+      <LinkBar variant="dark">
+        <LinkChip targetId="score-band" variant="dark">See your current score</LinkChip>
+        <LinkChip targetId="goal-progress" variant="dark">See your goals</LinkChip>
+      </LinkBar>
     </div>
   );
 }

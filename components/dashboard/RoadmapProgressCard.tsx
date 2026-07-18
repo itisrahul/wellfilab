@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import type { RoadmapProgressSummary } from '@/lib/roadmapProgress';
+import { LinkChip, LinkBar } from './LinkChip';
 
 export function RoadmapProgressCard({ started, progress }: { started: boolean; progress: RoadmapProgressSummary | null }) {
   if (!started || !progress || progress.totalActions === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-5 h-full flex flex-col items-center justify-center text-center min-h-[220px]">
+      <div id="roadmap-progress" className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-5 h-full flex flex-col items-center justify-center text-center min-h-[220px]">
         <p className="text-3xl mb-3">🗺️</p>
         <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">Roadmap not started</p>
         <p className="text-xs text-gray-400 mb-4 max-w-xs">A personalised, phased plan built from your own score — free.</p>
@@ -19,11 +20,11 @@ export function RoadmapProgressCard({ started, progress }: { started: boolean; p
   const pendingPct = 100 - donePct - progressPct;
 
   return (
-    <Link href="/roadmap" className="block bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 h-full transition-all group">
-      <div className="flex items-center justify-between mb-4">
+    <div id="roadmap-progress" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
+      <Link href="/roadmap" className="flex items-center justify-between mb-4 group">
         <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Roadmap progress</p>
         <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">View →</span>
-      </div>
+      </Link>
 
       <div className="h-2.5 rounded-full overflow-hidden flex bg-gray-100 dark:bg-gray-800 mb-3">
         {donePct > 0 && <div className="h-full bg-teal-600" style={{ width: `${donePct}%` }} />}
@@ -40,6 +41,9 @@ export function RoadmapProgressCard({ started, progress }: { started: boolean; p
       <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
         Phase {activePhaseNum} — {activePhaseLabel} · <span className="font-mono tabular-nums">{pctComplete}%</span> complete
       </p>
-    </Link>
+      <LinkBar>
+        <LinkChip targetId="top-priorities">Phase 1 = your Top Priorities</LinkChip>
+      </LinkBar>
+    </div>
   );
 }
