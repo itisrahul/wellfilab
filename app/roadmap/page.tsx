@@ -515,6 +515,11 @@ function GrowthRecCard({ type, dim }: { type: 'book' | 'tool'; dim: string }) {
 
 // ── Affiliate card ─────────────────────────────────────────────────────
 
+const AFFILIATE_TYPE_LABEL: Record<Affiliate['type'], string> = {
+  product: 'Recommended product', service: 'Recommended service', app: 'Recommended app',
+  book: 'Recommended book', plan: 'Recommended plan',
+};
+
 function AffiliateCard({ affiliate, score }: { affiliate: Affiliate; score: WellFiScore }) {
   const dim = score.dimensions.find(d => d.id === affiliate.showWhen.dimensionId);
   return (
@@ -522,18 +527,41 @@ function AffiliateCard({ affiliate, score }: { affiliate: Affiliate; score: Well
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
         <span className="text-lg">{affiliate.logo}</span>
         <span className="font-bold text-sm text-gray-900 dark:text-white">{affiliate.name}</span>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">Recommended tool</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">{AFFILIATE_TYPE_LABEL[affiliate.type]}</span>
       </div>
       <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{affiliate.tagline}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-3 mb-1">Why recommended</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
         {dim ? `Your ${dim.label.toLowerCase()} score is ${dim.score}/100. ` : ''}{affiliate.whyRecommend}
       </p>
+
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-3 mb-1">Expected benefit</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{affiliate.expectedBenefit}</p>
+
+      {(affiliate.relatedGuideSlug || affiliate.relatedCalcSlug) && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {affiliate.relatedGuideSlug && (
+            <Link href={`/guides/${affiliate.relatedGuideSlug}`} className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline">
+              📖 {affiliate.relatedGuideTitle ?? 'Related guide'} →
+            </Link>
+          )}
+          {affiliate.relatedCalcSlug && affiliate.relatedCalcCat && (
+            <Link href={`/tools/${affiliate.relatedCalcCat}/${affiliate.relatedCalcSlug}`} className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline">
+              🧮 Verify with the calculator →
+            </Link>
+          )}
+        </div>
+      )}
+
       <a href={affiliate.url} target="_blank" rel="noopener noreferrer sponsored"
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all">
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all mt-3">
         {affiliate.cta}
       </a>
       <p className="text-[10px] text-gray-400 mt-2">
-        This is an affiliate link — we earn a small commission if you sign up, at no cost to you. We only recommend tools we believe in.
+        {affiliate.type === 'book'
+          ? 'This links to a public search, not a tracked affiliate ID — we don\'t monetize book recommendations.'
+          : 'This is an affiliate link — we earn a small commission if you sign up, at no cost to you. We only recommend tools we believe in.'}
       </p>
     </div>
   );

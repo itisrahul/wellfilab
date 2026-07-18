@@ -154,7 +154,9 @@ export interface Trajectory {
 
 // ── 8 ARCHETYPES ──────────────────────────────────
 
-const ARCHETYPES: Record<string, Archetype> = {
+// Exported so the homepage can show real archetypes as an honest "which
+// starting point is yours" section instead of fabricated testimonials.
+export const ARCHETYPES: Record<string, Archetype> = {
   optimizer: {
     id: 'optimizer',
     name: 'The Optimizer',
