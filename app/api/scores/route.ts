@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser, auth } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { eq, desc, and, notInArray } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { scores } from '@/lib/db/schema';
@@ -7,29 +7,26 @@ import type { WellFiScore } from '@/lib/wellfilab-score';
 
 export const dynamic = 'force-dynamic';
 
-// TEMPORARY diagnostic — see why currentUser() 401s in this route despite a
-// valid dashboard page session. Remove once resolved.
-async function debugAuthState() {
-  const a = await auth();
-  return { hasAuthUserId: !!a.userId, authUserId: a.userId ?? null, sessionId: a.sessionId ?? null };
-}
-
 /**
  * Account-level WellFiLab Score history, keyed by Clerk userId.
  * Mirrors lib/scoreStorage.ts's localStorage shape exactly (same stamped
  * record, same MAX_HISTORY cap) so that file's function bodies can become
  * thin fetch() wrappers around this route without changing its exported
  * signatures or any call site.
+ *
+ * Uses auth() rather than currentUser() — only userId is ever needed here,
+ * and auth() verifies the session locally (JWT/JWKS) with no outbound call
+ * to Clerk's API, unlike currentUser() which always makes one.
  */
 
 const MAX_HISTORY = 30;
 
 export async function GET() {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.', debug: await debugAuthState() }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
   const rows = await db.select().from(scores)
-    .where(eq(scores.userId, user.id))
+    .where(eq(scores.userId, userId))
     .orderBy(desc(scores.date))
     .limit(MAX_HISTORY);
 
@@ -37,8 +34,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.', debug: await debugAuthState() }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
   const score = (await req.json().catch(() => null)) as WellFiScore | null;
   if (!score) return NextResponse.json({ error: 'Invalid score payload.' }, { status: 400 });
@@ -55,28 +52,28 @@ export async function POST(req: Request) {
 
   await db.insert(scores).values({
     id: stamped.id!,
-    userId: user.id,
+    userId,
     date: new Date(stamped.date!),
     data: stamped,
   });
 
   // Prune to the most recent MAX_HISTORY rows for this user.
   const keep = await db.select({ id: scores.id }).from(scores)
-    .where(eq(scores.userId, user.id))
+    .where(eq(scores.userId, userId))
     .orderBy(desc(scores.date))
     .limit(MAX_HISTORY);
   const keepIds = keep.map(r => r.id);
   if (keepIds.length > 0) {
-    await db.delete(scores).where(and(eq(scores.userId, user.id), notInArray(scores.id, keepIds)));
+    await db.delete(scores).where(and(eq(scores.userId, userId), notInArray(scores.id, keepIds)));
   }
 
   return NextResponse.json({ score: stamped });
 }
 
 export async function DELETE() {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  await db.delete(scores).where(eq(scores.userId, user.id));
+  await db.delete(scores).where(eq(scores.userId, userId));
   return NextResponse.json({ ok: true });
 }

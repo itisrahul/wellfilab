@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { goals } from '@/lib/db/schema';
@@ -26,10 +26,10 @@ function toGoal(row: typeof goals.$inferSelect): Goal {
 }
 
 export async function GET() {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  const rows = await db.select().from(goals).where(eq(goals.userId, user.id));
+  const rows = await db.select().from(goals).where(eq(goals.userId, userId));
   return NextResponse.json({ goals: rows.map(toGoal) });
 }
 
@@ -43,8 +43,8 @@ interface AddGoalInput {
 }
 
 export async function POST(req: Request) {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
   const input = (await req.json().catch(() => null)) as AddGoalInput | null;
   if (!input) return NextResponse.json({ error: 'Invalid goal payload.' }, { status: 400 });
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   const id = input.id ?? crypto.randomUUID();
   await db.insert(goals).values({
     id,
-    userId: user.id,
+    userId,
     type: input.type,
     label: input.label,
     target: input.target,

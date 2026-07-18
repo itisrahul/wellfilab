@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { eq, asc } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { netWorthSnapshots } from '@/lib/db/schema';
@@ -14,19 +14,19 @@ function toSnapshot(row: typeof netWorthSnapshots.$inferSelect): NetWorthSnapsho
 }
 
 export async function GET() {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
   const rows = await db.select().from(netWorthSnapshots)
-    .where(eq(netWorthSnapshots.userId, user.id))
+    .where(eq(netWorthSnapshots.userId, userId))
     .orderBy(asc(netWorthSnapshots.date));
 
   return NextResponse.json({ snapshots: rows.map(toSnapshot) });
 }
 
 export async function POST(req: Request) {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
   // id/date are optional — present only when the one-time local→account
   // import (lib/accountImport.ts) is preserving a snapshot's real original
@@ -39,16 +39,16 @@ export async function POST(req: Request) {
   const id = body.id ?? crypto.randomUUID();
   const date = body.date ? new Date(body.date) : new Date();
   await db.insert(netWorthSnapshots).values({
-    id, userId: user.id, date, assets: body.assets, liabilities: body.liabilities, netWorth: body.assets - body.liabilities,
+    id, userId, date, assets: body.assets, liabilities: body.liabilities, netWorth: body.assets - body.liabilities,
   });
 
   return NextResponse.json({ snapshot: { id, date: date.toISOString(), assets: body.assets, liabilities: body.liabilities, netWorth: body.assets - body.liabilities } });
 }
 
 export async function DELETE() {
-  const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  await db.delete(netWorthSnapshots).where(eq(netWorthSnapshots.userId, user.id));
+  await db.delete(netWorthSnapshots).where(eq(netWorthSnapshots.userId, userId));
   return NextResponse.json({ ok: true });
 }
