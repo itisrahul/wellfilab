@@ -35,12 +35,30 @@ export interface FinanceInputs {
   totalDebt: number;
   monthlyInvestments: number;
   hasEmergencyFund: boolean;
-  hasInsurance: boolean;
+  hasInsurance: boolean; // health insurance — kept as-is, see hasLifeInsurance below
+  /** Optional — added alongside the existing health-insurance boolean rather than
+   * overloading it, so a life-insurance gap can be scored and flagged separately. */
+  hasLifeInsurance?: boolean;
+  /** Optional — rough % of investable assets in equity. Powers the age-adjusted
+   * risk-readiness factor; absent for users who haven't answered it, in which
+   * case that factor is simply skipped rather than guessed. */
+  equityAllocationPct?: number;
+  /** Optional — a simple risk-tolerance self-report ("if your portfolio dropped
+   * 20% in a month, would you..."), used to flag a tolerance/allocation mismatch. */
+  riskTolerance?: 'sell' | 'hold' | 'buy-more';
 }
 
 export type ScoreLevel = 'quick' | 'body' | 'full';
 
+/** Bumped whenever a change to the scoring formulas would move someone's number
+ * without any real change in their life — e.g. adding the net-worth factor below.
+ * A record with no scoreVersion (every score saved before this field existed) is
+ * implicitly version 1. Callers must not show a raw "+N since last time" delta
+ * across a version boundary — see calculateFullScore's previous/scoreChange logic. */
+export const SCORE_VERSION = 2;
+
 export interface WellFiScore {
+  scoreVersion?: number;
   overall: number;
   body: number;
   mind: number;
@@ -52,6 +70,9 @@ export interface WellFiScore {
 
   annualHealthCost?: number;
   lifetimeHealthCost?: number;
+  /** % of the way to financial independence (net worth ÷ 25× annual expenses) —
+   * only set at 'full' level once a real net-worth snapshot exists. */
+  financialIndependencePct?: number;
 
   dimensions: Dimension[];
   insights: Insight[];
@@ -254,6 +275,7 @@ export function calculateQuickScore(
   const streakDays   = calculateStreak(history);
 
   return {
+    scoreVersion: SCORE_VERSION,
     overall, body, mind, wealth, life,
     level: 'quick',
     archetype,
@@ -367,6 +389,7 @@ export function calculateBodyScore(
   const streakDays   = calculateStreak(history);
 
   return {
+    scoreVersion: SCORE_VERSION,
     overall, body: bodyScore, mind: mindScore, wealth: wealthScore, life: lifeScore,
     level: 'body',
     archetype,
@@ -379,11 +402,61 @@ export function calculateBodyScore(
   };
 }
 
+// ── AGE-ADJUSTED NET WORTH BENCHMARK ───────────────
+//
+// Indicative bands for urban working India, used only to compute a *ratio*
+// (your net worth ÷ the band for your age) — never presented as a verified
+// population statistic. The same "same rupee, different score by age" idea
+// as your own ₹20L @ 25 vs. 35 vs. 50 example: 25 is compared to a smaller
+// starting-out band, 50 to a much larger one.
+const NET_WORTH_BENCHMARK_BANDS: { maxAge: number; typical: number }[] = [
+  { maxAge: 25, typical: 200000 },
+  { maxAge: 30, typical: 600000 },
+  { maxAge: 35, typical: 1500000 },
+  { maxAge: 40, typical: 2800000 },
+  { maxAge: 45, typical: 4500000 },
+  { maxAge: 50, typical: 6500000 },
+  { maxAge: 55, typical: 9000000 },
+  { maxAge: 60, typical: 12000000 },
+  { maxAge: Infinity, typical: 15000000 },
+];
+
+// Local, private formatter — this file stays framework/dependency-free by
+// design (see the file header), so it doesn't reach into lib/roadmapActions.ts's
+// fmtINR (which itself imports types from here — that would be circular).
+function fmtLakhCr(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 10000000) return `${sign}₹${(abs / 10000000).toFixed(1)}Cr`;
+  if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(1)}L`;
+  return `${sign}₹${abs.toLocaleString('en-IN')}`;
+}
+
+function netWorthBenchmarkFor(age: number): number {
+  return (NET_WORTH_BENCHMARK_BANDS.find(b => age <= b.maxAge) ?? NET_WORTH_BENCHMARK_BANDS[NET_WORTH_BENCHMARK_BANDS.length - 1]).typical;
+}
+
+/** Exported so the dashboard's Net Worth card can show the same age-adjusted
+ * verdict without duplicating the benchmark table or re-running the score. */
+export function netWorthVerdict(age: number, netWorth: number): { label: 'Excellent' | 'Good' | 'Average' | 'Below average' | 'Needs attention'; ratio: number } {
+  const ratio = netWorth / netWorthBenchmarkFor(age);
+  if (ratio >= 3)   return { label: 'Excellent', ratio };
+  if (ratio >= 1.5) return { label: 'Good', ratio };
+  if (ratio >= 0.7) return { label: 'Average', ratio };
+  if (ratio >= 0.3) return { label: 'Below average', ratio };
+  return { label: 'Needs attention', ratio };
+}
+
 export function calculateFullScore(
   _quick: QuickInputs,
   body: BodyInputs,
   finance: FinanceInputs,
-  history: WellFiScore[]
+  history: WellFiScore[],
+  /** Latest known net worth (assets − liabilities), or null if the user has
+   * never run the Net Worth Calculator. Optional and additive — omitting it
+   * (or passing null) falls back to exactly today's factors, so every
+   * existing call site keeps compiling and keeps working unchanged. */
+  netWorth: number | null = null
 ): WellFiScore {
   const bmi = body.weight / Math.pow(body.height / 100, 2);
   const annualIncome = finance.monthlyIncome * 12;
@@ -459,6 +532,45 @@ export function calculateFullScore(
   const debtWealthDelta = debtToIncome > 5 ? -15 : debtToIncome > 2 ? -8 : 0;
   wealthScore += debtWealthDelta;
   if (finance.totalDebt > 0) factors.push({ id: 'debt-wealth', label: 'Debt (financial load)', value: `${debtToIncome.toFixed(1)}× income`, points: debtWealthDelta, dimension: 'wealth' });
+
+  // Net worth, age-adjusted — only when a real snapshot exists. Absent rather
+  // than penalized when the user hasn't run the Net Worth Calculator yet, same
+  // progressive-disclosure rule the rest of this function already follows.
+  let fiProgress: number | null = null;
+  if (netWorth != null) {
+    const { label: nwLabel, ratio: nwRatio } = netWorthVerdict(body.age, netWorth);
+    const netWorthDelta = nwRatio >= 3 ? 8 : nwRatio >= 1.5 ? 4 : nwRatio >= 0.7 ? 0 : nwRatio >= 0.3 ? -8 : -15;
+    wealthScore += netWorthDelta;
+    factors.push({ id: 'net-worth', label: 'Net worth (age-adjusted)', value: `${fmtLakhCr(netWorth)} — ${nwLabel}`, points: netWorthDelta, dimension: 'wealth' });
+
+    if (finance.monthlyExpenses > 0) {
+      fiProgress = netWorth / (finance.monthlyExpenses * 12 * 25);
+      const fiDelta = fiProgress >= 1 ? 10 : fiProgress >= 0.5 ? 4 : fiProgress >= 0.25 ? 0 : -3;
+      wealthScore += fiDelta;
+      factors.push({ id: 'fi-progress', label: 'Financial independence progress', value: `${Math.round(fiProgress * 100)}%`, points: fiDelta, dimension: 'wealth' });
+    }
+  }
+
+  // Life insurance — optional, additive; undefined (not yet asked/answered)
+  // is treated as "unknown", not "no", so it never silently penalizes anyone
+  // who hasn't seen the question.
+  if (finance.hasLifeInsurance !== undefined) {
+    const lifeInsuranceDelta = finance.hasLifeInsurance ? 0 : -6;
+    wealthScore += lifeInsuranceDelta;
+    factors.push({ id: 'life-insurance', label: 'Life insurance', value: finance.hasLifeInsurance ? 'Yes' : 'No', points: lifeInsuranceDelta, dimension: 'wealth' });
+  }
+
+  // Risk readiness — equity allocation vs. the classic (100 − age) heuristic.
+  // Flags both directions: too aggressive for the time horizon left, or so
+  // conservative for a young investor that growth is being left on the table.
+  if (finance.equityAllocationPct !== undefined) {
+    const appropriateEquity = 100 - body.age;
+    const equityDiff = finance.equityAllocationPct - appropriateEquity;
+    const riskDelta = equityDiff > 25 ? -6 : (equityDiff < -30 && body.age < 45) ? -3 : 0;
+    const riskLabel = equityDiff > 25 ? 'High for your age' : (equityDiff < -30 && body.age < 45) ? 'Conservative for your horizon' : 'Appropriate for your age';
+    wealthScore += riskDelta;
+    factors.push({ id: 'risk-allocation', label: 'Investment risk fit', value: `${finance.equityAllocationPct}% equity — ${riskLabel}`, points: riskDelta, dimension: 'wealth' });
+  }
 
   wealthScore = Math.max(10, Math.min(98, wealthScore));
 
@@ -553,11 +665,17 @@ export function calculateFullScore(
     body, finance, overall, yearsWorking
   );
 
-  const previous    = history[0]?.overall;
-  const scoreChange = previous != null ? overall - previous : undefined;
+  // A version mismatch means the previous entry was scored under different
+  // formulas — a raw delta would tell the user their score "dropped" for
+  // changing nothing. Show no delta rather than a misleading one; the UI
+  // layer (score results page) shows a one-time "recalculated" note instead.
+  const previousEntry = history[0];
+  const previous    = previousEntry?.overall;
+  const scoreChange = (previous != null && previousEntry?.scoreVersion === SCORE_VERSION) ? overall - previous : undefined;
   const streakDays  = calculateStreak(history);
 
   return {
+    scoreVersion: SCORE_VERSION,
     overall, body: bodyScore, mind: mindScore,
     wealth: wealthScore, life: lifeScore,
     level: 'full',
@@ -572,6 +690,7 @@ export function calculateFullScore(
     previousScore: previous,
     scoreChange,
     streakDays,
+    financialIndependencePct: fiProgress != null ? Math.round(fiProgress * 100) : undefined,
   };
 }
 
@@ -899,11 +1018,16 @@ export function scoreLabel(score: number): 'Excellent' | 'Good' | 'Average' | 'N
 // ── HELPERS ───────────────────────────────────────
 
 /**
- * Consecutive-day streak from real dates on saved history entries, ending
- * today or yesterday (so it doesn't reset the moment the clock ticks past
- * midnight before the user has had a chance to check back in).
+ * Consecutive-*review* streak — not consecutive calendar days. The product's
+ * own cadence is a ~28-day monthly review, so a "day streak" could almost
+ * never exceed 1-2 in honest use and read as a broken or vanity metric.
+ * This counts consecutive score retakes that each landed within a grace
+ * window of the last (45 days — the 28-day cadence plus slack for a late
+ * check-in), and returns 0 once that window is missed rather than pretending
+ * a streak is still alive.
  */
 function calculateStreak(history: WellFiScore[]): number {
+  const REVIEW_GRACE_DAYS = 45;
   const dayTimestamps = Array.from(new Set(
     history.filter(h => h.date).map(h => new Date(h.date as string).setHours(0, 0, 0, 0))
   )).sort((a, b) => b - a);
@@ -912,12 +1036,12 @@ function calculateStreak(history: WellFiScore[]): number {
 
   const today = new Date().setHours(0, 0, 0, 0);
   const daysSinceLast = Math.round((today - dayTimestamps[0]) / 86400000);
-  if (daysSinceLast > 1) return 1;
+  if (daysSinceLast > REVIEW_GRACE_DAYS) return 0;
 
   let streak = 1;
   for (let i = 0; i < dayTimestamps.length - 1; i++) {
     const gap = Math.round((dayTimestamps[i] - dayTimestamps[i + 1]) / 86400000);
-    if (gap === 1) streak++;
+    if (gap <= REVIEW_GRACE_DAYS) streak++;
     else break;
   }
   return streak;

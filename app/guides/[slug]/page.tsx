@@ -9,6 +9,7 @@ import { RelatedPosts } from '@/components/ui/RelatedPosts';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 import { ArticleShare } from '@/components/ui/ArticleShare';
+import { BreadcrumbSchema } from '@/components/ui/StructuredData';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TAG_BG: Record<string, string> = {
@@ -75,6 +76,11 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
   return (
     <div className="bg-white dark:bg-gray-950 min-h-screen">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: SITE_URL },
+        { name: 'Guides', url: `${SITE_URL}/guides` },
+        { name: post.title, url: `${SITE_URL}/guides/${post.slug}` },
+      ]} />
 
       {/* Category colour bar */}
       <div className={`h-1 w-full ${ACCENT[post.category] ?? ACCENT.health}`} />

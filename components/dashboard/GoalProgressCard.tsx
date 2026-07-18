@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
-import { estimateGoalETA } from '@/lib/goalPace';
+import { estimateGoalETA, getGoalPaceStatus, type GoalPaceStatus } from '@/lib/goalPace';
 import { fmtINR } from '@/lib/roadmapActions';
 import { LinkChip, LinkBar } from './LinkChip';
 
@@ -8,6 +8,12 @@ function fmtValue(n: number, unit: string): string {
   if (unit.startsWith('₹')) return `${fmtINR(Math.round(n))}${unit.slice(1)}`;
   return `${n.toLocaleString('en-IN')}${unit ? ` ${unit}` : ''}`;
 }
+
+const PACE_BADGE: Record<GoalPaceStatus, { label: string; className: string }> = {
+  ahead:    { label: 'Ahead of schedule',  className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' },
+  'on-track': { label: 'On track',         className: 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400' },
+  behind:   { label: 'Behind schedule',    className: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' },
+};
 
 function progressPct(g: Goal): number {
   const span = g.target - g.startValue;
@@ -40,6 +46,7 @@ export function GoalProgressCard({ goals }: { goals: Goal[] }) {
           const meta = GOAL_TYPE_META[g.type];
           const pct = Math.round(progressPct(g));
           const eta = estimateGoalETA(g);
+          const paceStatus = getGoalPaceStatus(g);
           return (
             <div key={g.id}>
               <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -53,9 +60,14 @@ export function GoalProgressCard({ goals }: { goals: Goal[] }) {
               <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1">
                 <div className="h-full bg-teal-500 rounded-full" style={{ width: `${pct}%` }} />
               </div>
-              <p className="text-[11px] text-gray-400">
-                <span className="font-mono tabular-nums">{pct}%</span> complete{eta ? ` · ${eta}` : ''}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-[11px] text-gray-400">
+                  <span className="font-mono tabular-nums">{pct}%</span> complete{eta ? ` · ${eta}` : ''}
+                </p>
+                {paceStatus && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${PACE_BADGE[paceStatus].className}`}>{PACE_BADGE[paceStatus].label}</span>
+                )}
+              </div>
             </div>
           );
         })}

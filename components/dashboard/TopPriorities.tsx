@@ -21,35 +21,52 @@ export function TopPriorities({ actions }: { actions: Action[] }) {
     );
   }
 
+  const [hero, ...rest] = top;
+
   return (
     <div id="top-priorities" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Top 3 priorities</p>
-      <div className="space-y-3">
-        {top.map(a => (
-          <div key={a.rank} className="flex gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-mono tabular-nums font-bold flex items-center justify-center mt-0.5">
-              {a.rank}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">{a.title}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-2">{a.why}</p>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">{a.impact}</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{howEasyTime(a.howEasy)}</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{difficulty(a.howEasy)}</span>
-              </div>
-              {a.toolSlug && a.toolCat && (
-                <Link href={`/tools/${a.toolCat}/${a.toolSlug}`} className="inline-block text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline mt-2">
-                  Open tool →
-                </Link>
-              )}
-            </div>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Today's top priority</p>
+
+      {/* #1 — the one action, promoted and fully explained */}
+      <div className="flex gap-3">
+        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-600 text-white text-sm font-mono tabular-nums font-bold flex items-center justify-center mt-0.5">
+          {hero.rank}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-gray-900 dark:text-white text-base mb-1.5">{hero.title}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-2.5">{hero.why}</p>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">{hero.impact}</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{howEasyTime(hero.howEasy)}</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{difficulty(hero.howEasy)}</span>
           </div>
-        ))}
+          {hero.toolSlug && hero.toolCat && (
+            <Link href={`/tools/${hero.toolCat}/${hero.toolSlug}`} className="inline-block text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline mt-2">
+              Open tool →
+            </Link>
+          )}
+        </div>
       </div>
+
+      {/* #2 / #3 — collapsed to a single line each, so the page still has one clear "do this" without hiding the rest of the plan */}
+      {rest.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-gray-600">Also worth doing this week</p>
+          {rest.map(a => (
+            <div key={a.rank} className="flex items-center gap-2.5">
+              <span className="flex-shrink-0 w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[9px] font-mono tabular-nums font-bold flex items-center justify-center">
+                {a.rank}
+              </span>
+              <p className="text-xs text-gray-600 dark:text-gray-300 truncate flex-1">{a.title}</p>
+              <span className="flex-shrink-0 text-[10px] font-semibold text-teal-600 dark:text-teal-400">{a.impact}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <LinkBar>
-        <LinkChip targetId="next-steps">Do #1 now — open Next Steps</LinkChip>
-        <LinkChip targetId="roadmap-progress">These are Roadmap Phase 1</LinkChip>
+        <LinkChip targetId="next-steps">Do it now — open Next Steps</LinkChip>
+        <LinkChip targetId="roadmap-progress">This is Roadmap Phase 1</LinkChip>
       </LinkBar>
     </div>
   );

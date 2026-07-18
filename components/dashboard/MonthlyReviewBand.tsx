@@ -59,7 +59,7 @@ export function MonthlyReviewBand({ score }: { score: WellFiScore }) {
           </div>
           <div>
             <p className="font-mono tabular-nums text-lg font-black">{score.streakDays}🔥</p>
-            <p className="text-[11px] text-white/40 mt-0.5">Day streak</p>
+            <p className="text-[11px] text-white/40 mt-0.5">Review streak</p>
           </div>
         </div>
 

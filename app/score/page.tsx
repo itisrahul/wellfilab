@@ -8,6 +8,7 @@ import {
 } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
 import { saveRawInputs, loadRawInputs } from '@/lib/scoreInputs';
+import { getSnapshots } from '@/lib/netWorthHistory';
 import { SITE_URL } from '@/config/site';
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
@@ -163,10 +164,14 @@ export default function ScorePage() {
       monthlyInvestments: finance.monthlyInvestments ?? 0,
       hasEmergencyFund: finance.hasEmergencyFund ?? false,
       hasInsurance: finance.hasInsurance ?? false,
+      hasLifeInsurance: finance.hasLifeInsurance,
+      equityAllocationPct: finance.equityAllocationPct,
+      riskTolerance: finance.riskTolerance,
     };
     const finalQuick = deriveQuick(effectiveBody, savingsRate, effectiveFinance.hasEmergencyFund);
-    await new Promise(r => setTimeout(r, 1500));
-    const result = calculateFullScore(finalQuick, effectiveBody, effectiveFinance, history);
+    const [netWorthSnapshots] = await Promise.all([getSnapshots(), new Promise(r => setTimeout(r, 1500))]);
+    const latestNetWorth = netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1].netWorth : null;
+    const result = calculateFullScore(finalQuick, effectiveBody, effectiveFinance, history, latestNetWorth);
     const saved = await saveScore(result);
     saveRawInputs(effectiveBody, effectiveFinance);
     setFinance(effectiveFinance);
@@ -523,12 +528,38 @@ function StageB({ finance, setFinance, body, income, savingsRate, sleepCostPrevi
               <div className="grid grid-cols-2 gap-3">
                 <TogglePill label="Emergency fund? (3+ months expenses saved)" value={finance.hasEmergencyFund} onChange={v => set('hasEmergencyFund', v)} />
                 <TogglePill label="Health insurance?" value={finance.hasInsurance} onChange={v => set('hasInsurance', v)} />
+                <TogglePill label="Life insurance?" value={finance.hasLifeInsurance} onChange={v => set('hasLifeInsurance', v)} />
               </div>
               {finance.hasEmergencyFund === false && finance.hasInsurance === false && (
                 <div className="mt-3 p-3 rounded-lg text-xs bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400">
                   No emergency fund + no insurance = financial risk. One medical event can erase years of savings.
                 </div>
               )}
+            </FieldSection>
+
+            <FieldSection title="Investment risk (optional)">
+              <p className="calc-label">Rough % of your investments in equity/stocks (vs. debt, FDs, cash)</p>
+              <SliderRow value={finance.equityAllocationPct ?? 50} min={0} max={100} step={5}
+                display={v => `${v}% equity`} onChange={v => set('equityAllocationPct', v)} />
+              {finance.equityAllocationPct != null && body.age != null && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Classic rule of thumb for your age: ≈{100 - body.age}% equity. We'll flag it if yours is well outside that range.
+                </p>
+              )}
+              <p className="calc-label mt-4">If your portfolio dropped 20% in a month, you'd most likely...</p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { v: 'sell' as const, label: 'Sell' },
+                  { v: 'hold' as const, label: 'Hold' },
+                  { v: 'buy-more' as const, label: 'Buy more' },
+                ]).map(opt => (
+                  <button key={opt.v} onClick={() => set('riskTolerance', opt.v)}
+                    className={`py-2.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                      finance.riskTolerance === opt.v ? 'bg-teal-600 border-teal-600 text-white' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-teal-400'
+                    }`}>{opt.label}</button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">Skip this section if you're not sure — it only affects your score if you answer it.</p>
             </FieldSection>
 
             <div className="pt-2">
@@ -591,6 +622,10 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
 
   const priorScores = history.filter(h => h.id !== score.id);
   const isNewBest = priorScores.length > 0 && score.overall > Math.max(...priorScores.map(h => h.overall));
+  // A version mismatch (see SCORE_VERSION in lib/wellfilab-score.ts) means
+  // scoreChange was deliberately left undefined even though a prior score
+  // exists — say so, rather than silently showing no trend at all.
+  const recalculatedUnderNewModel = score.scoreChange == null && priorScores.length > 0;
 
   return (
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
@@ -610,6 +645,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
             {trendArrow && <span className={`font-bold ${trendColor}`}>{trendArrow} {Math.abs(score.scoreChange ?? 0)} from last time</span>}
             <span className="text-white/50">{scoreLabel(score.overall)} band</span>
           </div>
+          {recalculatedUnderNewModel && (
+            <p className="text-white/40 text-xs mb-2">Recalculated under an improved scoring model — no trend shown against your last score to avoid comparing different formulas.</p>
+          )}
           <p className="text-white/40 text-xs">Based on {dataPointCount} real data points</p>
           <div className="print:hidden flex items-center justify-center gap-2 mt-5 flex-wrap">
             <button onClick={onRetake} className="inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
@@ -721,9 +759,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
           <p className="text-2xl mb-2">🔥</p>
-          <p className="font-bold text-gray-900 dark:text-white text-sm">{score.streakDays} day streak</p>
-          {[7, 30, 100].includes(score.streakDays) && (
-            <p className="text-xs font-bold text-amber-500 mt-1">🏅 {score.streakDays}-day milestone reached!</p>
+          <p className="font-bold text-gray-900 dark:text-white text-sm">{score.streakDays}-review streak</p>
+          {[3, 6, 12].includes(score.streakDays) && (
+            <p className="text-xs font-bold text-amber-500 mt-1">🏅 {score.streakDays} consecutive reviews — a real habit!</p>
           )}
           {priorScores.length >= 4 && (
             <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-1">📊 {priorScores.length + 1} assessments tracked — that's real, visible history.</p>
@@ -904,8 +942,12 @@ function ScoreImpactSection({ score }: { score: WellFiScore }) {
 
 function BenchmarkSection({ score, history }: { score: WellFiScore; history: WellFiScore[] }) {
   const sorted = [...history].filter(h => h.date).sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
-  const first = sorted[0];
-  const best = sorted.reduce<WellFiScore | null>((b, h) => (!b || h.overall > b.overall) ? h : b, null);
+  // Same rule as the header trend: only compare scores computed under the
+  // same formula version, so an improvement to the model never looks like
+  // a real-life regression.
+  const sameVersion = sorted.filter(h => h.scoreVersion === score.scoreVersion);
+  const first = sameVersion[0];
+  const best = sameVersion.reduce<WellFiScore | null>((b, h) => (!b || h.overall > b.overall) ? h : b, null);
   const vsFirst = first && first.id !== score.id ? score.overall - first.overall : null;
   const vsBest = best && best.id !== score.id ? score.overall - best.overall : null;
 

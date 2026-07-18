@@ -40,6 +40,22 @@ export function getRiskAlerts(body: BodyInputs | null, finance: FinanceInputs | 
         detail: 'An estimated ₹3–15L exposure per hospitalization in India without cover — an industry range, not calculated from your own numbers.',
       });
     }
+    if (finance.hasLifeInsurance === false) {
+      alerts.push({
+        icon: '👪', label: 'No life insurance',
+        detail: 'Anyone who depends on your income has no financial protection if something happens to you — a term plan is typically the cheapest way to close this gap.',
+      });
+    }
+    if (finance.equityAllocationPct !== undefined && body) {
+      const appropriateEquity = 100 - body.age;
+      const diff = finance.equityAllocationPct - appropriateEquity;
+      if (diff > 25) {
+        alerts.push({
+          icon: '📉', label: 'Equity allocation high for your age',
+          detail: `${finance.equityAllocationPct}% in equity vs. a rule-of-thumb of ≈${appropriateEquity}% for your age — a market downturn closer to retirement leaves less time to recover.`,
+        });
+      }
+    }
   }
 
   if (body) {
@@ -57,5 +73,5 @@ export function getRiskAlerts(body: BodyInputs | null, finance: FinanceInputs | 
     }
   }
 
-  return alerts.slice(0, 3);
+  return alerts.slice(0, 4);
 }

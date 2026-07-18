@@ -60,6 +60,14 @@ export default function ToolPage({ params }: { params: { category: string; slug:
         {name:calc.category.charAt(0).toUpperCase()+calc.category.slice(1),url:`${SITE_URL}/tools/${calc.category}`},
         {name:calc.short,url:pageUrl},
       ]} />
+      {calc.content && calc.content.howItWorks.length > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context':'https://schema.org','@type':'HowTo',
+          name: `How to use the ${calc.title}`,
+          description: calc.content.intro,
+          step: calc.content.howItWorks.map(s => ({ '@type':'HowToStep', name:s.title, text:s.body })),
+        })}} />
+      )}
 
       <div className={`h-1 w-full ${bar}`} />
 

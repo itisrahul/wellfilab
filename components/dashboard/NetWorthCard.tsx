@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { NetWorthSnapshot } from '@/lib/netWorthHistory';
+import { netWorthVerdict } from '@/lib/wellfilab-score';
 import { fmtINR } from '@/lib/roadmapActions';
 import { LinkChip, LinkBar } from './LinkChip';
 
@@ -7,7 +8,7 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function NetWorthCard({ snapshots }: { snapshots: NetWorthSnapshot[] }) {
+export function NetWorthCard({ snapshots, age }: { snapshots: NetWorthSnapshot[]; age?: number }) {
   if (snapshots.length === 0) {
     return (
       <div id="net-worth" className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-5 flex flex-col items-center justify-center text-center min-h-[180px]">
@@ -23,6 +24,7 @@ export function NetWorthCard({ snapshots }: { snapshots: NetWorthSnapshot[] }) {
   const latest = points[points.length - 1];
   const oldest = points[0];
   const delta = latest.netWorth - oldest.netWorth;
+  const verdict = age != null ? netWorthVerdict(age, latest.netWorth) : null;
   const assetsPct = latest.assets > 0 ? Math.round((latest.assets / (latest.assets + latest.liabilities)) * 100) : 0;
 
   // Hand-rolled sparkline — a single series doesn't need recharts' code-split weight.
@@ -48,8 +50,13 @@ export function NetWorthCard({ snapshots }: { snapshots: NetWorthSnapshot[] }) {
 
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div>
-          <p className="font-mono tabular-nums text-lg font-black text-gray-900 dark:text-white">{fmtINR(latest.netWorth)}</p>
-          <p className="text-[10px] text-gray-400">Current net worth</p>
+          <div className="flex items-center gap-1.5">
+            <p className="font-mono tabular-nums text-lg font-black text-gray-900 dark:text-white">{fmtINR(latest.netWorth)}</p>
+            {verdict && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 whitespace-nowrap">{verdict.label}</span>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-400">Current net worth{verdict ? ' — for your age' : ''}</p>
         </div>
         {points.length > 1 && (
           <>

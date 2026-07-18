@@ -28,7 +28,7 @@ export function getAchievements(
   }
 
   if (score.streakDays >= 3) {
-    items.push({ icon: '🔥', label: `${score.streakDays}-day streak` });
+    items.push({ icon: '🔥', label: `${score.streakDays}-review streak` });
   }
 
   if (roadmap) {

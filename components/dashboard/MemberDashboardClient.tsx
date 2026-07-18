@@ -119,7 +119,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
               </div>
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
                 <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{data?.score?.streakDays ?? '—'}</p>
-                <p className="text-white/40 text-[11px]">Day streak 🔥</p>
+                <p className="text-white/40 text-[11px]">Review streak 🔥</p>
               </div>
             </div>
           </div>
@@ -157,7 +157,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
             <RoadmapProgressCard started={data.roadmapStarted} progress={data.roadmapProgress} />
           </div>
 
-          <NetWorthCard snapshots={data.netWorthSnapshots} />
+          <NetWorthCard snapshots={data.netWorthSnapshots} age={data.rawInputs?.body?.age} />
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
             <div className="lg:col-span-3"><ScoreHistoryChart history={data.history} /></div>
