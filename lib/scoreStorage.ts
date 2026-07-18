@@ -1,23 +1,16 @@
 /**
  * lib/scoreStorage.ts — storage adapter for the WellFiLab Score.
  *
- * Every read/write to localStorage for the score system goes through this
- * file and nowhere else. The algorithm (lib/wellfilab-score.ts) is already
- * pure — it takes inputs + history in, returns a WellFiScore out, and never
- * touches storage itself. UI code (the /score page, the dashboard) only
- * ever calls the functions below, never `localStorage` directly.
+ * Every read/write to score data goes through this file and nowhere else.
+ * The algorithm (lib/wellfilab-score.ts) stays pure — it takes inputs +
+ * history in, returns a WellFiScore out, and never touches storage itself.
  *
- * Why this separation matters: when a real backend + database exists, only
- * this file changes — swap each function body for a `fetch('/api/scores')`
- * call. Every function here is already async (even though localStorage is
- * synchronous), so call sites already `await` them and won't need to
- * change at all. Records already carry a client-generated `id` and a
- * `date`, which is exactly the shape a `scores` DB table needs — no ID
- * renumbering or backfill required when that migration happens.
- *
- * Honesty note: today this is local-only. Clearing browser data or
- * switching devices loses history. Any UI copy about this should say "on
- * this device", not imply an account-wide sync that doesn't exist yet.
+ * Backed by /api/scores (Postgres, keyed by Clerk userId) when signed in,
+ * with localStorage as an always-on fallback: anonymous visitors (the
+ * public /score page requires no account) keep working exactly as before,
+ * and any network/auth failure degrades to the local copy rather than
+ * losing a result. Every write also mirrors to localStorage so the fallback
+ * never goes stale relative to what the account store has.
  */
 
 import type { WellFiScore } from './wellfilab-score';
@@ -52,35 +45,68 @@ function writeJSON(key: string, value: unknown): void {
   }
 }
 
-/** Most recent score, or null if the user has never taken it. */
-export async function getLatestScore(): Promise<WellFiScore | null> {
-  return readJSON<WellFiScore | null>(LATEST_KEY, null);
-}
-
-/** Score history, newest first, capped at MAX_HISTORY entries. */
+/** Score history, newest first, capped at MAX_HISTORY entries — from the
+ * account store when signed in, local cache otherwise. */
 export async function getScoreHistory(): Promise<WellFiScore[]> {
+  try {
+    const res = await fetch('/api/scores');
+    if (res.ok) {
+      const { history } = await res.json();
+      return history as WellFiScore[];
+    }
+  } catch {
+    /* offline, signed out (401), or a server error — fall back to local */
+  }
   return readJSON<WellFiScore[]>(HISTORY_KEY, []);
 }
 
+/** Most recent score, or null if the user has never taken it. Falls back to
+ * the local copy while signed in but not yet synced — see the one-time
+ * import flow in lib/accountImport.ts. */
+export async function getLatestScore(): Promise<WellFiScore | null> {
+  const history = await getScoreHistory();
+  if (history.length > 0) return history[0];
+  return readJSON<WellFiScore | null>(LATEST_KEY, null);
+}
+
 /**
- * Persists a freshly-calculated score: stamps id + date, sets it as the
- * latest score, and unshifts it into history. Returns the stamped record
- * so the caller can render it without a second read.
+ * Persists a freshly-calculated score: stamps id + date (server-side when
+ * signed in, so the id doubles as the real DB primary key), sets it as the
+ * latest score, and unshifts it into history. Returns the stamped record so
+ * the caller can render it without a second read.
  */
 export async function saveScore(score: WellFiScore): Promise<WellFiScore> {
-  const stamped: WellFiScore = { ...score, id: genId(), date: new Date().toISOString() };
+  let stamped: WellFiScore;
+  try {
+    const res = await fetch('/api/scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(score),
+    });
+    if (!res.ok) throw new Error(`save failed: ${res.status}`);
+    ({ score: stamped } = await res.json());
+  } catch {
+    // Signed out, offline, or a server error — save locally so nothing is lost.
+    stamped = { ...score, id: genId(), date: new Date().toISOString() };
+  }
 
   writeJSON(LATEST_KEY, stamped);
-
-  const history = await getScoreHistory();
-  const updated = [stamped, ...history].slice(0, MAX_HISTORY);
-  writeJSON(HISTORY_KEY, updated);
+  const history = readJSON<WellFiScore[]>(HISTORY_KEY, []);
+  writeJSON(HISTORY_KEY, [stamped, ...history].slice(0, MAX_HISTORY));
 
   return stamped;
 }
 
-/** Clears all locally stored score data — used by a "clear my history" control. */
+/** Local-only read, bypassing the remote-first fallback above — used by the
+ * one-time import flow (lib/accountImport.ts) to see what's actually sitting
+ * in this browser regardless of what the account store currently has. */
+export function getLocalScoreHistory(): WellFiScore[] {
+  return readJSON<WellFiScore[]>(HISTORY_KEY, []);
+}
+
+/** Clears all stored score data — used by a "clear my history" control. */
 export async function clearScoreHistory(): Promise<void> {
+  try { await fetch('/api/scores', { method: 'DELETE' }); } catch { /* best-effort */ }
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(LATEST_KEY);

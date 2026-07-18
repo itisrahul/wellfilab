@@ -12,6 +12,8 @@ import { computeRoadmapProgress } from '@/lib/roadmapProgress';
 import { getAchievements } from '@/lib/achievements';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { loadRoadmapChecks, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { hasUnimportedLocalData } from '@/lib/accountImport';
+import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { ScoreBand } from './ScoreBand';
 import { TopPriorities } from './TopPriorities';
 import { RiskAlertsCard } from './RiskAlertsCard';
@@ -59,13 +61,13 @@ function readRoadmapState(): { started: boolean; checks: RoadmapChecks } {
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [focus, setFocus] = useState<ScoreFocus>('both');
+  const [showImportBanner, setShowImportBanner] = useState(false);
   const firstName = userName.split(' ')[0];
   const initial = userName.trim().charAt(0).toUpperCase() || 'W';
 
-  useEffect(() => {
-    setFocus(getScoreFocus());
+  const loadDashboard = () => {
     const hour = new Date().getHours();
-    Promise.all([getLatestScore(), getScoreHistory(), getGoals(), getSnapshots()])
+    return Promise.all([getLatestScore(), getScoreHistory(), getGoals(), getSnapshots()])
       .then(([score, history, rawGoals, netWorthSnapshots]) => {
         const rawInputs = loadRawInputs();
         const roadmap = readRoadmapState();
@@ -80,7 +82,18 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           dateStr:  new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         });
       });
+  };
+
+  useEffect(() => {
+    setFocus(getScoreFocus());
+    setShowImportBanner(hasUnimportedLocalData());
+    loadDashboard();
   }, []);
+
+  const handleImportDone = () => {
+    setShowImportBanner(false);
+    loadDashboard();
+  };
 
   const handleFocusChange = (f: ScoreFocus) => {
     setFocus(f);
@@ -136,6 +149,12 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           </div>
         </div>
       </div>
+
+      {data && showImportBanner && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+          <ImportLocalDataBanner onDone={handleImportDone} />
+        </div>
+      )}
 
       {!data ? (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>

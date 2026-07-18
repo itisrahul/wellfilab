@@ -1,11 +1,12 @@
 /**
  * lib/goalsStorage.ts — storage adapter for the Goals system.
  *
- * Same pattern as lib/scoreStorage.ts / lib/subscriptionStorage.ts / lib/onboardingStorage.ts:
- * every read/write to localStorage for goals goes through this file, functions are already
- * async so a future real backend only needs new function bodies here, not new call sites.
- *
- * Honesty note: local-only today — clearing browser data or switching devices loses goals.
+ * Backed by /api/goals (Postgres, keyed by Clerk userId) when signed in,
+ * with localStorage as an always-on fallback/cache — same pattern as
+ * lib/scoreStorage.ts. Every write mirrors to localStorage regardless of
+ * whether the remote call succeeded, so the fallback view never drifts from
+ * what the account store has, and a goal created while signed out (or
+ * offline) still works exactly as before.
  */
 
 export type GoalType =
@@ -70,23 +71,62 @@ function writeGoals(goals: Goal[]): void {
   try { window.localStorage.setItem(KEY, JSON.stringify(goals)); } catch { /* quota exceeded — non-critical */ }
 }
 
+/** Local-only read, bypassing the remote-first fallback below — used by the
+ * one-time import flow (lib/accountImport.ts). */
+export function getLocalGoals(): Goal[] {
+  return readGoals();
+}
+
 export async function getGoals(): Promise<Goal[]> {
+  try {
+    const res = await fetch('/api/goals');
+    if (res.ok) {
+      const { goals } = await res.json();
+      return goals as Goal[];
+    }
+  } catch {
+    /* offline, signed out (401), or a server error — fall back to local */
+  }
   return readGoals();
 }
 
 export async function addGoal(input: { type: GoalType; label: string; target: number; current: number; targetDate?: string }): Promise<Goal> {
-  const now = new Date().toISOString();
-  const goal: Goal = {
-    id: genId(), type: input.type, label: input.label, target: input.target,
-    current: input.current, startValue: input.current, startDate: now,
-    targetDate: input.targetDate, lastUpdated: now,
-    history: [{ date: now, value: input.current }],
-  };
-  writeGoals([...readGoals(), goal]);
-  return goal;
+  try {
+    const res = await fetch('/api/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) throw new Error(`create failed: ${res.status}`);
+    const { goal } = await res.json();
+    writeGoals([...readGoals(), goal]);
+    return goal as Goal;
+  } catch {
+    // Signed out, offline, or a server error — create locally so nothing is lost.
+    const now = new Date().toISOString();
+    const goal: Goal = {
+      id: genId(), type: input.type, label: input.label, target: input.target,
+      current: input.current, startValue: input.current, startDate: now,
+      targetDate: input.targetDate, lastUpdated: now,
+      history: [{ date: now, value: input.current }],
+    };
+    writeGoals([...readGoals(), goal]);
+    return goal;
+  }
 }
 
 export async function updateGoalProgress(id: string, current: number): Promise<void> {
+  try {
+    const res = await fetch(`/api/goals/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current }),
+    });
+    if (!res.ok) throw new Error(`update failed: ${res.status}`);
+  } catch {
+    /* signed out, offline, or a goal not yet synced to the account — local write below still applies */
+  }
+
   const now = new Date().toISOString();
   writeGoals(readGoals().map(g => g.id === id
     ? { ...g, current, lastUpdated: now, history: [...(g.history ?? [{ date: g.startDate, value: g.startValue }]), { date: now, value: current }] }
@@ -94,10 +134,24 @@ export async function updateGoalProgress(id: string, current: number): Promise<v
 }
 
 export async function toggleGoalPause(id: string): Promise<void> {
-  writeGoals(readGoals().map(g => g.id === id ? { ...g, paused: !g.paused } : g));
+  const existing = readGoals();
+  const target = existing.find(g => g.id === id);
+  if (!target) return;
+  const paused = !target.paused;
+
+  try {
+    await fetch(`/api/goals/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paused }),
+    });
+  } catch { /* best-effort — local write below still applies */ }
+
+  writeGoals(existing.map(g => g.id === id ? { ...g, paused } : g));
 }
 
 export async function deleteGoal(id: string): Promise<void> {
+  try { await fetch(`/api/goals/${id}`, { method: 'DELETE' }); } catch { /* best-effort */ }
   writeGoals(readGoals().filter(g => g.id !== id));
 }
 

@@ -1,7 +1,8 @@
 /**
  * lib/netWorthHistory.ts — storage adapter for monthly net worth snapshots.
- * Same async-wrapper-around-localStorage pattern as scoreStorage/goalsStorage —
- * a future real backend only needs new function bodies here.
+ * Backed by /api/net-worth (Postgres, keyed by Clerk userId) when signed
+ * in, with localStorage as an always-on fallback/cache — same pattern as
+ * lib/scoreStorage.ts and lib/goalsStorage.ts.
  */
 
 import type { Goal } from './goalsStorage';
@@ -34,21 +35,50 @@ function writeSnapshots(snaps: NetWorthSnapshot[]): void {
   try { window.localStorage.setItem(KEY, JSON.stringify(snaps)); } catch { /* quota exceeded — non-critical */ }
 }
 
+/** Local-only read, bypassing the remote-first fallback below — used by the
+ * one-time import flow (lib/accountImport.ts). */
+export function getLocalSnapshots(): NetWorthSnapshot[] {
+  return readSnapshots();
+}
+
 export async function getSnapshots(): Promise<NetWorthSnapshot[]> {
+  try {
+    const res = await fetch('/api/net-worth');
+    if (res.ok) {
+      const { snapshots } = await res.json();
+      return snapshots as NetWorthSnapshot[];
+    }
+  } catch {
+    /* offline, signed out (401), or a server error — fall back to local */
+  }
   return readSnapshots().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function addSnapshot(assets: number, liabilities: number): Promise<NetWorthSnapshot> {
-  const snap: NetWorthSnapshot = { id: genId(), date: new Date().toISOString(), assets, liabilities, netWorth: assets - liabilities };
-  writeSnapshots([...readSnapshots(), snap]);
-  return snap;
+  try {
+    const res = await fetch('/api/net-worth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assets, liabilities }),
+    });
+    if (!res.ok) throw new Error(`save failed: ${res.status}`);
+    const { snapshot } = await res.json();
+    writeSnapshots([...readSnapshots(), snapshot]);
+    return snapshot as NetWorthSnapshot;
+  } catch {
+    const snap: NetWorthSnapshot = { id: genId(), date: new Date().toISOString(), assets, liabilities, netWorth: assets - liabilities };
+    writeSnapshots([...readSnapshots(), snap]);
+    return snap;
+  }
 }
 
 export async function deleteSnapshot(id: string): Promise<void> {
+  try { await fetch(`/api/net-worth/${id}`, { method: 'DELETE' }); } catch { /* best-effort */ }
   writeSnapshots(readSnapshots().filter(s => s.id !== id));
 }
 
 export async function clearSnapshots(): Promise<void> {
+  try { await fetch('/api/net-worth', { method: 'DELETE' }); } catch { /* best-effort */ }
   writeSnapshots([]);
 }
 
