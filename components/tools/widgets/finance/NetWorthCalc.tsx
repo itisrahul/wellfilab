@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcNetWorth } from '@/lib/calc';
 import { Shell, CurrPills, useCurr, fmtFull, fmtSmart } from '@/components/tools/shared';
+import { mutate } from 'swr';
 import { getSnapshots, addSnapshot, deleteSnapshot, clearSnapshots, type NetWorthSnapshot } from '@/lib/netWorthHistory';
 import { getLatestScore } from '@/lib/scoreStorage';
 import type { WellFiScore } from '@/lib/wellfilab-score';
+import { SWR_KEYS } from '@/lib/swrKeys';
 
 const MILESTONES = [100000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000];
 
@@ -35,11 +37,12 @@ export default function NetWorthCalc() {
   const saveSnapshot = async () => {
     await addSnapshot(r.totalAssets, r.totalLiab);
     setHistory(await getSnapshots());
+    mutate(SWR_KEYS.netWorthSnapshots);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
-  const removeSnapshot = async (id: string) => { await deleteSnapshot(id); setHistory(await getSnapshots()); };
-  const clearAll = async () => { if (confirm('Clear all saved net worth history?')) { await clearSnapshots(); setHistory([]); } };
+  const removeSnapshot = async (id: string) => { await deleteSnapshot(id); setHistory(await getSnapshots()); mutate(SWR_KEYS.netWorthSnapshots); };
+  const clearAll = async () => { if (confirm('Clear all saved net worth history?')) { await clearSnapshots(); setHistory([]); mutate(SWR_KEYS.netWorthSnapshots); } };
 
   const chartData = history.map(s => ({ month: new Date(s.date).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }), value: s.netWorth }));
   const lastTwo = history.slice(-2);

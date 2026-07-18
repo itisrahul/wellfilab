@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { mutate } from 'swr';
 import {
   calculateBodyScore, calculateFullScore, calculateWealthOnlyScore, scoreColor, scoreLabel, netWorthVerdict,
   type QuickInputs, type BodyInputs, type FinanceInputs, type WellFiScore,
@@ -13,6 +14,7 @@ import { getSnapshots } from '@/lib/netWorthHistory';
 import { buildRiskManagementPlan } from '@/lib/riskManagement';
 import { setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { SITE_URL } from '@/config/site';
+import { SWR_KEYS } from '@/lib/swrKeys';
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
 const PREVIEW_FALLBACK: BodyInputs = {
@@ -160,6 +162,8 @@ export default function ScorePage() {
     saveRawInputs(effectiveBody, EMPTY_FINANCE);
     setScore(saved);
     setHistory(prev => [saved, ...prev]);
+    mutate(SWR_KEYS.scoreHistory);
+    mutate(SWR_KEYS.scoreInputs);
     setStage('results');
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   };
@@ -203,6 +207,8 @@ export default function ScorePage() {
     setFinance(effectiveFinance);
     setScore(saved);
     setHistory(prev => [saved, ...prev]);
+    mutate(SWR_KEYS.scoreHistory);
+    mutate(SWR_KEYS.scoreInputs);
     setStage('results');
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   };
@@ -227,6 +233,8 @@ export default function ScorePage() {
     setBody({ age: wealthAge });
     setScore(saved);
     setHistory(prev => [saved, ...prev]);
+    mutate(SWR_KEYS.scoreHistory);
+    mutate(SWR_KEYS.scoreInputs);
     setStage('results');
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   };

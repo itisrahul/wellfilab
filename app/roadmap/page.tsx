@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
+import useSWR from 'swr';
+import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { CALCULATORS, getBySlug } from '@/config/tools';
-import { calculateFullScore, type WellFiScore, type Dimension, type BodyInputs, type FinanceInputs } from '@/lib/wellfilab-score';
+import { calculateFullScore, type WellFiScore, type Dimension } from '@/lib/wellfilab-score';
 import { getRelevantAffiliates, type Affiliate } from '@/lib/affiliates';
 import {
   DUMMY_QUICK, fmtINR, getDimActions, DIM_CATEGORY_TITLE, HEALTH_TOOL_SLUGS, FINANCE_TOOL_SLUGS,
@@ -13,37 +14,44 @@ import {
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { syncRoadmapChecksFromAccount, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { SWR_KEYS } from '@/lib/swrKeys';
 
 const START_KEY = 'wfl_roadmap_start';
 
 export default function RoadmapPage() {
-  const [score, setScore] = useState<WellFiScore | null>(null);
-  const [history, setHistory] = useState<WellFiScore[]>([]);
+  const { data: history, isLoading: historyLoading } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
+  const { data: rawInputs, isLoading: inputsLoading } = useSWR(SWR_KEYS.scoreInputs, syncScoreInputsFromAccount);
+  const { data: cachedChecks, isLoading: checksLoading, mutate: mutateChecks } = useSWR(SWR_KEYS.roadmapChecks, syncRoadmapChecksFromAccount);
+  const score = history?.[0] ?? null;
   const [checks, setChecks] = useState<RoadmapChecks>({});
-  const [loading, setLoading] = useState(true);
   const [startedAt, setStartedAt] = useState<string | null>(null);
-  const [rawInputs, setRawInputs] = useState<{ body: BodyInputs | null; finance: FinanceInputs } | null>(null);
   const [focus, setFocus] = useState<ScoreFocus>('both');
 
+  const loading = historyLoading || inputsLoading || checksLoading;
+
   useEffect(() => {
-    syncRoadmapChecksFromAccount().then(setChecks);
-    syncScoreInputsFromAccount().then(setRawInputs);
+    if (cachedChecks) setChecks(cachedChecks);
+  }, [cachedChecks]);
+
+  useEffect(() => {
     setFocus(getScoreFocus());
-    let started = window.localStorage.getItem(START_KEY);
-    Promise.all([getLatestScore(), getScoreHistory()]).then(([s, h]) => {
-      setScore(s);
-      setHistory(h);
-      if (s && !started) {
-        started = new Date().toISOString();
-        window.localStorage.setItem(START_KEY, started);
-      }
-      setStartedAt(started);
-      setLoading(false);
-    });
+    setStartedAt(window.localStorage.getItem(START_KEY));
   }, []);
 
+  useEffect(() => {
+    if (score && !startedAt && typeof window !== 'undefined') {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(START_KEY, now);
+      setStartedAt(now);
+    }
+  }, [score, startedAt]);
+
   const toggleCheck = (id: string) => {
-    setChecks(prev => toggleRoadmapCheck(prev, id));
+    setChecks(prev => {
+      const next = toggleRoadmapCheck(prev, id);
+      mutateChecks(next, false); // optimistic — update the shared cache without a refetch
+      return next;
+    });
   };
 
   if (loading) {

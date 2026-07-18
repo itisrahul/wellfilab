@@ -1,18 +1,20 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
-import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
+import useSWR, { mutate } from 'swr';
+import { scoreColor } from '@/lib/wellfilab-score';
+import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
-import { getGoals, type Goal } from '@/lib/goalsStorage';
-import { getSnapshots, syncNetWorthGoal, type NetWorthSnapshot } from '@/lib/netWorthHistory';
+import { getGoals } from '@/lib/goalsStorage';
+import { getSnapshots, syncNetWorthGoal } from '@/lib/netWorthHistory';
 import { getRiskAlerts } from '@/lib/riskAlerts';
 import { computeRoadmapProgress } from '@/lib/roadmapProgress';
 import { getAchievements } from '@/lib/achievements';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
-import { syncRoadmapChecksFromAccount, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { syncRoadmapChecksFromAccount } from '@/lib/roadmapChecks';
 import { hasUnimportedLocalData } from '@/lib/accountImport';
+import { SWR_KEYS } from '@/lib/swrKeys';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { ScoreBand } from './ScoreBand';
 import { TopPriorities } from './TopPriorities';
@@ -40,55 +42,60 @@ interface Props {
   memberSince: string;
 }
 
-interface DashboardData {
-  score: WellFiScore | null;
-  history: WellFiScore[];
-  goals: Goal[];
-  netWorthSnapshots: NetWorthSnapshot[];
-  rawInputs: Awaited<ReturnType<typeof syncScoreInputsFromAccount>>;
-  roadmapStarted: boolean;
-  roadmapChecks: RoadmapChecks;
-  greeting: string;
-  dateStr: string;
+/** Refetches every account data source — used after the one-time import
+ * banner completes, since it may have just written into all of them. */
+function refreshAllAccountData() {
+  return Promise.all([
+    mutate(SWR_KEYS.scoreHistory), mutate(SWR_KEYS.goals), mutate(SWR_KEYS.netWorthSnapshots),
+    mutate(SWR_KEYS.roadmapChecks), mutate(SWR_KEYS.scoreInputs),
+  ]);
 }
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
-  const [data, setData] = useState<DashboardData | null>(null);
   const [focus, setFocus] = useState<ScoreFocus>('both');
   const [showImportBanner, setShowImportBanner] = useState(false);
+  const [roadmapStarted, setRoadmapStarted] = useState(false);
   const firstName = userName.split(' ')[0];
   const initial = userName.trim().charAt(0).toUpperCase() || 'W';
 
-  const loadDashboard = () => {
-    const hour = new Date().getHours();
-    return Promise.all([
-      getLatestScore(), getScoreHistory(), getGoals(), getSnapshots(),
-      syncScoreInputsFromAccount(), syncRoadmapChecksFromAccount(),
-    ])
-      .then(([score, history, rawGoals, netWorthSnapshots, rawInputs, roadmapChecks]) => {
-        const started = typeof window !== 'undefined' && !!window.localStorage.getItem('wfl_roadmap_start');
-        // A 'net-worth' goal reads its current value from the latest real
-        // snapshot instead of a stale manual entry — see syncNetWorthGoal.
-        const goals = rawGoals.map(g => syncNetWorthGoal(g, netWorthSnapshots));
-        setData({
-          score, history, goals, netWorthSnapshots, rawInputs,
-          roadmapStarted: started,
-          roadmapChecks,
-          greeting: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
-          dateStr:  new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        });
-      });
-  };
+  // Cached by shared keys (lib/swrKeys.ts) — the same data fetched here is
+  // reused (not re-fetched) when the user then visits /goals, /roadmap, or
+  // /history, and vice versa.
+  const { data: history, isLoading: historyLoading } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
+  const { data: rawGoals, isLoading: goalsLoading } = useSWR(SWR_KEYS.goals, getGoals);
+  const { data: netWorthSnapshots, isLoading: snapshotsLoading } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
+  const { data: roadmapChecks, isLoading: roadmapLoading } = useSWR(SWR_KEYS.roadmapChecks, syncRoadmapChecksFromAccount);
+  const { data: rawInputs, isLoading: inputsLoading } = useSWR(SWR_KEYS.scoreInputs, syncScoreInputsFromAccount);
+
+  const loading = historyLoading || goalsLoading || snapshotsLoading || roadmapLoading || inputsLoading;
+  const score = history?.[0] ?? null;
+
+  // A 'net-worth' goal reads its current value from the latest real
+  // snapshot instead of a stale manual entry — see syncNetWorthGoal.
+  const goals = useMemo(
+    () => (rawGoals ?? []).map(g => syncNetWorthGoal(g, netWorthSnapshots ?? [])),
+    [rawGoals, netWorthSnapshots]
+  );
 
   useEffect(() => {
     setFocus(getScoreFocus());
     setShowImportBanner(hasUnimportedLocalData());
-    loadDashboard();
+    setRoadmapStarted(typeof window !== 'undefined' && !!window.localStorage.getItem('wfl_roadmap_start'));
   }, []);
+
+  useEffect(() => {
+    // Mirrors the original behavior: the first time a score is seen and no
+    // start flag exists yet, stamp "now" as when the roadmap effectively began.
+    if (score && typeof window !== 'undefined' && !window.localStorage.getItem('wfl_roadmap_start')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem('wfl_roadmap_start', now);
+      setRoadmapStarted(true);
+    }
+  }, [score]);
 
   const handleImportDone = () => {
     setShowImportBanner(false);
-    loadDashboard();
+    refreshAllAccountData();
   };
 
   const handleFocusChange = (f: ScoreFocus) => {
@@ -96,8 +103,12 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
     setScoreFocus(f);
   };
 
-  const roadmapProgress = data?.score
-    ? computeRoadmapProgress(data.score, data.rawInputs?.body ?? null, data.rawInputs?.finance ?? null, data.roadmapChecks, focus)
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const roadmapProgress = score
+    ? computeRoadmapProgress(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, roadmapChecks ?? {}, focus)
     : null;
 
   return (
@@ -121,10 +132,10 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
               )}
               <div>
                 <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
-                  {data ? data.dateStr : ' '}
+                  {!loading ? dateStr : ' '}
                 </p>
                 <h1 className="text-2xl font-extrabold text-white mb-0.5">
-                  {data ? `${data.greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋
+                  {!loading ? `${greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋
                 </h1>
                 <p className="text-white/50 text-sm">{userEmail}{memberSince ? ` · Member since ${memberSince}` : ''}</p>
               </div>
@@ -132,13 +143,13 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
             <div className="flex gap-3">
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="font-mono tabular-nums text-2xl font-black" style={{ color: data?.score ? scoreColor(data.score.overall) : '#6b7280' }}>
-                  {data?.score?.overall ?? '—'}
+                <p className="font-mono tabular-nums text-2xl font-black" style={{ color: score ? scoreColor(score.overall) : '#6b7280' }}>
+                  {score?.overall ?? '—'}
                 </p>
                 <p className="text-white/40 text-[11px]">WellFiLab Score</p>
               </div>
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{data?.score?.streakDays ?? '—'}</p>
+                <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{score?.streakDays ?? '—'}</p>
                 <p className="text-white/40 text-[11px]">Review streak 🔥</p>
               </div>
             </div>
@@ -146,15 +157,15 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
         </div>
       </div>
 
-      {data && showImportBanner && (
+      {!loading && showImportBanner && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
           <ImportLocalDataBanner onDone={handleImportDone} />
         </div>
       )}
 
-      {!data ? (
+      {loading ? (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
-      ) : !data.score ? (
+      ) : !score ? (
         // ── No score yet — CTA to take it ──
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
           <p className="text-4xl mb-4">🎯</p>
@@ -176,32 +187,32 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           </div>
 
           {/* ── ACT — above the fold: where I stand, biggest problem, urgent risk ── */}
-          <ScoreBand score={data.score} focus={focus} />
+          <ScoreBand score={score} focus={focus} />
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-            <div className="lg:col-span-3"><TopPriorities actions={data.score.actions} focus={focus} /></div>
+            <div className="lg:col-span-3"><TopPriorities actions={score.actions} focus={focus} /></div>
             <div className="lg:col-span-2">
               <RiskAlertsCard alerts={getRiskAlerts(
-                focus === 'wealth' ? null : data.rawInputs?.body ?? null,
-                focus === 'health' ? null : data.rawInputs?.finance ?? null,
+                focus === 'wealth' ? null : rawInputs?.body ?? null,
+                focus === 'health' ? null : rawInputs?.finance ?? null,
               )} />
             </div>
           </div>
 
           {/* ── TRACK — first scroll: how much progress, is it working ── */}
           <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-            <GoalProgressCard goals={data.goals} focus={focus} />
-            <RoadmapProgressCard started={data.roadmapStarted} progress={roadmapProgress} />
+            <GoalProgressCard goals={goals} focus={focus} />
+            <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
           </div>
 
           {focus !== 'health' && (
-            <NetWorthCard snapshots={data.netWorthSnapshots} age={data.rawInputs?.body?.age} />
+            <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />
           )}
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-            <div className="lg:col-span-3"><ScoreHistoryChart history={data.history} /></div>
+            <div className="lg:col-span-3"><ScoreHistoryChart history={history ?? []} /></div>
             <div className="lg:col-span-2">
-              <AchievementsCard achievements={getAchievements(data.score, data.history, roadmapProgress, data.goals)} />
+              <AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} />
             </div>
           </div>
 
@@ -218,13 +229,13 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           {/* ── RETURN — bottom: what to do next, why come back next month ── */}
           <NextStepsCard
             dimensions={(() => {
-              const focused = data.score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
-              return focused.length > 0 ? focused : data.score.dimensions;
+              const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+              return focused.length > 0 ? focused : score.dimensions;
             })()}
-            body={data.rawInputs?.body ?? null} finance={data.rawInputs?.finance ?? null}
+            body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
           />
 
-          <MonthlyReviewBand score={data.score} />
+          <MonthlyReviewBand score={score} />
 
           <p className="text-center text-[11px] text-gray-400 pt-2">
             Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>

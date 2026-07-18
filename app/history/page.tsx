@@ -1,13 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { useUser } from '@clerk/nextjs';
 import { getScoreHistory } from '@/lib/scoreStorage';
-import { getGoals, getGoalHistory, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
-import { getSnapshots, type NetWorthSnapshot } from '@/lib/netWorthHistory';
-import { syncRoadmapChecksFromAccount, checkedAt, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { getGoals, getGoalHistory, GOAL_TYPE_META } from '@/lib/goalsStorage';
+import { getSnapshots } from '@/lib/netWorthHistory';
+import { syncRoadmapChecksFromAccount, checkedAt } from '@/lib/roadmapChecks';
 import { fmtINR } from '@/lib/roadmapActions';
-import type { WellFiScore } from '@/lib/wellfilab-score';
+import { SWR_KEYS } from '@/lib/swrKeys';
 
 interface TimelineEvent {
   date: string;
@@ -37,21 +37,11 @@ function labelRoadmapCheck(id: string): string {
 
 export default function HistoryPage() {
   const { isSignedIn } = useUser();
-  const [loading, setLoading] = useState(true);
-  const [scoreHistory, setScoreHistory] = useState<WellFiScore[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [netWorthSnapshots, setNetWorthSnapshots] = useState<NetWorthSnapshot[]>([]);
-  const [roadmapChecks, setRoadmapChecks] = useState<RoadmapChecks>({});
-
-  useEffect(() => {
-    Promise.all([getScoreHistory(), getGoals(), getSnapshots(), syncRoadmapChecksFromAccount()]).then(([scores, g, snaps, checks]) => {
-      setScoreHistory(scores);
-      setGoals(g);
-      setNetWorthSnapshots(snaps);
-      setRoadmapChecks(checks);
-      setLoading(false);
-    });
-  }, []);
+  const { data: scoreHistory, isLoading: scoreLoading } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
+  const { data: goals, isLoading: goalsLoading } = useSWR(SWR_KEYS.goals, getGoals);
+  const { data: netWorthSnapshots, isLoading: snapshotsLoading } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
+  const { data: roadmapChecks, isLoading: checksLoading } = useSWR(SWR_KEYS.roadmapChecks, syncRoadmapChecksFromAccount);
+  const loading = scoreLoading || goalsLoading || snapshotsLoading || checksLoading;
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">

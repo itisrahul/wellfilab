@@ -1,16 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import {
   getGoals, addGoal, updateGoalProgress, toggleGoalPause, deleteGoal,
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
-import { getLatestScore } from '@/lib/scoreStorage';
+import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
 import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
+import { SWR_KEYS } from '@/lib/swrKeys';
 
 interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
 
@@ -98,17 +100,16 @@ const CATEGORY_STYLE: Record<string, string> = {
 };
 
 export default function GoalsPage() {
-  const [goals, setGoals] = useState<Goal[] | null>(null);
-  const [score, setScore] = useState<WellFiScore | null>(null);
+  const { data: goals, isLoading: goalsLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
+  const { data: history } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
+  const { data: rawInputs } = useSWR(SWR_KEYS.scoreInputs, syncScoreInputsFromAccount);
+  const score = history?.[0] ?? null;
   const [showAdd, setShowAdd] = useState(false);
   const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
-  const [rawInputs, setRawInputs] = useState<{ body: BodyInputs; finance: FinanceInputs } | null>(null);
   const [dismissed, setDismissed] = useState<GoalType[]>([]);
   const [focus, setFocus] = useState<ScoreFocus>('both');
 
   useEffect(() => {
-    Promise.all([getGoals(), getLatestScore()]).then(([g, s]) => { setGoals(g); setScore(s); });
-    syncScoreInputsFromAccount().then(setRawInputs);
     setFocus(getScoreFocus());
     // Deep link from a calculator's real result, e.g. /goals?prefill=net-worth&current=550000 —
     // read directly from the URL rather than useSearchParams, which would force this
@@ -125,7 +126,6 @@ export default function GoalsPage() {
     }
   }, []);
 
-  const refresh = () => getGoals().then(setGoals);
   const handleFocusChange = (f: ScoreFocus) => { setFocus(f); setScoreFocus(f); };
 
   const needsUpdate = (goals ?? []).some(g => !g.paused && Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
@@ -139,7 +139,7 @@ export default function GoalsPage() {
     refresh();
   };
 
-  if (goals === null) {
+  if (goalsLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
     </div>;
