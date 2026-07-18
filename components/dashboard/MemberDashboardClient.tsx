@@ -11,6 +11,7 @@ import { getRiskAlerts } from '@/lib/riskAlerts';
 import { computeRoadmapProgress } from '@/lib/roadmapProgress';
 import { getAchievements } from '@/lib/achievements';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
+import { loadRoadmapChecks, type RoadmapChecks } from '@/lib/roadmapChecks';
 import { ScoreBand } from './ScoreBand';
 import { TopPriorities } from './TopPriorities';
 import { RiskAlertsCard } from './RiskAlertsCard';
@@ -44,17 +45,15 @@ interface DashboardData {
   netWorthSnapshots: NetWorthSnapshot[];
   rawInputs: ReturnType<typeof loadRawInputs>;
   roadmapStarted: boolean;
-  roadmapChecks: Record<string, boolean>;
+  roadmapChecks: RoadmapChecks;
   greeting: string;
   dateStr: string;
 }
 
-function readRoadmapState(): { started: boolean; checks: Record<string, boolean> } {
+function readRoadmapState(): { started: boolean; checks: RoadmapChecks } {
   if (typeof window === 'undefined') return { started: false, checks: {} };
   const started = !!window.localStorage.getItem('wfl_roadmap_start');
-  let checks: Record<string, boolean> = {};
-  try { checks = JSON.parse(window.localStorage.getItem('wfl_roadmap_checks') ?? '{}'); } catch { /* noop */ }
-  return { started, checks };
+  return { started, checks: loadRoadmapChecks() };
 }
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
@@ -190,6 +189,16 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
               <AchievementsCard achievements={getAchievements(data.score, data.history, roadmapProgress, data.goals)} />
             </div>
           </div>
+
+          <Link href="/history"
+            className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+            <span className="text-3xl flex-shrink-0">📜</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-gray-900 dark:text-white text-sm">See your full history</p>
+              <p className="text-xs text-gray-400 mt-0.5">Score, net worth, goals, and roadmap — every real update, in one timeline.</p>
+            </div>
+            <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">View history →</span>
+          </Link>
 
           {/* ── RETURN — bottom: what to do next, why come back next month ── */}
           <NextStepsCard

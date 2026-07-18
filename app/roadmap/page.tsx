@@ -12,25 +12,21 @@ import {
 } from '@/lib/roadmapActions';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
+import { loadRoadmapChecks, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
 
-const CHECKS_KEY = 'wfl_roadmap_checks';
 const START_KEY = 'wfl_roadmap_start';
-
-function loadJSON<T>(key: string, fallback: T): T {
-  try { const raw = window.localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
-}
 
 export default function RoadmapPage() {
   const [score, setScore] = useState<WellFiScore | null>(null);
   const [history, setHistory] = useState<WellFiScore[]>([]);
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [checks, setChecks] = useState<RoadmapChecks>({});
   const [loading, setLoading] = useState(true);
   const [startedAt, setStartedAt] = useState<string | null>(null);
-  const [rawInputs, setRawInputs] = useState<{ body: BodyInputs; finance: FinanceInputs } | null>(null);
+  const [rawInputs, setRawInputs] = useState<{ body: BodyInputs | null; finance: FinanceInputs } | null>(null);
   const [focus, setFocus] = useState<ScoreFocus>('both');
 
   useEffect(() => {
-    setChecks(loadJSON(CHECKS_KEY, {}));
+    setChecks(loadRoadmapChecks());
     setRawInputs(loadRawInputs());
     setFocus(getScoreFocus());
     let started = window.localStorage.getItem(START_KEY);
@@ -47,11 +43,7 @@ export default function RoadmapPage() {
   }, []);
 
   const toggleCheck = (id: string) => {
-    setChecks(prev => {
-      const next = { ...prev, [id]: !prev[id] };
-      try { window.localStorage.setItem(CHECKS_KEY, JSON.stringify(next)); } catch { /* noop */ }
-      return next;
-    });
+    setChecks(prev => toggleRoadmapCheck(prev, id));
   };
 
   if (loading) {

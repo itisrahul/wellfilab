@@ -65,6 +65,11 @@ export interface WellFiScore {
   wealth: number;
   life: number;
   level: ScoreLevel;
+  /** What was actually measured to produce this score — set at calculation
+   * time by which intake flow ran, not guessed afterward. A 'wealth' score
+   * has no real body/mind data (those fields are 0 and must not be shown as
+   * if they were measured); a 'health' score has no real wealth data. */
+  focus: 'health' | 'wealth' | 'both';
 
   archetype: Archetype;
 
@@ -276,6 +281,7 @@ export function calculateQuickScore(
     scoreVersion: SCORE_VERSION,
     overall, body, mind, wealth, life,
     level: 'quick',
+    focus: 'both',
     archetype,
     dimensions,
     insights,
@@ -298,7 +304,7 @@ export function calculateQuickScore(
  * step provides the user's real number.
  */
 export function calculateBodyScore(
-  quick: QuickInputs,
+  _quick: QuickInputs,
   body: BodyInputs,
   history: WellFiScore[]
 ): WellFiScore {
@@ -322,22 +328,12 @@ export function calculateBodyScore(
   else if (body.sleepHours < 7) mindScore -= 10;
   mindScore = Math.max(10, Math.min(98, mindScore));
 
-  const wealthScore = Math.min(95, quick.financeFeeling * 22 + 10);
-
-  const lifeScore = Math.round(
-    (bodyScore * 0.3) + (mindScore * 0.3) + (wealthScore * 0.3) +
-    (100 - Math.max(
-      Math.abs(bodyScore - mindScore),
-      Math.abs(mindScore - wealthScore),
-      Math.abs(bodyScore - wealthScore)
-    )) * 0.1
-  );
-
-  const overall = Math.round(
-    (bodyScore * 0.28) + (mindScore * 0.28) + (wealthScore * 0.28) + (lifeScore * 0.16)
-  );
-
-  const archetype = selectArchetype(bodyScore, mindScore, wealthScore, null);
+  // A body-level score has no real finance data — no wealth self-rating
+  // placeholder blended in anywhere, honest zero instead. overall/life are
+  // both a straight body+mind average; archetype uses the same real pair.
+  const overall = Math.round((bodyScore + mindScore) / 2);
+  const lifeScore = overall;
+  const archetype = selectSingleDomainArchetype(overall, 'health');
 
   const dimensions: Dimension[] = [
     {
@@ -373,7 +369,7 @@ export function calculateBodyScore(
     });
   }
 
-  const actions = generateQuickActions(bodyScore, mindScore, wealthScore);
+  const actions = generateHealthOnlyActions(bodyScore, mindScore);
 
   const previous     = history[0]?.overall;
   const scoreChange  = previous != null ? overall - previous : undefined;
@@ -381,8 +377,9 @@ export function calculateBodyScore(
 
   return {
     scoreVersion: SCORE_VERSION,
-    overall, body: bodyScore, mind: mindScore, wealth: wealthScore, life: lifeScore,
+    overall, body: bodyScore, mind: mindScore, wealth: 0, life: lifeScore,
     level: 'body',
+    focus: 'health',
     archetype,
     dimensions,
     insights: insights.slice(0, 2),
@@ -436,6 +433,86 @@ export function netWorthVerdict(age: number, netWorth: number): { label: 'Excell
   if (ratio >= 0.7) return { label: 'Average', ratio };
   if (ratio >= 0.3) return { label: 'Below average', ratio };
   return { label: 'Needs attention', ratio };
+}
+
+/**
+ * The Wealth pillar's full factor set — extracted so both calculateFullScore
+ * (health + wealth together) and calculateWealthOnlyScore (a true wealth-only
+ * intake, no health questions asked at all) compute it identically. Changing
+ * a wealth factor here changes it everywhere it's used — no second copy to
+ * drift out of sync.
+ */
+function computeWealthPillar(
+  finance: FinanceInputs, age: number, netWorth: number | null
+): { wealthScore: number; factors: ScoreFactor[]; fiProgress: number | null } {
+  const annualIncome = finance.monthlyIncome * 12;
+  const debtToIncome = finance.totalDebt / (annualIncome || 1);
+  const factors: ScoreFactor[] = [];
+
+  let wealthScore = 100;
+  const savingsRate = (finance.monthlyIncome - finance.monthlyExpenses) / (finance.monthlyIncome || 1);
+  const savingsDelta = savingsRate >= 0.3 ? 0 : savingsRate >= 0.2 ? -10 : savingsRate >= 0.1 ? -20 : savingsRate >= 0 ? -30 : -40;
+  wealthScore += savingsDelta;
+  factors.push({ id: 'savings-rate', label: 'Savings rate', value: `${Math.round(savingsRate * 100)}%`, points: savingsDelta, dimension: 'wealth' });
+
+  const emergencyDelta = finance.hasEmergencyFund ? 0 : -20;
+  wealthScore += emergencyDelta;
+  factors.push({ id: 'emergency-fund', label: 'Emergency fund', value: finance.hasEmergencyFund ? 'Yes' : 'No', points: emergencyDelta, dimension: 'wealth' });
+
+  const insuranceDelta = finance.hasInsurance ? 0 : -10;
+  wealthScore += insuranceDelta;
+  factors.push({ id: 'insurance', label: 'Health insurance', value: finance.hasInsurance ? 'Yes' : 'No', points: insuranceDelta, dimension: 'wealth' });
+
+  const investRate = finance.monthlyInvestments / (finance.monthlyIncome || 1);
+  const investDelta = investRate >= 0.2 ? 0 : investRate >= 0.1 ? -10 : investRate > 0 ? -18 : -25;
+  wealthScore += investDelta;
+  factors.push({ id: 'investing', label: 'Investments', value: finance.monthlyInvestments > 0 ? `₹${finance.monthlyInvestments.toLocaleString('en-IN')}/month` : '₹0/month', points: investDelta, dimension: 'wealth' });
+
+  const debtWealthDelta = debtToIncome > 5 ? -15 : debtToIncome > 2 ? -8 : 0;
+  wealthScore += debtWealthDelta;
+  if (finance.totalDebt > 0) factors.push({ id: 'debt-wealth', label: 'Debt (financial load)', value: `${debtToIncome.toFixed(1)}× income`, points: debtWealthDelta, dimension: 'wealth' });
+
+  // Net worth, age-adjusted — only when a real snapshot exists. Absent rather
+  // than penalized when the user hasn't run the Net Worth Calculator yet, same
+  // progressive-disclosure rule the rest of this function already follows.
+  let fiProgress: number | null = null;
+  if (netWorth != null) {
+    const { label: nwLabel, ratio: nwRatio } = netWorthVerdict(age, netWorth);
+    const netWorthDelta = nwRatio >= 3 ? 8 : nwRatio >= 1.5 ? 4 : nwRatio >= 0.7 ? 0 : nwRatio >= 0.3 ? -8 : -15;
+    wealthScore += netWorthDelta;
+    factors.push({ id: 'net-worth', label: 'Net worth (age-adjusted)', value: `${fmtLakhCr(netWorth)} — ${nwLabel}`, points: netWorthDelta, dimension: 'wealth' });
+
+    if (finance.monthlyExpenses > 0) {
+      fiProgress = netWorth / (finance.monthlyExpenses * 12 * 25);
+      const fiDelta = fiProgress >= 1 ? 10 : fiProgress >= 0.5 ? 4 : fiProgress >= 0.25 ? 0 : -3;
+      wealthScore += fiDelta;
+      factors.push({ id: 'fi-progress', label: 'Financial independence progress', value: `${Math.round(fiProgress * 100)}%`, points: fiDelta, dimension: 'wealth' });
+    }
+  }
+
+  // Life insurance — optional, additive; undefined (not yet asked/answered)
+  // is treated as "unknown", not "no", so it never silently penalizes anyone
+  // who hasn't seen the question.
+  if (finance.hasLifeInsurance !== undefined) {
+    const lifeInsuranceDelta = finance.hasLifeInsurance ? 0 : -6;
+    wealthScore += lifeInsuranceDelta;
+    factors.push({ id: 'life-insurance', label: 'Life insurance', value: finance.hasLifeInsurance ? 'Yes' : 'No', points: lifeInsuranceDelta, dimension: 'wealth' });
+  }
+
+  // Risk readiness — equity allocation vs. the classic (100 − age) heuristic.
+  // Flags both directions: too aggressive for the time horizon left, or so
+  // conservative for a young investor that growth is being left on the table.
+  if (finance.equityAllocationPct !== undefined) {
+    const appropriateEquity = 100 - age;
+    const equityDiff = finance.equityAllocationPct - appropriateEquity;
+    const riskDelta = equityDiff > 25 ? -6 : (equityDiff < -30 && age < 45) ? -3 : 0;
+    const riskLabel = equityDiff > 25 ? 'High for your age' : (equityDiff < -30 && age < 45) ? 'Conservative for your horizon' : 'Appropriate for your age';
+    wealthScore += riskDelta;
+    factors.push({ id: 'risk-allocation', label: 'Investment risk fit', value: `${finance.equityAllocationPct}% equity — ${riskLabel}`, points: riskDelta, dimension: 'wealth' });
+  }
+
+  wealthScore = Math.max(10, Math.min(98, wealthScore));
+  return { wealthScore, factors, fiProgress };
 }
 
 export function calculateFullScore(
@@ -500,70 +577,11 @@ export function calculateFullScore(
 
   mindScore = Math.max(10, Math.min(98, mindScore));
 
-  // ── Wealth Score (0-100) ────────────────────────
-  let wealthScore = 100;
-  const savingsRate = (finance.monthlyIncome - finance.monthlyExpenses) / (finance.monthlyIncome || 1);
-  const savingsDelta = savingsRate >= 0.3 ? 0 : savingsRate >= 0.2 ? -10 : savingsRate >= 0.1 ? -20 : savingsRate >= 0 ? -30 : -40;
-  wealthScore += savingsDelta;
-  factors.push({ id: 'savings-rate', label: 'Savings rate', value: `${Math.round(savingsRate * 100)}%`, points: savingsDelta, dimension: 'wealth' });
-
-  const emergencyDelta = finance.hasEmergencyFund ? 0 : -20;
-  wealthScore += emergencyDelta;
-  factors.push({ id: 'emergency-fund', label: 'Emergency fund', value: finance.hasEmergencyFund ? 'Yes' : 'No', points: emergencyDelta, dimension: 'wealth' });
-
-  const insuranceDelta = finance.hasInsurance ? 0 : -10;
-  wealthScore += insuranceDelta;
-  factors.push({ id: 'insurance', label: 'Health insurance', value: finance.hasInsurance ? 'Yes' : 'No', points: insuranceDelta, dimension: 'wealth' });
-
-  const investRate = finance.monthlyInvestments / (finance.monthlyIncome || 1);
-  const investDelta = investRate >= 0.2 ? 0 : investRate >= 0.1 ? -10 : investRate > 0 ? -18 : -25;
-  wealthScore += investDelta;
-  factors.push({ id: 'investing', label: 'Investments', value: finance.monthlyInvestments > 0 ? `₹${finance.monthlyInvestments.toLocaleString('en-IN')}/month` : '₹0/month', points: investDelta, dimension: 'wealth' });
-
-  const debtWealthDelta = debtToIncome > 5 ? -15 : debtToIncome > 2 ? -8 : 0;
-  wealthScore += debtWealthDelta;
-  if (finance.totalDebt > 0) factors.push({ id: 'debt-wealth', label: 'Debt (financial load)', value: `${debtToIncome.toFixed(1)}× income`, points: debtWealthDelta, dimension: 'wealth' });
-
-  // Net worth, age-adjusted — only when a real snapshot exists. Absent rather
-  // than penalized when the user hasn't run the Net Worth Calculator yet, same
-  // progressive-disclosure rule the rest of this function already follows.
-  let fiProgress: number | null = null;
-  if (netWorth != null) {
-    const { label: nwLabel, ratio: nwRatio } = netWorthVerdict(body.age, netWorth);
-    const netWorthDelta = nwRatio >= 3 ? 8 : nwRatio >= 1.5 ? 4 : nwRatio >= 0.7 ? 0 : nwRatio >= 0.3 ? -8 : -15;
-    wealthScore += netWorthDelta;
-    factors.push({ id: 'net-worth', label: 'Net worth (age-adjusted)', value: `${fmtLakhCr(netWorth)} — ${nwLabel}`, points: netWorthDelta, dimension: 'wealth' });
-
-    if (finance.monthlyExpenses > 0) {
-      fiProgress = netWorth / (finance.monthlyExpenses * 12 * 25);
-      const fiDelta = fiProgress >= 1 ? 10 : fiProgress >= 0.5 ? 4 : fiProgress >= 0.25 ? 0 : -3;
-      wealthScore += fiDelta;
-      factors.push({ id: 'fi-progress', label: 'Financial independence progress', value: `${Math.round(fiProgress * 100)}%`, points: fiDelta, dimension: 'wealth' });
-    }
-  }
-
-  // Life insurance — optional, additive; undefined (not yet asked/answered)
-  // is treated as "unknown", not "no", so it never silently penalizes anyone
-  // who hasn't seen the question.
-  if (finance.hasLifeInsurance !== undefined) {
-    const lifeInsuranceDelta = finance.hasLifeInsurance ? 0 : -6;
-    wealthScore += lifeInsuranceDelta;
-    factors.push({ id: 'life-insurance', label: 'Life insurance', value: finance.hasLifeInsurance ? 'Yes' : 'No', points: lifeInsuranceDelta, dimension: 'wealth' });
-  }
-
-  // Risk readiness — equity allocation vs. the classic (100 − age) heuristic.
-  // Flags both directions: too aggressive for the time horizon left, or so
-  // conservative for a young investor that growth is being left on the table.
-  if (finance.equityAllocationPct !== undefined) {
-    const appropriateEquity = 100 - body.age;
-    const equityDiff = finance.equityAllocationPct - appropriateEquity;
-    const riskDelta = equityDiff > 25 ? -6 : (equityDiff < -30 && body.age < 45) ? -3 : 0;
-    const riskLabel = equityDiff > 25 ? 'High for your age' : (equityDiff < -30 && body.age < 45) ? 'Conservative for your horizon' : 'Appropriate for your age';
-    wealthScore += riskDelta;
-    factors.push({ id: 'risk-allocation', label: 'Investment risk fit', value: `${finance.equityAllocationPct}% equity — ${riskLabel}`, points: riskDelta, dimension: 'wealth' });
-  }
-
-  wealthScore = Math.max(10, Math.min(98, wealthScore));
+  // ── Wealth Score (0-100) — shared with calculateWealthOnlyScore ──
+  const wealthResult = computeWealthPillar(finance, body.age, netWorth);
+  const wealthScore = wealthResult.wealthScore;
+  const fiProgress = wealthResult.fiProgress;
+  factors.push(...wealthResult.factors);
 
   // ── Life Score ──────────────────────────────────
   const lifeScore = Math.round(
@@ -592,6 +610,8 @@ export function calculateFullScore(
   const archetype = selectArchetype(bodyScore, mindScore, wealthScore, debtToIncome);
 
   // ── Dimensions ──────────────────────────────────
+  const savingsRate = (finance.monthlyIncome - finance.monthlyExpenses) / (finance.monthlyIncome || 1);
+  const investRate  = finance.monthlyInvestments / (finance.monthlyIncome || 1);
   const sleepScore    = Math.min(100, Math.max(0, 100 - sleepGap * 20));
   const exerciseScore = Math.min(100, body.exerciseDays * 14 + 2);
   const savingsScore  = Math.min(100, Math.max(0, savingsRate * 300));
@@ -660,6 +680,66 @@ export function calculateFullScore(
     overall, body: bodyScore, mind: mindScore,
     wealth: wealthScore, life: lifeScore,
     level: 'full',
+    focus: 'both',
+    archetype,
+    dimensions,
+    insights,
+    actions,
+    trajectories,
+    scoreFactors: factors,
+    previousScore: previous,
+    scoreChange,
+    streakDays,
+    financialIndependencePct: fiProgress != null ? Math.round(fiProgress * 100) : undefined,
+  };
+}
+
+/**
+ * A genuine Wealth-only score — no health questions asked at all, not even
+ * a self-rating placeholder. Reuses computeWealthPillar (the identical
+ * factor set calculateFullScore uses) so a wealth-only intake and a combined
+ * intake score the exact same real numbers the exact same way.
+ *
+ * body/mind/life are set to 0, not a fake blend — score.focus is 'wealth',
+ * and every consumer (dashboard, roadmap, goals) is expected to check focus
+ * before rendering those fields, the same way it already does for the
+ * localStorage-only-vs-full-backend honesty pattern elsewhere in this app.
+ */
+export function calculateWealthOnlyScore(
+  age: number, finance: FinanceInputs, history: WellFiScore[],
+  netWorth: number | null = null
+): WellFiScore {
+  const { wealthScore, factors, fiProgress } = computeWealthPillar(finance, age, netWorth);
+
+  const debtToIncome = finance.totalDebt / ((finance.monthlyIncome * 12) || 1);
+  const savingsRate = (finance.monthlyIncome - finance.monthlyExpenses) / (finance.monthlyIncome || 1);
+  const investRate  = finance.monthlyInvestments / (finance.monthlyIncome || 1);
+  const savingsScore = Math.min(100, Math.max(0, savingsRate * 300));
+  const investScore  = Math.min(100, Math.max(0, investRate * 500));
+  const debtScore    = Math.min(100, Math.max(0, 100 - debtToIncome * 15));
+
+  const dimensions: Dimension[] = [
+    { id: 'savings', label: 'Savings', score: Math.round(savingsScore), icon: '🏦', color: 'text-amber-600', insight: `${Math.round(savingsRate * 100)}% savings rate` },
+    { id: 'investing', label: 'Investing', score: Math.round(investScore), icon: '📈', color: 'text-green-600', insight: finance.monthlyInvestments > 0 ? `₹${(finance.monthlyInvestments/1000).toFixed(0)}K/month invested` : 'Not investing yet' },
+    { id: 'debt', label: 'Debt Health', score: Math.round(debtScore), icon: '💳', color: 'text-red-600', insight: finance.totalDebt === 0 ? 'Debt free' : `${debtToIncome.toFixed(1)}x annual income in debt` },
+  ];
+
+  const archetype = selectSingleDomainArchetype(wealthScore, 'wealth');
+  const insights = generateWealthInsights(finance);
+  const actions = rankActions(generateWealthActionCandidates(finance));
+  const yearsWorking = Math.max(10, 60 - age);
+  const trajectories = generateTrajectories(finance, yearsWorking);
+
+  const previousEntry = history[0];
+  const previous = previousEntry?.overall;
+  const scoreChange = (previous != null && previousEntry?.scoreVersion === SCORE_VERSION) ? wealthScore - previous : undefined;
+  const streakDays = calculateStreak(history);
+
+  return {
+    scoreVersion: SCORE_VERSION,
+    overall: wealthScore, body: 0, mind: 0, wealth: wealthScore, life: wealthScore,
+    level: 'full',
+    focus: 'wealth',
     archetype,
     dimensions,
     insights,
@@ -692,6 +772,31 @@ function selectArchetype(
   if (!highBody && highMind)                 return ARCHETYPES.thinker;
   if (highWealth && highDebt)                return ARCHETYPES.juggler;
   return ARCHETYPES.steadyClimber;
+}
+
+/**
+ * Archetypes for a genuinely single-domain score (Health only or Wealth
+ * only). The 8 combined archetypes above all describe a cross-domain
+ * relationship ("rich in health, growing in wealth") — using one on a score
+ * that never measured the other domain would imply something that was never
+ * actually reported. These describe one pillar's own standing, honestly.
+ */
+const SINGLE_DOMAIN_ARCHETYPES: Record<'health' | 'wealth', Record<'high' | 'mid' | 'low', Archetype>> = {
+  health: {
+    high: { id: 'health-high', name: 'The Disciplined Body', emoji: '💪', tagline: 'Real habits, real consistency.', description: 'Your sleep, movement, and stress numbers show real discipline — the kind of foundation that makes everything else easier.', strength: 'Consistency most people never build.', challenge: 'Keep results attached to real numbers, not just streaks.', color: 'from-teal-500 to-emerald-500' },
+    mid:  { id: 'health-mid',  name: 'The Work in Progress', emoji: '🌱', tagline: 'Some real strengths, some real gaps.', description: 'Your health numbers show a mixed picture — genuine strengths alongside clear room to improve. That is normal, and exactly what a roadmap is for.', strength: 'You are measuring instead of guessing.', challenge: 'Pick the single weakest number and fix that first.', color: 'from-blue-500 to-teal-500' },
+    low:  { id: 'health-low',  name: 'The Fresh Start', emoji: '🔄', tagline: 'The data says: start here.', description: 'Your numbers show real room to improve — sleep, movement, or stress, or all three. People starting from here typically see the fastest early gains.', strength: 'Awareness is the hard part, and you already have it.', challenge: 'Pick one thing, not everything, to fix first.', color: 'from-purple-500 to-pink-500' },
+  },
+  wealth: {
+    high: { id: 'wealth-high', name: 'The Wealth Builder', emoji: '📈', tagline: 'Real numbers, real progress.', description: 'Your savings, investing, and debt numbers show a genuinely strong financial foundation — the habits are compounding.', strength: 'Financial discipline most people never build.', challenge: 'Do not let a strong position become complacency.', color: 'from-amber-500 to-orange-500' },
+    mid:  { id: 'wealth-mid',  name: 'The Foundation Layer', emoji: '🏗️', tagline: 'Some real strengths, some real gaps.', description: 'Your financial numbers show real progress in some areas and clear gaps in others — a common, fixable starting point.', strength: 'You are tracking real numbers, not vibes.', challenge: 'Pick the single weakest factor and fix that first.', color: 'from-yellow-500 to-amber-500' },
+    low:  { id: 'wealth-low',  name: 'The Fresh Start', emoji: '🔄', tagline: 'The data says: start here.', description: 'Your financial numbers show real room to improve — savings, debt, or investing, or all three. People starting from here typically see the fastest early score gains.', strength: 'Awareness is the hard part, and you already have it.', challenge: 'Pick one lever, not everything, to fix first.', color: 'from-red-500 to-pink-500' },
+  },
+};
+
+function selectSingleDomainArchetype(pillarScore: number, domain: 'health' | 'wealth'): Archetype {
+  const tier = pillarScore >= 70 ? 'high' : pillarScore >= 45 ? 'mid' : 'low';
+  return SINGLE_DOMAIN_ARCHETYPES[domain][tier];
 }
 
 // ── INSIGHT GENERATORS ────────────────────────────
@@ -729,6 +834,25 @@ function generateQuickInsights(
   return insights.slice(0, 2);
 }
 
+/** Pure-finance insight, shared by generateFullInsights and calculateWealthOnlyScore. */
+function generateWealthInsights(finance: FinanceInputs): Insight[] {
+  const insights: Insight[] = [];
+  if (finance.monthlyInvestments === 0) {
+    const surplus = finance.monthlyIncome - finance.monthlyExpenses;
+    if (surplus > 0) {
+      const sipAmount = Math.round(surplus * 0.4);
+      const futureValue = Math.round(sipAmount * 12 * ((Math.pow(1.12, 20) - 1) / 0.12));
+      insights.push({
+        type: 'opportunity', emoji: '📈',
+        headline: `₹${Math.round(surplus/1000)}K sits unused every month`,
+        detail: `Investing just ₹${Math.round(sipAmount/1000)}K/month (40% of your surplus) grows to ₹${Math.round(futureValue/100000)}L in 20 years at an assumed 12% annual return. Start a SIP today.`,
+        financialValue: futureValue,
+      });
+    }
+  }
+  return insights;
+}
+
 function generateFullInsights(
   body: BodyInputs, finance: FinanceInputs, bmi: number
 ): Insight[] {
@@ -750,19 +874,7 @@ function generateFullInsights(
     });
   }
 
-  if (finance.monthlyInvestments === 0) {
-    const surplus = finance.monthlyIncome - finance.monthlyExpenses;
-    if (surplus > 0) {
-      const sipAmount = Math.round(surplus * 0.4);
-      const futureValue = Math.round(sipAmount * 12 * ((Math.pow(1.12, 20) - 1) / 0.12));
-      insights.push({
-        type: 'opportunity', emoji: '📈',
-        headline: `₹${Math.round(surplus/1000)}K sits unused every month`,
-        detail: `Investing just ₹${Math.round(sipAmount/1000)}K/month (40% of your surplus) grows to ₹${Math.round(futureValue/100000)}L in 20 years at an assumed 12% annual return. Start a SIP today.`,
-        financialValue: futureValue,
-      });
-    }
-  }
+  insights.push(...generateWealthInsights(finance));
 
   if (body.exerciseDays >= 4) {
     insights.push({
@@ -831,22 +943,37 @@ function generateQuickActions(
   return actions.slice(0, 3);
 }
 
-function generateFullActions(
-  body: BodyInputs, finance: FinanceInputs
-): Action[] {
-  const candidates: Action[] = [];
+/** Health-only equivalent of generateQuickActions — no finance category at
+ * all, since a genuine health-only intake never asked a finance question. */
+function generateHealthOnlyActions(body: number, mind: number): Action[] {
+  const scores = [
+    { score: body, cat: 'health' as const },
+    { score: mind, cat: 'mind' as const },
+  ].sort((a, b) => a.score - b.score);
 
-  if (body.sleepHours < 7) {
-    candidates.push({
-      rank: 0,
-      title: `Sleep ${(7.5 - body.sleepHours).toFixed(1)} more hours`,
-      why: `You sleep ${body.sleepHours} hours — 7.5 is optimal. This is usually the highest-leverage single change on your whole roadmap.`,
-      impact: 'Better energy and decisions within days. Lower stress. Costs nothing.',
-      howEasy: 'today',
-      category: 'both',
-      toolSlug: 'sleep', toolCat: 'health',
-    });
-  }
+  return scores.map((s, i) => s.cat === 'health' ? {
+    rank: i + 1,
+    title: 'Add one health habit this week',
+    why: `Your body score of ${s.score} suggests your physical habits have room to grow. One small change compounds fast.`,
+    impact: 'Better energy, focus, and long-term health.',
+    howEasy: 'this-week' as const,
+    category: 'health' as const,
+    toolSlug: 'bmi', toolCat: 'health',
+  } : {
+    rank: i + 1,
+    title: 'Do one stress-reducing thing today',
+    why: `A mind score of ${s.score} means stress is creating friction everywhere.`,
+    impact: 'Improves sleep and decision-making quickly.',
+    howEasy: 'today' as const,
+    category: 'mind' as const,
+  });
+}
+
+/** Finance-only action candidates — shared by generateFullActions (health +
+ * wealth together) and calculateWealthOnlyScore (wealth alone), so a wealth-
+ * only intake gets the exact same real recommendations, not a second copy. */
+function generateWealthActionCandidates(finance: FinanceInputs): Action[] {
+  const candidates: Action[] = [];
 
   const investRate = finance.monthlyInvestments / (finance.monthlyIncome || 1);
   if (investRate < 0.1) {
@@ -875,6 +1002,47 @@ function generateFullActions(
     });
   }
 
+  if (!finance.hasInsurance) {
+    candidates.push({
+      rank: 0,
+      title: 'Get health insurance this month',
+      why: 'No insurance at your income level means a single hospitalisation can erase years of savings. A ₹500/month premium protects ₹5-10 lakh of coverage.',
+      impact: 'Protects against ₹3-15L potential medical costs',
+      howEasy: 'this-month',
+      category: 'finance',
+    });
+  }
+
+  return candidates;
+}
+
+function rankActions(candidates: Action[]): Action[] {
+  const priority = ['today', 'this-week', 'this-month'];
+  return candidates
+    .sort((a, b) => priority.indexOf(a.howEasy) - priority.indexOf(b.howEasy))
+    .slice(0, 3)
+    .map((a, i) => ({ ...a, rank: i + 1 }));
+}
+
+function generateFullActions(
+  body: BodyInputs, finance: FinanceInputs
+): Action[] {
+  const candidates: Action[] = [];
+
+  if (body.sleepHours < 7) {
+    candidates.push({
+      rank: 0,
+      title: `Sleep ${(7.5 - body.sleepHours).toFixed(1)} more hours`,
+      why: `You sleep ${body.sleepHours} hours — 7.5 is optimal. This is usually the highest-leverage single change on your whole roadmap.`,
+      impact: 'Better energy and decisions within days. Lower stress. Costs nothing.',
+      howEasy: 'today',
+      category: 'both',
+      toolSlug: 'sleep', toolCat: 'health',
+    });
+  }
+
+  candidates.push(...generateWealthActionCandidates(finance));
+
   if (body.exerciseDays < 3) {
     candidates.push({
       rank: 0,
@@ -898,22 +1066,7 @@ function generateFullActions(
     });
   }
 
-  if (!finance.hasInsurance) {
-    candidates.push({
-      rank: 0,
-      title: 'Get health insurance this month',
-      why: 'No insurance at your income level means a single hospitalisation can erase years of savings. A ₹500/month premium protects ₹5-10 lakh of coverage.',
-      impact: 'Protects against ₹3-15L potential medical costs',
-      howEasy: 'this-month',
-      category: 'finance',
-    });
-  }
-
-  const priority = ['today', 'this-week', 'this-month'];
-  return candidates
-    .sort((a, b) => priority.indexOf(a.howEasy) - priority.indexOf(b.howEasy))
-    .slice(0, 3)
-    .map((a, i) => ({ ...a, rank: i + 1 }));
+  return rankActions(candidates);
 }
 
 // ── TRAJECTORY GENERATOR ──────────────────────────

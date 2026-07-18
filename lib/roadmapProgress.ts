@@ -9,6 +9,7 @@
 
 import { getDimActions } from './roadmapActions';
 import { dimMatchesFocus, type ScoreFocus } from './scoreFocus';
+import type { RoadmapChecks } from './roadmapChecks';
 import type { WellFiScore, BodyInputs, FinanceInputs } from './wellfilab-score';
 
 export interface RoadmapProgressSummary {
@@ -28,7 +29,7 @@ const PHASE_LABEL: Record<1 | 2 | 3, string> = { 1: 'Foundation', 2: 'Building',
 
 export function computeRoadmapProgress(
   score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null,
-  checks: Record<string, boolean>, focus: ScoreFocus = 'both'
+  checks: RoadmapChecks, focus: ScoreFocus = 'both'
 ): RoadmapProgressSummary {
   // Falls back to every dimension if the focus filter would leave none —
   // e.g. a 'quick'-level score's dimensions are coarse (body/mind/wealth/life)

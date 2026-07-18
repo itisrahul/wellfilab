@@ -13,6 +13,8 @@ export type GoalType =
   | 'weight' | 'sleep' | 'fitness' | 'hydration'
   | 'wellfilab-score' | 'custom';
 
+export interface GoalHistoryPoint { date: string; value: number }
+
 export interface Goal {
   id: string;
   type: GoalType;
@@ -26,6 +28,12 @@ export interface Goal {
   targetDate?: string;
   lastUpdated: string;
   paused?: boolean;
+  /** Every real update, in order — powers the Goal Progress Report's actual
+   * monthly pace and the History page's per-goal trend. Optional because
+   * goals saved before this field existed don't have it; getGoalHistory()
+   * below synthesizes a 2-point history (start → current) for those instead
+   * of crashing or inventing points that were never actually recorded. */
+  history?: GoalHistoryPoint[];
 }
 
 export const GOAL_TYPE_META: Record<GoalType, { label: string; icon: string; unit: string; category: 'wealth' | 'health' | 'score' }> = {
@@ -72,13 +80,17 @@ export async function addGoal(input: { type: GoalType; label: string; target: nu
     id: genId(), type: input.type, label: input.label, target: input.target,
     current: input.current, startValue: input.current, startDate: now,
     targetDate: input.targetDate, lastUpdated: now,
+    history: [{ date: now, value: input.current }],
   };
   writeGoals([...readGoals(), goal]);
   return goal;
 }
 
 export async function updateGoalProgress(id: string, current: number): Promise<void> {
-  writeGoals(readGoals().map(g => g.id === id ? { ...g, current, lastUpdated: new Date().toISOString() } : g));
+  const now = new Date().toISOString();
+  writeGoals(readGoals().map(g => g.id === id
+    ? { ...g, current, lastUpdated: now, history: [...(g.history ?? [{ date: g.startDate, value: g.startValue }]), { date: now, value: current }] }
+    : g));
 }
 
 export async function toggleGoalPause(id: string): Promise<void> {
@@ -87,4 +99,12 @@ export async function toggleGoalPause(id: string): Promise<void> {
 
 export async function deleteGoal(id: string): Promise<void> {
   writeGoals(readGoals().filter(g => g.id !== id));
+}
+
+/** Real history for a goal — the actual log if one exists, or a synthesized
+ * 2-point start→current line for goals saved before history was tracked.
+ * Never fabricates intermediate points that weren't actually recorded. */
+export function getGoalHistory(g: Goal): GoalHistoryPoint[] {
+  if (g.history && g.history.length > 0) return g.history;
+  return [{ date: g.startDate, value: g.startValue }, { date: g.lastUpdated, value: g.current }];
 }

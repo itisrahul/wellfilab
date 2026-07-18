@@ -2,14 +2,15 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
-  calculateBodyScore, calculateFullScore, scoreColor, scoreLabel, netWorthVerdict,
+  calculateBodyScore, calculateFullScore, calculateWealthOnlyScore, scoreColor, scoreLabel, netWorthVerdict,
   type QuickInputs, type BodyInputs, type FinanceInputs, type WellFiScore,
   type Insight, type Action, type Trajectory, type Dimension,
 } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
-import { saveRawInputs, loadRawInputs } from '@/lib/scoreInputs';
+import { saveRawInputs, loadRawInputs, saveAge, loadAge } from '@/lib/scoreInputs';
 import { getSnapshots } from '@/lib/netWorthHistory';
 import { buildRiskManagementPlan } from '@/lib/riskManagement';
+import { setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { SITE_URL } from '@/config/site';
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
@@ -77,13 +78,15 @@ function deriveQuick(body: BodyInputs, savingsRate: number | null, hasEmergencyF
   };
 }
 
-type Stage = 'A' | 'transition' | 'B' | 'calculating' | 'results';
+type Stage = 'chooser' | 'A' | 'transition' | 'B' | 'B-wealth' | 'calculating' | 'results';
 
 export default function ScorePage() {
   const [mounted, setMounted] = useState(false);
-  const [stage, setStage] = useState<Stage>('A');
+  const [stage, setStage] = useState<Stage>('chooser');
+  const [focus, setFocus] = useState<ScoreFocus | null>(null);
   const [body, setBody] = useState<Partial<BodyInputs>>({});
   const [finance, setFinance] = useState<Partial<FinanceInputs>>({});
+  const [wealthAge, setWealthAge] = useState<number | undefined>(undefined);
   const [score, setScore] = useState<WellFiScore | null>(null);
   const [history, setHistory] = useState<WellFiScore[]>([]);
   const [transitionSummary, setTransitionSummary] = useState<{ overall: number; body: number; mind: number } | null>(null);
@@ -94,19 +97,26 @@ export default function ScorePage() {
     setMounted(true);
     const wantsRetake = typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).get('retake') === '1';
+    setWealthAge(loadAge() ?? undefined);
     Promise.all([getLatestScore(), getScoreHistory()]).then(([latest, hist]) => {
       setHistory(hist);
       if (latest && !wantsRetake) {
         setScore(latest);
         const savedInputs = loadRawInputs();
-        if (savedInputs) { setBody(savedInputs.body); setFinance(savedInputs.finance); }
+        if (savedInputs) { setBody(savedInputs.body ?? {}); setFinance(savedInputs.finance); }
         setStage('results');
       }
-      // wantsRetake (or no prior score): stay on stage 'A' for a fresh quiz.
-      // History stays loaded either way, so streak/trend still compare
-      // correctly against past scores once the new one is saved.
+      // wantsRetake (or no prior score): stay on 'chooser' for a fresh pick of
+      // Health / Wealth / Both. History stays loaded either way, so streak/
+      // trend still compare correctly against past scores once saved.
     });
   }, []);
+
+  const chooseFocus = (f: ScoreFocus) => {
+    setFocus(f);
+    setScoreFocus(f); // persisted immediately — dashboard/roadmap/goals default to what was actually chosen
+    setStage(f === 'wealth' ? 'B-wealth' : 'A');
+  };
 
   // Effective body: real entries where filled, neutral fallback otherwise —
   // lets the live preview respond field-by-field without ever showing NaN.
@@ -139,8 +149,24 @@ export default function ScorePage() {
 
   const bmi = effectiveBody.weight / Math.pow(effectiveBody.height / 100, 2);
 
+  // Health-only: no finance was ever asked, so Stage A's "Continue" finalizes
+  // and saves directly — no transition screen teasing a Stage B that never comes.
+  const finishHealthOnly = async () => {
+    if (!requiredAFilled) return;
+    setStage('calculating');
+    await new Promise(r => setTimeout(r, 900));
+    const result = calculateBodyScore(previewQuick, effectiveBody, history);
+    const saved = await saveScore(result);
+    saveRawInputs(effectiveBody, EMPTY_FINANCE);
+    setScore(saved);
+    setHistory(prev => [saved, ...prev]);
+    setStage('results');
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
   const goToFinance = () => {
     if (!requiredAFilled) return;
+    if (focus === 'health') { finishHealthOnly(); return; }
     const t = calculateBodyScore(previewQuick, effectiveBody, []);
     setTransitionSummary({ overall: t.overall, body: t.body, mind: t.mind });
     setStage('transition');
@@ -151,21 +177,23 @@ export default function ScorePage() {
   const expenses = finance.monthlyExpenses ?? 0;
   const savingsRate = income > 0 ? (income - expenses) / income : null;
 
+  const buildEffectiveFinance = (): FinanceInputs => ({
+    monthlyIncome: income,
+    monthlyExpenses: expenses,
+    totalSavings: finance.totalSavings ?? 0,
+    totalDebt: finance.totalDebt ?? 0,
+    monthlyInvestments: finance.monthlyInvestments ?? 0,
+    hasEmergencyFund: finance.hasEmergencyFund ?? false,
+    hasInsurance: finance.hasInsurance ?? false,
+    hasLifeInsurance: finance.hasLifeInsurance,
+    equityAllocationPct: finance.equityAllocationPct,
+    riskTolerance: finance.riskTolerance,
+  });
+
   const calculate = async () => {
     if (!income) return;
     setStage('calculating');
-    const effectiveFinance: FinanceInputs = {
-      monthlyIncome: income,
-      monthlyExpenses: expenses,
-      totalSavings: finance.totalSavings ?? 0,
-      totalDebt: finance.totalDebt ?? 0,
-      monthlyInvestments: finance.monthlyInvestments ?? 0,
-      hasEmergencyFund: finance.hasEmergencyFund ?? false,
-      hasInsurance: finance.hasInsurance ?? false,
-      hasLifeInsurance: finance.hasLifeInsurance,
-      equityAllocationPct: finance.equityAllocationPct,
-      riskTolerance: finance.riskTolerance,
-    };
+    const effectiveFinance = buildEffectiveFinance();
     const finalQuick = deriveQuick(effectiveBody, savingsRate, effectiveFinance.hasEmergencyFund);
     const [netWorthSnapshots] = await Promise.all([getSnapshots(), new Promise(r => setTimeout(r, 1500))]);
     const latestNetWorth = netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1].netWorth : null;
@@ -179,11 +207,36 @@ export default function ScorePage() {
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   };
 
+  // Wealth-only: no health question asked at all — calculateWealthOnlyScore
+  // is a genuinely separate calculation path, not calculateFullScore with
+  // fabricated body data.
+  const calculateWealthOnly = async () => {
+    if (!income || !wealthAge) return;
+    setStage('calculating');
+    const effectiveFinance = buildEffectiveFinance();
+    const [netWorthSnapshots] = await Promise.all([getSnapshots(), new Promise(r => setTimeout(r, 1200))]);
+    const latestNetWorth = netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1].netWorth : null;
+    const result = calculateWealthOnlyScore(wealthAge, effectiveFinance, history, latestNetWorth);
+    const saved = await saveScore(result);
+    saveRawInputs(null, effectiveFinance);
+    saveAge(wealthAge);
+    setFinance(effectiveFinance);
+    // No body data was ever collected, but the age was — carrying it into
+    // `body` state lets Results' RiskManagementSection (age + finance only)
+    // work correctly without a separate age-fallback plumbed through props.
+    setBody({ age: wealthAge });
+    setScore(saved);
+    setHistory(prev => [saved, ...prev]);
+    setStage('results');
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
   const retake = () => {
     setScore(null);
     setBody({});
     setFinance({});
-    setStage('A');
+    setFocus(null);
+    setStage('chooser');
   };
 
   if (!mounted) {
@@ -192,6 +245,10 @@ export default function ScorePage() {
         <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  if (stage === 'chooser') {
+    return <FocusChooser onChoose={chooseFocus} />;
   }
 
   if (stage === 'transition' && transitionSummary) {
@@ -215,7 +272,7 @@ export default function ScorePage() {
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-          <p className="text-white font-bold">Calculating your complete picture…</p>
+          <p className="text-white font-bold">Calculating your {focus === 'wealth' ? 'wealth' : focus === 'health' ? 'health' : 'complete'} picture…</p>
         </div>
       </div>
     );
@@ -224,14 +281,19 @@ export default function ScorePage() {
   if (stage === 'A') {
     return <StageA body={body} setBody={setBody} bmi={bmi} preview={preview}
       requiredFilled={requiredAFilled} filledSlots={filledSlots} accuracyPct={accuracyPct}
-      onContinue={goToFinance} />;
+      focus={focus} onContinue={goToFinance} />;
   }
 
   if (stage === 'B') {
-    return <StageB finance={finance} setFinance={setFinance} body={effectiveBody}
+    return <StageB finance={finance} setFinance={setFinance} age={effectiveBody.age}
       income={income} savingsRate={savingsRate}
       previewHealthScore={preview?.overall ?? null}
       onCalculate={calculate} />;
+  }
+
+  if (stage === 'B-wealth') {
+    return <StageWealthOnly finance={finance} setFinance={setFinance} age={wealthAge} setAge={setWealthAge}
+      income={income} savingsRate={savingsRate} onCalculate={calculateWealthOnly} />;
   }
 
   // stage === 'results'
@@ -244,13 +306,48 @@ export default function ScorePage() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// FOCUS CHOOSER — the 3 real flows: Health only, Wealth only, Both
+// ════════════════════════════════════════════════════════════════════════
+
+function FocusChooser({ onChoose }: { onChoose: (f: ScoreFocus) => void }) {
+  const options: { value: ScoreFocus; icon: string; title: string; body: string; time: string }[] = [
+    { value: 'health', icon: '💪', title: 'Health only', body: 'Sleep, movement, stress, diet — no finance questions at all.', time: '~2 minutes' },
+    { value: 'wealth', icon: '💰', title: 'Wealth only', body: 'Income, savings, debt, investing — no health questions at all.', time: '~2 minutes' },
+    { value: 'both', icon: '⚖️', title: 'Health + Wealth', body: 'The full picture — how they connect, one combined score.', time: '~4 minutes' },
+  ];
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 py-16">
+      <div className="max-w-3xl w-full">
+        <div className="text-center mb-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Before we start</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-2">What do you want to measure?</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Pick one — you're never asked questions outside what you choose here. Switch any time by retaking.</p>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {options.map(o => (
+            <button key={o.value} onClick={() => onChoose(o.value)}
+              className="text-left p-6 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-100 dark:border-gray-800 hover:border-teal-400 dark:hover:border-teal-600 hover:shadow-lg transition-all group">
+              <span className="text-3xl mb-3 block">{o.icon}</span>
+              <p className="font-bold text-gray-900 dark:text-white text-base mb-1.5 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{o.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">{o.body}</p>
+              <p className="text-[11px] font-bold text-gray-400">{o.time}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // STAGE A — Health inputs
 // ════════════════════════════════════════════════════════════════════════
 
-function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accuracyPct, onContinue }: {
+function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accuracyPct, focus, onContinue }: {
   body: Partial<BodyInputs>; setBody: React.Dispatch<React.SetStateAction<Partial<BodyInputs>>>;
   bmi: number; preview: WellFiScore | null;
   requiredFilled: boolean; filledSlots: number; accuracyPct: number;
+  focus: ScoreFocus | null;
   onContinue: () => void;
 }) {
   const [bmiNoteOpen, setBmiNoteOpen] = useState(false);
@@ -269,7 +366,9 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Your Health Profile</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Real numbers only — your score is calculated from your actual data.</p>
           </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-400 flex-shrink-0">Step 1 of 2</span>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-400 flex-shrink-0">
+            {focus === 'health' ? 'Health score' : 'Step 1 of 2'}
+          </span>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-8 items-start">
@@ -387,7 +486,7 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
                 className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
                   requiredFilled ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-600/20' : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 }`}>
-                Continue to finances →
+                {focus === 'health' ? 'Calculate my health score →' : 'Continue to finances →'}
               </button>
               {!requiredFilled && <p className="text-[11px] text-gray-400 mt-2 text-center">Age, height, weight and sleep are required to continue.</p>}
             </div>
@@ -424,11 +523,14 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
 // STAGE B — Finance inputs
 // ════════════════════════════════════════════════════════════════════════
 
-function StageB({ finance, setFinance, body, income, savingsRate, previewHealthScore, onCalculate }: {
+function StageB({ finance, setFinance, age, income, savingsRate, previewHealthScore, onCalculate, standalone }: {
   finance: Partial<FinanceInputs>; setFinance: React.Dispatch<React.SetStateAction<Partial<FinanceInputs>>>;
-  body: BodyInputs; income: number; savingsRate: number | null;
+  age?: number; income: number; savingsRate: number | null;
   previewHealthScore: number | null;
   onCalculate: () => void;
+  /** True for a genuine Wealth-only intake — no Stage A came before this, so
+   * the header/step-label shouldn't imply one did. */
+  standalone?: boolean;
 }) {
   const set = <K extends keyof FinanceInputs>(key: K, value: FinanceInputs[K]) => setFinance(f => ({ ...f, [key]: value }));
   const annualIncome = income * 12;
@@ -456,9 +558,13 @@ function StageB({ finance, setFinance, body, income, savingsRate, previewHealthS
         <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Your Financial Picture</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">This is where the health-wealth connection becomes visible. Your income determines the real cost of your habits.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {standalone ? 'Real numbers only — your wealth score is calculated from your actual data.' : 'This is where the health-wealth connection becomes visible. Your income determines the real cost of your habits.'}
+            </p>
           </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-400 flex-shrink-0">Step 2 of 2</span>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-400 flex-shrink-0">
+            {standalone ? 'Wealth score' : 'Step 2 of 2'}
+          </span>
         </div>
 
         {previewHealthScore != null && (
@@ -539,9 +645,9 @@ function StageB({ finance, setFinance, body, income, savingsRate, previewHealthS
               <p className="calc-label">Rough % of your investments in equity/stocks (vs. debt, FDs, cash)</p>
               <SliderRow value={finance.equityAllocationPct ?? 50} min={0} max={100} step={5}
                 display={v => `${v}% equity`} onChange={v => set('equityAllocationPct', v)} />
-              {finance.equityAllocationPct != null && body.age != null && (
+              {finance.equityAllocationPct != null && age != null && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Classic rule of thumb for your age: ≈{100 - body.age}% equity. We'll flag it if yours is well outside that range.
+                  Classic rule of thumb for your age: ≈{100 - age}% equity. We'll flag it if yours is well outside that range.
                 </p>
               )}
               <p className="calc-label mt-4">If your portfolio dropped 20% in a month, you'd most likely...</p>
@@ -565,7 +671,7 @@ function StageB({ finance, setFinance, body, income, savingsRate, previewHealthS
                 className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
                   income ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-600/20' : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 }`}>
-                Calculate my complete score →
+                {standalone ? 'Calculate my wealth score →' : 'Calculate my complete score →'}
               </button>
             </div>
           </div>
@@ -602,6 +708,29 @@ function StageB({ finance, setFinance, body, income, savingsRate, previewHealthS
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// STAGE WEALTH-ONLY — age + StageB's finance form, no health questions at all
+// ════════════════════════════════════════════════════════════════════════
+
+function StageWealthOnly({ finance, setFinance, age, setAge, income, savingsRate, onCalculate }: {
+  finance: Partial<FinanceInputs>; setFinance: React.Dispatch<React.SetStateAction<Partial<FinanceInputs>>>;
+  age: number | undefined; setAge: React.Dispatch<React.SetStateAction<number | undefined>>;
+  income: number; savingsRate: number | null;
+  onCalculate: () => void;
+}) {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="max-w-5xl mx-auto px-4 pt-10">
+        <FieldSection title="About You">
+          <NumberField label="Age (years) — used to benchmark your net worth and risk allocation for your age" value={age} onChange={setAge} min={16} max={80} />
+        </FieldSection>
+      </div>
+      <StageB finance={finance} setFinance={setFinance} age={age} income={income} savingsRate={savingsRate}
+        previewHealthScore={null} onCalculate={onCalculate} standalone />
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ════════════════════════════════════════════════════════════════════════
 
@@ -618,14 +747,22 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
     getSnapshots().then(snaps => setNetWorth(snaps.length > 0 ? snaps[snaps.length - 1].netWorth : null));
   }, []);
 
-  const hasRawInputs = body.age != null && finance.monthlyIncome != null;
+  // Two independent booleans, not one — a genuine Wealth-only score has real
+  // finance data and a real age but no body data at all (sleepHours etc. were
+  // never asked), and a Health-only score is the mirror image. Gating every
+  // section on one combined "hasRawInputs" would either hide real sections
+  // (Risk Management needs only age+finance, not full body data) or show
+  // broken ones (WhatIfSimulator needs real body data it doesn't have).
+  const hasBodyData = body.sleepHours != null && body.exerciseDays != null && body.stressLevel != null;
+  const hasFinanceData = finance.monthlyIncome != null && finance.monthlyIncome > 0;
+  const hasRawInputs = hasBodyData && hasFinanceData;
   const b = body as BodyInputs;
   const f = finance as FinanceInputs;
 
   const trendArrow = score.scoreChange == null ? null : score.scoreChange > 0 ? '↑' : score.scoreChange < 0 ? '↓' : '→';
   const trendColor = score.scoreChange == null ? '' : score.scoreChange > 0 ? 'text-green-400' : score.scoreChange < 0 ? 'text-red-400' : 'text-gray-400';
 
-  const dataPointCount = hasRawInputs ? 15 : 8;
+  const dataPointCount = hasBodyData && hasFinanceData ? 15 : hasBodyData || hasFinanceData ? 8 : 3;
 
   const sortedDims = [...score.dimensions].sort((a, b2) => a.score - b2.score);
   const lowestDim = sortedDims[0];
@@ -672,10 +809,8 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
 
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
-        {/* SECTION 2: Calculation breakdown */}
-        {hasRawInputs && (
-          <CalculationBreakdown score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
-        )}
+        {/* SECTION 2: Calculation breakdown — self-gates on real scoreFactors existing */}
+        <CalculationBreakdown score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
 
         {/* SECTION 2B: What your score means for your life */}
         <ScoreImpactSection score={score} />
@@ -683,8 +818,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         {/* SECTION 2B-ii: How you compare */}
         <BenchmarkSection score={score} history={history} />
 
-        {/* SECTION 2B-iii: Risk management plan — age + risk-tolerance adjusted, real actions */}
-        {hasRawInputs && (
+        {/* SECTION 2B-iii: Risk management plan — only needs age + finance, so it's
+            real for a Wealth-only score too, not just a combined one */}
+        {b.age != null && hasFinanceData && (
           <RiskManagementSection
             age={b.age} netWorth={netWorth} monthlyIncome={f.monthlyIncome} monthlyExpenses={f.monthlyExpenses}
             equityAllocationPct={f.equityAllocationPct} riskTolerance={f.riskTolerance}
@@ -692,8 +828,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
           />
         )}
 
-        {/* SECTION 2C: What-if simulator — interactive only, not meaningful in a printed report */}
-        {hasRawInputs && <div className="print:hidden"><WhatIfSimulator body={b} finance={f} baseline={score} /></div>}
+        {/* SECTION 2C: What-if simulator — needs real body AND finance data to simulate;
+            interactive only, not meaningful in a printed report */}
+        {hasBodyData && hasFinanceData && <div className="print:hidden"><WhatIfSimulator body={b} finance={f} baseline={score} /></div>}
 
         {/* SECTION 3: Archetype */}
         <ArchetypeCard score={score} />
