@@ -4,6 +4,8 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { netWorthSnapshots } from '@/lib/db/schema';
 
+export const dynamic = 'force-dynamic';
+
 interface Params { params: { id: string } }
 
 export async function DELETE(_req: Request, { params }: Params) {

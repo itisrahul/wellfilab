@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { currentUser, auth } from '@clerk/nextjs/server';
 import { eq, desc, and, notInArray } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { scores } from '@/lib/db/schema';
 import type { WellFiScore } from '@/lib/wellfilab-score';
+
+export const dynamic = 'force-dynamic';
+
+// TEMPORARY diagnostic — see why currentUser() 401s in this route despite a
+// valid dashboard page session. Remove once resolved.
+async function debugAuthState() {
+  const a = await auth();
+  return { hasAuthUserId: !!a.userId, authUserId: a.userId ?? null, sessionId: a.sessionId ?? null };
+}
 
 /**
  * Account-level WellFiLab Score history, keyed by Clerk userId.
@@ -17,7 +26,7 @@ const MAX_HISTORY = 30;
 
 export async function GET() {
   const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Sign in required.', debug: await debugAuthState() }, { status: 401 });
 
   const rows = await db.select().from(scores)
     .where(eq(scores.userId, user.id))
@@ -29,7 +38,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const user = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Sign in required.', debug: await debugAuthState() }, { status: 401 });
 
   const score = (await req.json().catch(() => null)) as WellFiScore | null;
   if (!score) return NextResponse.json({ error: 'Invalid score payload.' }, { status: 400 });

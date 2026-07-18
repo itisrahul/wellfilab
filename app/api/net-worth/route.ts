@@ -7,6 +7,8 @@ import type { NetWorthSnapshot } from '@/lib/netWorthHistory';
 
 /** Account-level net worth snapshots, keyed by Clerk userId — mirrors lib/netWorthHistory.ts's shape. */
 
+export const dynamic = 'force-dynamic';
+
 function toSnapshot(row: typeof netWorthSnapshots.$inferSelect): NetWorthSnapshot {
   return { id: row.id, date: row.date.toISOString(), assets: row.assets, liabilities: row.liabilities, netWorth: row.netWorth };
 }

@@ -10,6 +10,8 @@ import type { RoadmapChecks } from '@/lib/roadmapChecks';
  * user, same single-map shape as the `wfl_roadmap_checks` localStorage key.
  */
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });

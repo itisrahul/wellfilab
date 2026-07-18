@@ -11,6 +11,8 @@ import { goals } from '@/lib/db/schema';
  * be present.
  */
 
+export const dynamic = 'force-dynamic';
+
 interface Params { params: { id: string } }
 
 export async function PATCH(req: Request, { params }: Params) {

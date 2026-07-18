@@ -7,6 +7,8 @@ import type { Goal, GoalType } from '@/lib/goalsStorage';
 
 /** Account-level Goals, keyed by Clerk userId — mirrors lib/goalsStorage.ts's shape. */
 
+export const dynamic = 'force-dynamic';
+
 function toGoal(row: typeof goals.$inferSelect): Goal {
   return {
     id: row.id,
