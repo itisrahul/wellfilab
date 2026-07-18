@@ -8,12 +8,16 @@ import {
 import { getLatestScore } from '@/lib/scoreStorage';
 import { loadRawInputs } from '@/lib/scoreInputs';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
+import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
+import { FocusSelector } from '@/components/dashboard/FocusSelector';
 
 interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
 
-function buildSuggestions(score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null, existing: Goal[]): SuggestedGoal[] {
+function buildSuggestions(score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null, existing: Goal[], focus: ScoreFocus): SuggestedGoal[] {
   const has = (t: GoalType) => existing.some(g => g.type === t);
   const suggestions: SuggestedGoal[] = [];
+  // 'score' category goals are cross-cutting and stay suggested in either single-focus view.
+  const inFocus = (t: GoalType) => focus === 'both' || GOAL_TYPE_META[t].category === focus || GOAL_TYPE_META[t].category === 'score';
 
   if (!has('wellfilab-score')) {
     suggestions.push({ type: 'wellfilab-score', target: Math.min(100, score.overall + 10), current: score.overall, reason: `You're at ${score.overall}/100 today — a realistic next milestone.` });
@@ -34,7 +38,7 @@ function buildSuggestions(score: WellFiScore, body: BodyInputs | null, finance: 
     suggestions.push({ type: 'fitness', target: 4, current: body.exerciseDays, reason: `${body.exerciseDays} days/week today — 4+ is where the score gives full credit.` });
   }
 
-  return suggestions.slice(0, 3);
+  return suggestions.filter(s => inFocus(s.type)).slice(0, 3);
 }
 
 function fmtVal(n: number, unit: string): string {
@@ -99,10 +103,12 @@ export default function GoalsPage() {
   const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
   const [rawInputs, setRawInputs] = useState<{ body: BodyInputs; finance: FinanceInputs } | null>(null);
   const [dismissed, setDismissed] = useState<GoalType[]>([]);
+  const [focus, setFocus] = useState<ScoreFocus>('both');
 
   useEffect(() => {
     Promise.all([getGoals(), getLatestScore()]).then(([g, s]) => { setGoals(g); setScore(s); });
     setRawInputs(loadRawInputs());
+    setFocus(getScoreFocus());
     // Deep link from a calculator's real result, e.g. /goals?prefill=net-worth&current=550000 —
     // read directly from the URL rather than useSearchParams, which would force this
     // otherwise-static page into a Suspense boundary just for this one optional feature.
@@ -119,11 +125,13 @@ export default function GoalsPage() {
   }, []);
 
   const refresh = () => getGoals().then(setGoals);
+  const handleFocusChange = (f: ScoreFocus) => { setFocus(f); setScoreFocus(f); };
 
   const needsUpdate = (goals ?? []).some(g => !g.paused && Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
   const suggestions = score
-    ? buildSuggestions(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, goals ?? []).filter(s => !dismissed.includes(s.type))
+    ? buildSuggestions(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, goals ?? [], focus).filter(s => !dismissed.includes(s.type))
     : [];
+  const visibleGoals = (goals ?? []).filter(g => focus === 'both' || GOAL_TYPE_META[g.type].category === focus || GOAL_TYPE_META[g.type].category === 'score');
 
   const addSuggested = async (s: SuggestedGoal) => {
     await addGoal({ type: s.type, label: GOAL_TYPE_META[s.type].label, target: s.target, current: s.current });
@@ -156,6 +164,11 @@ export default function GoalsPage() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-6">
 
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-xs text-gray-400">Show goals and suggestions for:</p>
+          <FocusSelector focus={focus} onChange={handleFocusChange} />
+        </div>
+
         {needsUpdate && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
             <span className="text-lg flex-shrink-0">⏰</span>
@@ -187,11 +200,13 @@ export default function GoalsPage() {
 
         {showAdd && <AddGoalForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refresh(); }} prefill={prefill} />}
 
-        {goals.length === 0 && !showAdd ? (
+        {visibleGoals.length === 0 && !showAdd ? (
           <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
             <p className="text-4xl mb-4">🎯</p>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No goals yet</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Set a target for your health or wealth and track it every month.</p>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{goals.length === 0 ? 'No goals yet' : `No ${focus} goals yet`}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              {goals.length === 0 ? 'Set a target for your health or wealth and track it every month.' : `Switch focus above, or add a ${focus} goal below.`}
+            </p>
             <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
               Add your first goal →
             </button>
@@ -206,7 +221,7 @@ export default function GoalsPage() {
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
-            {goals.map(g => <GoalCard key={g.id} goal={g} score={score} onChange={refresh} />)}
+            {visibleGoals.map(g => <GoalCard key={g.id} goal={g} score={score} onChange={refresh} />)}
           </div>
         )}
       </div>

@@ -38,15 +38,12 @@ export function getDimActions(id: string, dim: Dimension, body: BodyInputs | nul
   switch (id) {
     case 'sleep': {
       const gap = body ? Math.max(0, 7.5 - body.sleepHours) : null;
-      const annualIncome = finance ? finance.monthlyIncome * 12 : null;
-      const sleepCost = gap != null && annualIncome != null ? Math.round(gap * 0.024 * annualIncome) : null;
       return [
         {
           title: gap && gap > 0 ? `Go to bed ${gap.toFixed(1)}h earlier tonight` : 'Set a consistent bedtime alarm tonight',
           why: body ? `You currently sleep ${body.sleepHours} hours — ${dim.insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.`
                     : `${dim.insight}. A bedtime alarm prevents late-night scrolling from eating into your sleep window.`,
-          impact: sleepCost && sleepCost > 0 ? `💰 Recovers an estimated ${fmtINR(sleepCost)}/year in productivity` : '⚡ Energy improves within 3-5 days. Costs nothing.',
-          impactValue: sleepCost && sleepCost > 0 ? sleepCost : undefined,
+          impact: '⚡ Energy improves within 3-5 days. Costs nothing.',
           priority: 'Today', category: 'Health', timeEstimate: '30 seconds to set', toolSlug: 'sleep', toolCat: 'health',
         },
         { title: 'No phone 30 min before bed — start tonight', why: 'Blue light suppresses melatonin for 3+ hours after exposure.', impact: '⚡ Sleep onset up to 40% faster within 1 week.', priority: 'Today', category: 'Health', timeEstimate: 'Costs nothing' },
@@ -54,31 +51,26 @@ export function getDimActions(id: string, dim: Dimension, body: BodyInputs | nul
       ];
     }
     case 'movement': {
-      const currentSave = body ? (body.exerciseDays >= 3 ? 24000 : body.exerciseDays >= 1 ? 12000 : 0) : null;
-      const potential = currentSave != null ? 24000 - currentSave : null;
       const daysNeeded = body ? Math.max(0, 3 - body.exerciseDays) : null;
       return [
         { title: 'Walk for 20 minutes tomorrow morning', why: 'Before checking your phone — this sets your cortisol rhythm for the whole day.', impact: '⚡ Mood and energy improve same-day. Costs nothing.', priority: 'Today', category: 'Health', timeEstimate: '20 minutes', toolSlug: 'calories-burned', toolCat: 'health' },
         {
           title: daysNeeded && daysNeeded > 0 ? `Move ${daysNeeded} more day${daysNeeded > 1 ? 's' : ''}/week — pick fixed time slots now` : 'Pick one recurring time slot this week for movement',
           why: `${dim.insight}. A fixed slot beats a vague intention every time.`,
-          impact: potential && potential > 0 ? `💰 Worth up to ${fmtINR(potential)}/year more in medical-cost savings at 3+ days/week` : 'Consistency compounds — most people quit from lack of a schedule, not lack of motivation.',
-          impactValue: potential && potential > 0 ? potential : undefined,
+          impact: 'Consistency compounds — most people quit from lack of a schedule, not lack of motivation.',
           priority: 'This week', category: 'Health', timeEstimate: '5 minutes to plan',
         },
         { title: 'Try a beginner routine this week (bodyweight or a 20-min video)', why: 'Structure removes the "what do I even do" barrier that stops most people before they start.', impact: 'A repeatable routine beats a one-off workout.', priority: 'This week', category: 'Health', timeEstimate: '20 minutes', toolSlug: 'calories-burned', toolCat: 'health' },
       ];
     }
     case 'stress': {
-      const monthlyImpact = finance ? Math.round(finance.monthlyExpenses * 0.05) : null;
       return [
         { title: 'Write your 3 biggest stressors now', why: `${dim.insight}. Writing externalises stress — it reduces it immediately, before you solve anything.`, impact: '⚡ Cortisol reduces within minutes. Free. Immediate.', priority: 'Today', category: 'Mind', timeEstimate: '5 minutes' },
         { title: 'Set one boundary today', why: 'Chronic stress is sustained by unprotected time and energy — one boundary interrupts that.', impact: 'Compounds over weeks as the pattern breaks.', priority: 'Today', category: 'Mind', timeEstimate: 'Costs nothing' },
         {
           title: 'Walk outside for 20 min on Mon, Wed, Fri — before checking your phone',
           why: `Morning light exposure is linked to a healthier cortisol rhythm for the day. ${body ? `Your stress level of ${body.stressLevel}/10 suggests an elevated baseline.` : dim.insight}`,
-          impact: monthlyImpact ? `⚡ Stress-related studies show reductions of 15-20% within 2 weeks. 💰 May cut impulse spending by an estimated ${fmtINR(monthlyImpact)}/month` : '⚡ Stress reduces 15-20% within 2 weeks in published studies.',
-          impactValue: monthlyImpact ? monthlyImpact * 12 : undefined,
+          impact: '⚡ Stress-related studies show reductions of 15-20% within 2 weeks.',
           priority: 'This week', category: 'Mind', timeEstimate: '20 min, 3x/week',
         },
       ];

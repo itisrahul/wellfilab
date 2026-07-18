@@ -149,10 +149,7 @@ export default function ScorePage() {
 
   const income = finance.monthlyIncome ?? 0;
   const expenses = finance.monthlyExpenses ?? 0;
-  const annualIncome = income * 12;
   const savingsRate = income > 0 ? (income - expenses) / income : null;
-  const sleepGap = Math.max(0, 7.5 - effectiveBody.sleepHours);
-  const sleepCostPreview = income > 0 ? Math.round(sleepGap * 0.024 * annualIncome) : 0;
 
   const calculate = async () => {
     if (!income) return;
@@ -232,7 +229,7 @@ export default function ScorePage() {
 
   if (stage === 'B') {
     return <StageB finance={finance} setFinance={setFinance} body={effectiveBody}
-      income={income} savingsRate={savingsRate} sleepCostPreview={sleepCostPreview} sleepGap={sleepGap}
+      income={income} savingsRate={savingsRate}
       previewHealthScore={preview?.overall ?? null}
       onCalculate={calculate} />;
   }
@@ -427,9 +424,9 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
 // STAGE B — Finance inputs
 // ════════════════════════════════════════════════════════════════════════
 
-function StageB({ finance, setFinance, body, income, savingsRate, sleepCostPreview, sleepGap, previewHealthScore, onCalculate }: {
+function StageB({ finance, setFinance, body, income, savingsRate, previewHealthScore, onCalculate }: {
   finance: Partial<FinanceInputs>; setFinance: React.Dispatch<React.SetStateAction<Partial<FinanceInputs>>>;
-  body: BodyInputs; income: number; savingsRate: number | null; sleepCostPreview: number; sleepGap: number;
+  body: BodyInputs; income: number; savingsRate: number | null;
   previewHealthScore: number | null;
   onCalculate: () => void;
 }) {
@@ -573,21 +570,28 @@ function StageB({ finance, setFinance, body, income, savingsRate, sleepCostPrevi
             </div>
           </div>
 
-          {/* Right 40% — sticky live calculation */}
+          {/* Right 40% — sticky live calculation, real finance numbers only */}
           <div className="lg:col-span-2 lg:sticky lg:top-6 space-y-4">
-            {income > 0 && sleepGap > 0 ? (
+            {income > 0 ? (
               <div className="bg-teal-600 rounded-2xl p-5 text-white">
-                <p className="text-xs font-bold uppercase tracking-widest text-teal-100 mb-3">💡 Estimated cost of your sleep deficit</p>
-                <p className="text-sm mb-3">Based on ₹{annualIncome.toLocaleString('en-IN')}/year:</p>
-                <p className="text-xs text-teal-100 leading-relaxed mb-2">
-                  {sleepGap.toFixed(1)}hrs deficit × 2.4% assumed productivity impact/hr × ₹{annualIncome.toLocaleString('en-IN')}
-                </p>
-                <p className="text-3xl font-black">≈ {fmtINR(sleepCostPreview)}<span className="text-sm font-bold text-teal-100">/year</span></p>
-                <p className="text-[11px] text-teal-100 mt-2">An estimate built from your own income and sleep gap, not a generic average — but it's a directional model, not a measured fact.</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-teal-100 mb-3">💰 Your monthly numbers</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[11px] text-teal-100">Monthly surplus (income − expenses)</p>
+                    <p className="text-3xl font-black">{fmtINR(Math.max(0, income - (finance.monthlyExpenses ?? 0)))}</p>
+                  </div>
+                  {savingsRate != null && (
+                    <div>
+                      <p className="text-[11px] text-teal-100">Savings rate</p>
+                      <p className="text-xl font-bold">{Math.round(savingsRate * 100)}%</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-teal-100 mt-3">Straight from your own numbers — no assumptions, no multipliers.</p>
               </div>
             ) : (
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 text-center">
-                <p className="text-sm text-gray-400">Enter your income to see what your sleep is really costing you.</p>
+                <p className="text-sm text-gray-400">Enter your income to see your real monthly numbers.</p>
               </div>
             )}
           </div>
@@ -693,31 +697,6 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
 
         {/* SECTION 3: Archetype */}
         <ArchetypeCard score={score} />
-
-        {/* SECTION 4: Health-Wealth Connection */}
-        {hasRawInputs && f.monthlyIncome > 0 && (
-          <div className="space-y-4">
-            {b.sleepHours < 7.5 && (
-              <MathCostCard emoji="💸" title="What your sleep deficit could be costing you"
-                lines={[
-                  `You sleep ${b.sleepHours} hours per night. Optimal: 7.5 hours.`,
-                  `Your deficit: ${(7.5 - b.sleepHours).toFixed(1)} hours per night.`,
-                ]}
-                formula={`${(7.5 - b.sleepHours).toFixed(1)} hrs deficit × 2.4% assumed productivity impact/hr × ₹${(f.monthlyIncome * 12).toLocaleString('en-IN')} annual income`}
-                amount={Math.round(Math.max(0, 7.5 - b.sleepHours) * 0.024 * f.monthlyIncome * 12)}
-                note="An estimate built from your own income and sleep gap — a directional model, not a measured fact about you specifically."
-                howCalculated="We apply a simplified 2.4%-per-hour productivity-impact assumption, in line with the general direction of published sleep-and-productivity research, to your own income. Individual results vary widely — treat this as a reason to take sleep seriously, not a precise bill." />
-            )}
-            {b.stressLevel > 6 && (
-              <MathCostCard emoji="🧠" title="What high stress could be costing you"
-                lines={[`Stress level: ${b.stressLevel}/10.`]}
-                formula={`(${b.stressLevel}-5)/5 × 18% assumed impact × ₹${(f.monthlyIncome * 12).toLocaleString('en-IN')}`}
-                amount={Math.round(Math.max(0, (b.stressLevel - 5) / 5) * 0.18 * f.monthlyIncome * 12)}
-                note="An estimate, not a measured fact — sustained high stress is well-documented to reduce output, but the exact rupee figure is a simplified model."
-                howCalculated="Sustained high stress is associated with elevated cortisol, which is linked to reduced cognitive output and decision quality. We translate that into a simplified income-scaled estimate — useful as a directional signal, not an exact number." />
-            )}
-          </div>
-        )}
 
         {/* SECTION 5: 6 Dimensions */}
         <DimensionGrid dimensions={score.dimensions} />
@@ -1199,25 +1178,6 @@ function WhatIfSimulator({ body, finance, baseline }: { body: BodyInputs; financ
   );
 }
 
-function MathCostCard({ emoji, title, lines, formula, amount, note, howCalculated }: {
-  emoji: string; title: string; lines: string[]; formula: string; amount: number; note?: string; howCalculated: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-2xl bg-gradient-to-br from-teal-700 to-teal-900 p-6 text-white">
-      <p className="font-bold text-base mb-3">{emoji} {title}</p>
-      {lines.map((l, i) => <p key={i} className="text-sm text-teal-100 mb-1">{l}</p>)}
-      <p className="text-xs text-teal-200 mt-3 mb-1 font-mono">{formula}</p>
-      <p className="text-3xl font-black mt-2">= {fmtINR(amount)}<span className="text-sm font-bold text-teal-200">/year</span></p>
-      {note && <p className="text-xs text-teal-200 mt-2">{note}</p>}
-      <button onClick={() => setOpen(!open)} className="text-xs font-bold text-white/80 hover:text-white underline mt-3">
-        How we calculate this {open ? '▲' : '▼'}
-      </button>
-      {open && <p className="text-xs text-teal-100 mt-2 bg-white/10 rounded-lg p-3">{howCalculated}</p>}
-    </div>
-  );
-}
-
 // ── Shared presentational pieces ─────────────────────────────────────────
 
 function ArchetypeCard({ score }: { score: WellFiScore }) {
@@ -1262,16 +1222,14 @@ function TrajectoriesSection({ trajectories }: { trajectories: Trajectory[] }) {
             <p className="text-lg font-black text-gray-900 dark:text-white">{fmtINR(t.netWorthAt60)}</p>
             <p className="text-[10px] text-gray-400 mb-2">Net worth at 60</p>
             <div className="space-y-1 text-[11px] text-gray-500 dark:text-gray-400">
-              <p>Life quality: {t.lifeQuality}/10</p>
-              <p>Life expectancy: {t.lifeExpectancy}</p>
-              <p>Passive income: {fmtINR(t.monthlyPassiveIncome)}/mo</p>
+              <p>Passive income: {fmtINR(t.monthlyPassiveIncome)}/mo at a 4% withdrawal rate</p>
             </div>
             <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">{t.keyChange}</p>
           </div>
         ))}
       </div>
       <p className="text-[11px] text-gray-400 mt-3">
-        Projections from your current savings and SIP, compounding at an assumed 12% (14% for "Full potential") annual return until age 60 — real returns vary, this is a scenario model, not a guarantee.
+        Same assumed 12% annual return in all three scenarios — only the monthly SIP amount changes between them, since that's the real, controllable lever. Real returns vary; this is a scenario model, not a guarantee.
       </p>
     </div>
   );

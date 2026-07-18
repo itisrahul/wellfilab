@@ -194,7 +194,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-xs text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/30 rounded-lg p-3 mt-4">
-                💡 Movement is the biggest opportunity here — going from 2 to 3 days/week is typically worth ~₹12,000/year in reduced medical costs alone.
+                💡 Movement is the biggest opportunity here — going from 2 to 3 days/week is the single highest-leverage change on this roadmap.
               </p>
             </div>
           </div>

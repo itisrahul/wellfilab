@@ -68,8 +68,6 @@ export interface WellFiScore {
 
   archetype: Archetype;
 
-  annualHealthCost?: number;
-  lifetimeHealthCost?: number;
   /** % of the way to financial independence (net worth ÷ 25× annual expenses) —
    * only set at 'full' level once a real net-worth snapshot exists. */
   financialIndependencePct?: number;
@@ -146,8 +144,6 @@ export interface Trajectory {
   scenario: 'current' | 'improved' | 'optimal';
   label: string;
   netWorthAt60: number;
-  lifeQuality: number;
-  lifeExpectancy: number;
   monthlyPassiveIncome: number;
   keyChange: string;
 }
@@ -343,12 +339,6 @@ export function calculateBodyScore(
 
   const archetype = selectArchetype(bodyScore, mindScore, wealthScore, null);
 
-  // Illustrative only — no real income yet, so this uses a median-income
-  // assumption purely to show the shape of the number. Becomes exact in
-  // calculateFullScore once the finance step provides real income.
-  const ASSUMED_ANNUAL_INCOME = 600000;
-  const sleepCostEstimate = Math.round(sleepGap * 0.024 * ASSUMED_ANNUAL_INCOME);
-
   const dimensions: Dimension[] = [
     {
       id:'sleep', label:'Sleep', score:Math.round(Math.min(100, Math.max(0, 100 - sleepGap * 20))), icon:'😴',
@@ -368,19 +358,18 @@ export function calculateBodyScore(
   ];
 
   const insights: Insight[] = [];
-  if (body.sleepHours < 7 && sleepCostEstimate > 5000) {
+  if (body.sleepHours < 7) {
     insights.push({
       type: 'connection', emoji: '😴',
-      headline: `Sleeping ${body.sleepHours} hours has a real financial cost`,
-      detail: `Roughly ₹${Math.round(sleepCostEstimate/1000)}K/year at a typical income — add yours in the next step for your exact number.`,
+      headline: `Sleeping ${body.sleepHours} hours is below what your body needs`,
+      detail: 'A consistent sleep deficit affects mood, focus, and decision-making — closing this gap is usually the highest-leverage first step.',
     });
   }
   if (body.exerciseDays >= 4) {
     insights.push({
       type: 'strength', emoji: '💪',
-      headline: `${body.exerciseDays} workout days/week is a real financial asset`,
-      detail: 'Regular exercise reduces annual medical costs by an average of ₹24,000. Add your finances to see your full picture.',
-      financialValue: 24000,
+      headline: `${body.exerciseDays} workout days/week is a real strength`,
+      detail: 'Consistent movement at this frequency is genuinely ahead of most people — keep it going.',
     });
   }
 
@@ -592,14 +581,12 @@ export function calculateFullScore(
     (wealthScore * 0.28) + (lifeScore * 0.16)
   );
 
-  // ── Financial health cost ────────────────────────
-  const sleepCost     = Math.round(sleepGap * 0.024 * annualIncome);
-  const stressCost    = Math.round(Math.max(0, (body.stressLevel - 5) / 5) * 0.18 * annualIncome);
-  const bmiCost       = bmi > 30 ? 35000 : bmi > 25 ? 18000 : 0;
-  const exerciseSave  = body.exerciseDays >= 3 ? 24000 : body.exerciseDays >= 1 ? 12000 : 0;
-  const annualHealthCost = Math.max(0, sleepCost + stressCost + bmiCost - exerciseSave);
-  const yearsWorking  = Math.max(10, 60 - body.age);
-  const lifetimeHealthCost = annualHealthCost * yearsWorking;
+  // Used by the trajectory projections below (a real, separate calculation —
+  // see generateTrajectories). Health habits are scored on their own terms
+  // via the dimensions/insights/actions below, not converted into a rupee
+  // "cost of your habits" figure — that conversion was more confusing than
+  // useful and has been removed.
+  const yearsWorking = Math.max(10, 60 - body.age);
 
   // ── Archetype ────────────────────────────────────
   const archetype = selectArchetype(bodyScore, mindScore, wealthScore, debtToIncome);
@@ -628,7 +615,7 @@ export function calculateFullScore(
       id:'stress', label:'Stress', score:Math.round(100 - body.stressLevel * 9), icon:'🧘',
       color:'text-purple-600',
       insight: body.stressLevel <= 4 ? 'Well managed' :
-               `Level ${body.stressLevel}/10 — costing ₹${Math.round(stressCost/1000)}K/yr`,
+               `Level ${body.stressLevel}/10 — worth bringing down`,
     },
     {
       id:'savings', label:'Savings', score:Math.round(savingsScore), icon:'🏦',
@@ -651,21 +638,13 @@ export function calculateFullScore(
   ];
 
   // ── Insights ─────────────────────────────────────
-  const insights = generateFullInsights(
-    body, finance, bmi,
-    sleepCost, stressCost
-  );
+  const insights = generateFullInsights(body, finance, bmi);
 
   // ── Actions ──────────────────────────────────────
-  const actions = generateFullActions(
-    body, finance,
-    sleepCost, stressCost
-  );
+  const actions = generateFullActions(body, finance);
 
   // ── Trajectories ─────────────────────────────────
-  const trajectories = generateTrajectories(
-    body, finance, overall, yearsWorking
-  );
+  const trajectories = generateTrajectories(finance, yearsWorking);
 
   // A version mismatch means the previous entry was scored under different
   // formulas — a raw delta would tell the user their score "dropped" for
@@ -682,8 +661,6 @@ export function calculateFullScore(
     wealth: wealthScore, life: lifeScore,
     level: 'full',
     archetype,
-    annualHealthCost,
-    lifetimeHealthCost,
     dimensions,
     insights,
     actions,
@@ -744,8 +721,8 @@ function generateQuickInsights(
   if (body > 75 && wealth < 55) {
     insights.push({
       type: 'opportunity', emoji: '🔄',
-      headline: 'Your health habits could earn you more money',
-      detail: 'Research shows people with strong health habits earn 9% more on average. Your body score suggests those habits exist. The financial picture has not caught up yet.',
+      headline: 'Your health habits are a real asset your finances haven\'t caught up to',
+      detail: 'Your body score shows real discipline exists. The same consistency, pointed at savings and investing, is usually the fastest way to close the gap.',
     });
   }
 
@@ -753,18 +730,15 @@ function generateQuickInsights(
 }
 
 function generateFullInsights(
-  body: BodyInputs, finance: FinanceInputs, bmi: number,
-  sleepCost: number, stressCost: number
+  body: BodyInputs, finance: FinanceInputs, bmi: number
 ): Insight[] {
   const insights: Insight[] = [];
-  const annualIncome = finance.monthlyIncome * 12;
 
-  if (body.sleepHours < 7 && sleepCost > 5000) {
+  if (body.sleepHours < 7) {
     insights.push({
       type: 'connection', emoji: '😴',
-      headline: `Sleeping ${body.sleepHours} hours is like taking a ₹${Math.round(sleepCost/1000)}K pay cut every year`,
-      detail: `Each hour below 8 costs 2.4% of your earning capacity. For your income of ₹${Math.round(annualIncome/1000)}K/year that is ₹${Math.round(sleepCost/1000)}K. Sleep more and give yourself a raise.`,
-      financialValue: sleepCost,
+      headline: `Sleeping ${body.sleepHours} hours is below what your body needs`,
+      detail: 'A consistent sleep deficit affects mood, focus, and decision-making — closing this gap is usually the highest-leverage first step, before anything else on your roadmap.',
     });
   }
 
@@ -772,7 +746,7 @@ function generateFullInsights(
     insights.push({
       type: 'connection', emoji: '🔄',
       headline: 'Your debt is making you stressed. Your stress is making you spend more.',
-      detail: 'High financial stress triggers cortisol spikes that increase impulse purchases by 30-40%. It is a cycle. Breaking the debt breaks the stress — and likely improves your sleep too.',
+      detail: 'High financial stress is linked to more impulse spending — it is a cycle. Breaking the debt breaks the stress, and likely improves your sleep too.',
     });
   }
 
@@ -784,7 +758,7 @@ function generateFullInsights(
       insights.push({
         type: 'opportunity', emoji: '📈',
         headline: `₹${Math.round(surplus/1000)}K sits unused every month`,
-        detail: `Investing just ₹${Math.round(sipAmount/1000)}K/month (40% of your surplus) grows to ₹${Math.round(futureValue/100000)}L in 20 years at 12% returns. Start a SIP today.`,
+        detail: `Investing just ₹${Math.round(sipAmount/1000)}K/month (40% of your surplus) grows to ₹${Math.round(futureValue/100000)}L in 20 years at an assumed 12% annual return. Start a SIP today.`,
         financialValue: futureValue,
       });
     }
@@ -793,17 +767,16 @@ function generateFullInsights(
   if (body.exerciseDays >= 4) {
     insights.push({
       type: 'strength', emoji: '💪',
-      headline: `${body.exerciseDays} workout days/week is saving you ₹24,000/year`,
-      detail: 'Regular exercise reduces annual medical costs by an average of ₹24,000. You are already making this investment in yourself.',
-      financialValue: 24000,
+      headline: `${body.exerciseDays} workout days/week is a real strength`,
+      detail: 'Consistent movement at this frequency is genuinely ahead of most people — keep it going.',
     });
   }
 
   if (bmi > 30 && !finance.hasInsurance) {
     insights.push({
       type: 'warning', emoji: '⚠️',
-      headline: 'High BMI without insurance is a financial risk',
-      detail: `With BMI ${bmi.toFixed(1)}, lifestyle-related conditions are statistically more likely. Without insurance, one hospitalisation can cost ₹3-15 lakh out of pocket.`,
+      headline: 'High BMI without insurance is a real financial risk',
+      detail: `With BMI ${bmi.toFixed(1)}, lifestyle-related conditions are statistically more likely. Without insurance, one hospitalisation can cost an estimated ₹3–15 lakh out of pocket — an industry range, not calculated from your numbers.`,
     });
   }
 
@@ -859,8 +832,7 @@ function generateQuickActions(
 }
 
 function generateFullActions(
-  body: BodyInputs, finance: FinanceInputs,
-  sleepCost: number, stressCost: number
+  body: BodyInputs, finance: FinanceInputs
 ): Action[] {
   const candidates: Action[] = [];
 
@@ -868,8 +840,8 @@ function generateFullActions(
     candidates.push({
       rank: 0,
       title: `Sleep ${(7.5 - body.sleepHours).toFixed(1)} more hours`,
-      why: `You sleep ${body.sleepHours} hours. At your income, that sleep deficit costs ₹${Math.round(sleepCost/1000)}K/year in lost productivity.`,
-      impact: `₹${Math.round(sleepCost/1000)}K/year recovered. Better decisions. Lower cortisol.`,
+      why: `You sleep ${body.sleepHours} hours — 7.5 is optimal. This is usually the highest-leverage single change on your whole roadmap.`,
+      impact: 'Better energy and decisions within days. Lower stress. Costs nothing.',
       howEasy: 'today',
       category: 'both',
       toolSlug: 'sleep', toolCat: 'health',
@@ -907,8 +879,8 @@ function generateFullActions(
     candidates.push({
       rank: 0,
       title: `Walk 30 min daily (${3 - body.exerciseDays} more days/week)`,
-      why: `You exercise ${body.exerciseDays} day${body.exerciseDays !== 1 ? 's' : ''}/week. Three sessions minimum saves ₹24,000/year in medical costs and raises earnings by 9% on average.`,
-      impact: '₹24,000/year saved. 9% higher earnings. Better mood within 2 weeks.',
+      why: `You exercise ${body.exerciseDays} day${body.exerciseDays !== 1 ? 's' : ''}/week — three sessions is the recommended minimum.`,
+      impact: 'Better mood and energy within 2 weeks. Costs nothing.',
       howEasy: 'today',
       category: 'health',
       toolSlug: 'calories-burned', toolCat: 'health',
@@ -919,8 +891,8 @@ function generateFullActions(
     candidates.push({
       rank: 0,
       title: 'Reduce stress from ' + body.stressLevel + '/10 to below 5',
-      why: `Your stress level costs ₹${Math.round(stressCost/1000)}K/year in reduced output. At level ${body.stressLevel}, your financial decisions are also compromised by cortisol.`,
-      impact: `₹${Math.round(stressCost/1000)}K/year recovered. Better sleep. Better financial decisions.`,
+      why: `At level ${body.stressLevel}/10, sustained stress affects sleep, decision-making, and how you spend — bringing it down tends to make everything else on your roadmap easier.`,
+      impact: 'Better sleep. Clearer decisions. Usually the fastest-feeling win on the whole roadmap.',
       howEasy: 'this-week',
       category: 'both',
     });
@@ -947,10 +919,14 @@ function generateFullActions(
 // ── TRAJECTORY GENERATOR ──────────────────────────
 
 function generateTrajectories(
-  body: BodyInputs, finance: FinanceInputs,
-  overall: number, yearsWorking: number
+  finance: FinanceInputs, yearsWorking: number
 ): Trajectory[] {
   const monthlyInv    = finance.monthlyInvestments || 0;
+  // One real, consistent assumed return across every scenario — only the
+  // monthly contribution varies between them, since that's the actual lever
+  // a person controls. An earlier version assumed a *higher* return for the
+  // "optimal" scenario, which implied good habits somehow buy you a better
+  // market return — not a real, defensible claim, so it's gone.
   const annualReturn  = 0.12;
 
   // Future value of a monthly SIP annuity plus the user's EXISTING savings —
@@ -959,43 +935,36 @@ function generateTrajectories(
   // which massively understated net worth for anyone with real savings —
   // e.g. ₹5L today at 12% over 30 years grows to ~₹1.5Cr on its own, not
   // the flat ₹5L the old formula credited it.
-  const fv = (pmt: number, r: number, n: number) =>
-    pmt * 12 * ((Math.pow(1 + r, n) - 1) / r) + finance.totalSavings * Math.pow(1 + r, n);
+  const fv = (pmt: number, n: number) =>
+    pmt * 12 * ((Math.pow(1 + annualReturn, n) - 1) / annualReturn) + finance.totalSavings * Math.pow(1 + annualReturn, n);
 
-  const currentNW  = fv(monthlyInv, annualReturn, yearsWorking);
+  const currentNW  = fv(monthlyInv, yearsWorking);
   const improvedPmt = Math.max(monthlyInv, finance.monthlyIncome * 0.15);
-  const improvedNW = fv(improvedPmt, annualReturn, yearsWorking);
+  const improvedNW = fv(improvedPmt, yearsWorking);
   const optimalPmt = finance.monthlyIncome * 0.25;
-  const optimalR   = annualReturn + 0.02;
-  const optimalNW  = fv(optimalPmt, optimalR, yearsWorking);
+  const optimalNW  = fv(optimalPmt, yearsWorking);
 
   return [
     {
       scenario: 'current',
       label: 'Nothing changes',
       netWorthAt60:         Math.round(currentNW),
-      lifeQuality:          Math.round(overall / 14),
-      lifeExpectancy:       72 + (overall > 70 ? 3 : 0),
       monthlyPassiveIncome: Math.round(currentNW * 0.04 / 12),
-      keyChange:            'Current trajectory maintained',
+      keyChange:            monthlyInv > 0 ? `₹${Math.round(monthlyInv/1000)}K/month SIP continued` : 'No SIP started',
     },
     {
       scenario: 'improved',
       label: 'Fix top 3 issues',
       netWorthAt60:         Math.round(improvedNW),
-      lifeQuality:          Math.min(9, Math.round(overall / 14) + 2),
-      lifeExpectancy:       75 + (body.exerciseDays >= 3 ? 2 : 0),
       monthlyPassiveIncome: Math.round(improvedNW * 0.04 / 12),
-      keyChange:            `Sleep fix + ₹${Math.round(finance.monthlyIncome * 0.15 / 1000)}K SIP`,
+      keyChange:            `₹${Math.round(improvedPmt/1000)}K/month SIP (15% of income)`,
     },
     {
       scenario: 'optimal',
       label: 'Full potential',
       netWorthAt60:         Math.round(optimalNW),
-      lifeQuality:          9,
-      lifeExpectancy:       80,
       monthlyPassiveIncome: Math.round(optimalNW * 0.04 / 12),
-      keyChange:            'All habits optimised',
+      keyChange:            `₹${Math.round(optimalPmt/1000)}K/month SIP (25% of income)`,
     },
   ];
 }

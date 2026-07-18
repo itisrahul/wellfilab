@@ -8,6 +8,7 @@
  */
 
 import { getDimActions } from './roadmapActions';
+import { dimMatchesFocus, type ScoreFocus } from './scoreFocus';
 import type { WellFiScore, BodyInputs, FinanceInputs } from './wellfilab-score';
 
 export interface RoadmapProgressSummary {
@@ -27,15 +28,23 @@ const PHASE_LABEL: Record<1 | 2 | 3, string> = { 1: 'Foundation', 2: 'Building',
 
 export function computeRoadmapProgress(
   score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null,
-  checks: Record<string, boolean>
+  checks: Record<string, boolean>, focus: ScoreFocus = 'both'
 ): RoadmapProgressSummary {
-  const sortedDims = [...score.dimensions].sort((a, b) => a.score - b.score);
+  // Falls back to every dimension if the focus filter would leave none —
+  // e.g. a 'quick'-level score's dimensions are coarse (body/mind/wealth/life)
+  // and don't match the fine-grained health/wealth id sets at all.
+  const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+  const sortedDims = [...(focused.length > 0 ? focused : score.dimensions)].sort((a, b) => a.score - b.score);
   const lowestDim = sortedDims[0];
   const secondDim = sortedDims[1];
   const thirdDim = sortedDims[2];
 
   const phase1Extras = getDimActions(lowestDim.id, lowestDim, body, finance).slice(0, 2);
-  const phase1AlgoActions = score.actions.slice(0, 3);
+  const focusCategories: Record<ScoreFocus, string[]> = {
+    health: ['health', 'mind', 'both'], wealth: ['finance', 'both'], both: ['health', 'mind', 'finance', 'both'],
+  };
+  const focusedActions = score.actions.filter(a => focusCategories[focus].includes(a.category));
+  const phase1AlgoActions = (focusedActions.length > 0 ? focusedActions : score.actions).slice(0, 3);
   const phase1Total = phase1AlgoActions.length + phase1Extras.length;
   const phase1Checked = phase1AlgoActions.map((_, i) => checks[`p1-alg-${i}`]).filter(Boolean).length
     + phase1Extras.map((_, i) => checks[`p1-extra-${i}`]).filter(Boolean).length;

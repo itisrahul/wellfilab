@@ -1,11 +1,19 @@
 import Link from 'next/link';
 import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
 import { DIMENSIONS } from '@/lib/dimensionTheme';
+import type { ScoreFocus } from '@/lib/scoreFocus';
 import { LinkChip, LinkBar } from './LinkChip';
 
-export function ScoreBand({ score }: { score: WellFiScore }) {
+// Life is a derived cross-pillar balance metric — it doesn't cleanly belong
+// to a Health-only or Wealth-only view, so it only shows in "Both".
+const FOCUS_KEYS: Record<ScoreFocus, ('body' | 'mind' | 'wealth' | 'life')[]> = {
+  health: ['body', 'mind'], wealth: ['wealth'], both: ['body', 'mind', 'wealth', 'life'],
+};
+
+export function ScoreBand({ score, focus = 'both' }: { score: WellFiScore; focus?: ScoreFocus }) {
   const delta = score.scoreChange;
-  const weakest = DIMENSIONS.reduce((a, b) => (score[b.key] < score[a.key] ? b : a));
+  const shownDims = DIMENSIONS.filter(d => FOCUS_KEYS[focus].includes(d.key));
+  const weakest = shownDims.reduce((a, b) => (score[b.key] < score[a.key] ? b : a), shownDims[0]);
 
   return (
     <div id="score-band" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6">
@@ -29,9 +37,10 @@ export function ScoreBand({ score }: { score: WellFiScore }) {
           )}
         </div>
 
-        {/* 4 dimension mini-bars */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 flex-1 sm:border-l sm:border-gray-100 sm:dark:border-gray-800 sm:pl-6">
-          {DIMENSIONS.map(d => (
+        {/* Dimension mini-bars — filtered to the chosen focus */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 flex-1 sm:border-l sm:border-gray-100 sm:dark:border-gray-800 sm:pl-6"
+          style={{ gridTemplateColumns: `repeat(${Math.min(4, Math.max(2, shownDims.length))}, minmax(0, 1fr))` }}>
+          {shownDims.map(d => (
             <div key={d.key}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{d.icon} {d.label}</span>

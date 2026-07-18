@@ -1,14 +1,19 @@
 import Link from 'next/link';
 import type { Action } from '@/lib/wellfilab-score';
 import { howEasyTime } from '@/lib/roadmapActions';
+import type { ScoreFocus } from '@/lib/scoreFocus';
 import { LinkChip, LinkBar } from './LinkChip';
 
 function difficulty(howEasy: Action['howEasy']): string {
   return howEasy === 'today' ? 'Easy' : 'Moderate';
 }
 
-export function TopPriorities({ actions }: { actions: Action[] }) {
-  const top = actions.slice(0, 3);
+const FOCUS_CATEGORIES: Record<ScoreFocus, Action['category'][]> = {
+  health: ['health', 'mind', 'both'], wealth: ['finance', 'both'], both: ['health', 'mind', 'finance', 'both'],
+};
+
+export function TopPriorities({ actions, focus = 'both' }: { actions: Action[]; focus?: ScoreFocus }) {
+  const top = actions.filter(a => FOCUS_CATEGORIES[focus].includes(a.category)).slice(0, 3);
 
   if (top.length === 0) {
     return (

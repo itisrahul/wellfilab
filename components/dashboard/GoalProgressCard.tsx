@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus, type GoalPaceStatus } from '@/lib/goalPace';
 import { fmtINR } from '@/lib/roadmapActions';
+import type { ScoreFocus } from '@/lib/scoreFocus';
 import { LinkChip, LinkBar } from './LinkChip';
 
 function fmtValue(n: number, unit: string): string {
@@ -21,8 +22,10 @@ function progressPct(g: Goal): number {
   return Math.max(0, Math.min(100, ((g.current - g.startValue) / span) * 100));
 }
 
-export function GoalProgressCard({ goals }: { goals: Goal[] }) {
-  const active = goals.filter(g => !g.paused);
+export function GoalProgressCard({ goals, focus = 'both' }: { goals: Goal[]; focus?: ScoreFocus }) {
+  // 'score' category goals are cross-cutting (a WellFiLab Score target isn't
+  // purely health or wealth) so they stay visible in either single-focus view.
+  const active = goals.filter(g => !g.paused && (focus === 'both' || GOAL_TYPE_META[g.type].category === focus || GOAL_TYPE_META[g.type].category === 'score'));
 
   if (active.length === 0) {
     return (

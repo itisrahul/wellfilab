@@ -10,6 +10,8 @@ import {
   DUMMY_QUICK, fmtINR, getDimActions, DIM_CATEGORY_TITLE, HEALTH_TOOL_SLUGS, FINANCE_TOOL_SLUGS,
   BOOK_REC, howEasyTime,
 } from '@/lib/roadmapActions';
+import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
+import { FocusSelector } from '@/components/dashboard/FocusSelector';
 
 const CHECKS_KEY = 'wfl_roadmap_checks';
 const START_KEY = 'wfl_roadmap_start';
@@ -25,10 +27,12 @@ export default function RoadmapPage() {
   const [loading, setLoading] = useState(true);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [rawInputs, setRawInputs] = useState<{ body: BodyInputs; finance: FinanceInputs } | null>(null);
+  const [focus, setFocus] = useState<ScoreFocus>('both');
 
   useEffect(() => {
     setChecks(loadJSON(CHECKS_KEY, {}));
     setRawInputs(loadRawInputs());
+    setFocus(getScoreFocus());
     let started = window.localStorage.getItem(START_KEY);
     Promise.all([getLatestScore(), getScoreHistory()]).then(([s, h]) => {
       setScore(s);
@@ -73,7 +77,12 @@ export default function RoadmapPage() {
 
   const daysSinceStart = startedAt ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 86400000)) : 0;
 
-  const sortedDims = [...score.dimensions].sort((a, b) => a.score - b.score);
+  const handleFocusChange = (f: ScoreFocus) => { setFocus(f); setScoreFocus(f); };
+
+  // Falls back to every dimension if the focus filter would leave none — see
+  // lib/scoreFocus.ts (a 'quick'-level score's dims don't match either set).
+  const focusedDims = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+  const sortedDims = [...(focusedDims.length > 0 ? focusedDims : score.dimensions)].sort((a, b) => a.score - b.score);
   const lowestDim = sortedDims[0];
   const secondDim: Dimension | undefined = sortedDims[1];
   const thirdDim: Dimension | undefined = sortedDims[2];
@@ -84,7 +93,11 @@ export default function RoadmapPage() {
 
   // ── Phase 1 actions: algorithm's top actions + 1-2 dimension-specific extras
   const phase1Extras = getDimActions(lowestDim.id, lowestDim, rBody, rFinance).slice(0, 2);
-  const phase1AlgoActions = score.actions.slice(0, 3);
+  const FOCUS_ACTION_CATEGORIES: Record<ScoreFocus, string[]> = {
+    health: ['health', 'mind', 'both'], wealth: ['finance', 'both'], both: ['health', 'mind', 'finance', 'both'],
+  };
+  const focusedActions = score.actions.filter(a => FOCUS_ACTION_CATEGORIES[focus].includes(a.category));
+  const phase1AlgoActions = (focusedActions.length > 0 ? focusedActions : score.actions).slice(0, 3);
   const phase1Total = phase1AlgoActions.length + phase1Extras.length;
   const phase1CheckedCount = phase1AlgoActions.map((_, i) => checks[`p1-alg-${i}`]).filter(Boolean).length
     + phase1Extras.map((_, i) => checks[`p1-extra-${i}`]).filter(Boolean).length;
@@ -200,8 +213,14 @@ export default function RoadmapPage() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
+        {/* Focus — Health only / Wealth only / Both, same 3 flows as the dashboard */}
+        <div className="print:hidden flex items-center justify-between gap-3 flex-wrap -mb-4">
+          <p className="text-xs text-gray-400">Focus this roadmap on:</p>
+          <FocusSelector focus={focus} onChange={handleFocusChange} />
+        </div>
+
         {/* SECTION 2: Root cause diagnosis */}
-        <RootCauseCard lowestDim={lowestDim} findDim={findDim} annualHealthCost={score.annualHealthCost} />
+        <RootCauseCard lowestDim={lowestDim} findDim={findDim} />
 
         {/* SECTION 2B: What completing this roadmap could do to your score */}
         {projectedScore && scoreGain > 0 && (
@@ -298,8 +317,8 @@ export default function RoadmapPage() {
         {score.level === 'full' && totalAnnualImpact > 0 && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
             <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">If you complete this roadmap</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mb-1">~{fmtINR(totalAnnualImpact)}<span className="text-sm font-normal text-gray-400"> recovered or saved per year</span></p>
-            <p className="text-xs text-gray-400">Sum of the recurring annual impacts on the actions above — sleep, movement, stress and subscription savings. Estimates based on your actual income and spending, not averages. Long-term retirement impact from investing is shown separately below, since that's a different kind of number entirely.</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mb-1">~{fmtINR(totalAnnualImpact)}<span className="text-sm font-normal text-gray-400"> saved per year</span></p>
+            <p className="text-xs text-gray-400">Real, recurring savings from the actions above — expense and subscription cuts, based on your actual spending, not a converted health estimate. Long-term investing impact is shown separately below, since that's a different kind of number entirely.</p>
           </div>
         )}
         {score.level === 'full' && trajectories && current && improved && optimal && (
@@ -345,7 +364,7 @@ export default function RoadmapPage() {
 
 // ── Section 2: Root cause ────────────────────────────────────────────────
 
-function RootCauseCard({ lowestDim, findDim, annualHealthCost }: { lowestDim: Dimension; findDim: (id: string) => Dimension | undefined; annualHealthCost?: number }) {
+function RootCauseCard({ lowestDim, findDim }: { lowestDim: Dimension; findDim: (id: string) => Dimension | undefined }) {
   const category = ['sleep', 'movement'].includes(lowestDim.id) ? 'body' : lowestDim.id === 'stress' ? 'stress' : 'finance';
   const title = DIM_CATEGORY_TITLE[lowestDim.id] ?? 'Your Starting Point';
 
@@ -360,26 +379,23 @@ function RootCauseCard({ lowestDim, findDim, annualHealthCost }: { lowestDim: Di
 
       {category === 'body' && (
         <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
-          <p className="font-bold text-gray-800 dark:text-gray-200">Why physical health is your starting point:</p>
-          {findDim('stress') && <p>Sleep → Stress: poor sleep raises cortisol. Your stress score of {findDim('stress')!.score}/100 reflects this.</p>}
-          {annualHealthCost != null && annualHealthCost > 0 && <p>Sleep → Finances: this costs approximately {fmtINR(annualHealthCost)}/year. Your roadmap fixes this.</p>}
-          <p>Sleep → Decisions: sleep deficit increases impulsive decisions by roughly 29%. This directly affects spending patterns.</p>
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why this is your starting point:</p>
+          {findDim('stress') && <p>Sleep and stress reinforce each other — your stress score of {findDim('stress')!.score}/100 is worth watching as this improves.</p>}
+          <p>Fixing sleep first is usually the highest-leverage move — most other habits (movement, food choices, decision-making) get easier once it's under control.</p>
         </div>
       )}
       {category === 'stress' && (
         <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
-          <p className="font-bold text-gray-800 dark:text-gray-200">Why stress is your starting point:</p>
-          <p>Stress → Spending: high cortisol increases impulse purchases by an estimated 37%.</p>
-          <p>Stress → Sleep: {lowestDim.insight} — they reinforce each other in both directions.</p>
-          {annualHealthCost != null && annualHealthCost > 0 && <p>Stress → Productivity: estimated financial impact of {fmtINR(annualHealthCost)}/year.</p>}
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why this is your starting point:</p>
+          <p>{lowestDim.insight} — stress and sleep quality tend to reinforce each other in both directions.</p>
+          <p>Bringing stress down first tends to make every other change on this roadmap easier to sustain.</p>
         </div>
       )}
       {category === 'finance' && (
         <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
-          <p className="font-bold text-gray-800 dark:text-gray-200">Why financial foundation is your starting point:</p>
-          <p>Finance → Sleep: financial stress causes an estimated 40% more night waking. Your sleep score of {findDim('sleep')?.score ?? 'N/A'}/100 may be partially financial in origin.</p>
-          <p>Finance → Health decisions: financial pressure leads to cheaper food choices and skipped checkups.</p>
-          <p>Finance → Stress: {lowestDim.insight}. Building stability removes background anxiety from everything else.</p>
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why this is your starting point:</p>
+          <p>{lowestDim.insight}. Financial stability tends to remove a real source of background stress — worth watching your sleep and stress scores as this improves.</p>
+          <p>Your sleep score is {findDim('sleep')?.score ?? 'N/A'}/100 — building a real financial foundation often eases this too, without a separate effort.</p>
         </div>
       )}
       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 leading-relaxed">

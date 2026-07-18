@@ -8,8 +8,9 @@ import { loadRawInputs } from '@/lib/scoreInputs';
 import { getGoals, type Goal } from '@/lib/goalsStorage';
 import { getSnapshots, syncNetWorthGoal, type NetWorthSnapshot } from '@/lib/netWorthHistory';
 import { getRiskAlerts } from '@/lib/riskAlerts';
-import { computeRoadmapProgress, type RoadmapProgressSummary } from '@/lib/roadmapProgress';
+import { computeRoadmapProgress } from '@/lib/roadmapProgress';
 import { getAchievements } from '@/lib/achievements';
+import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { ScoreBand } from './ScoreBand';
 import { TopPriorities } from './TopPriorities';
 import { RiskAlertsCard } from './RiskAlertsCard';
@@ -19,6 +20,7 @@ import { RoadmapProgressCard } from './RoadmapProgressCard';
 import { AchievementsCard } from './AchievementsCard';
 import { NextStepsCard } from './NextStepsCard';
 import { MonthlyReviewBand } from './MonthlyReviewBand';
+import { FocusSelector } from './FocusSelector';
 
 // recharts is heavy — load it only on the client, same pattern every
 // calculator widget already uses, instead of bloating the dashboard's
@@ -42,7 +44,7 @@ interface DashboardData {
   netWorthSnapshots: NetWorthSnapshot[];
   rawInputs: ReturnType<typeof loadRawInputs>;
   roadmapStarted: boolean;
-  roadmapProgress: RoadmapProgressSummary | null;
+  roadmapChecks: Record<string, boolean>;
   greeting: string;
   dateStr: string;
 }
@@ -57,28 +59,38 @@ function readRoadmapState(): { started: boolean; checks: Record<string, boolean>
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [focus, setFocus] = useState<ScoreFocus>('both');
   const firstName = userName.split(' ')[0];
   const initial = userName.trim().charAt(0).toUpperCase() || 'W';
 
   useEffect(() => {
+    setFocus(getScoreFocus());
     const hour = new Date().getHours();
     Promise.all([getLatestScore(), getScoreHistory(), getGoals(), getSnapshots()])
       .then(([score, history, rawGoals, netWorthSnapshots]) => {
         const rawInputs = loadRawInputs();
         const roadmap = readRoadmapState();
-        const roadmapProgress = score ? computeRoadmapProgress(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, roadmap.checks) : null;
         // A 'net-worth' goal reads its current value from the latest real
         // snapshot instead of a stale manual entry — see syncNetWorthGoal.
         const goals = rawGoals.map(g => syncNetWorthGoal(g, netWorthSnapshots));
         setData({
           score, history, goals, netWorthSnapshots, rawInputs,
-          roadmapStarted:  roadmap.started,
-          roadmapProgress,
+          roadmapStarted: roadmap.started,
+          roadmapChecks:  roadmap.checks,
           greeting: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
           dateStr:  new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         });
       });
   }, []);
+
+  const handleFocusChange = (f: ScoreFocus) => {
+    setFocus(f);
+    setScoreFocus(f);
+  };
+
+  const roadmapProgress = data?.score
+    ? computeRoadmapProgress(data.score, data.rawInputs?.body ?? null, data.rawInputs?.finance ?? null, data.roadmapChecks, focus)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -143,31 +155,50 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
       ) : (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
+          {/* ── Focus — Health only / Wealth only / Both (the 3 real user flows) ── */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-gray-400">Track and get recommendations for:</p>
+            <FocusSelector focus={focus} onChange={handleFocusChange} />
+          </div>
+
           {/* ── ACT — above the fold: where I stand, biggest problem, urgent risk ── */}
-          <ScoreBand score={data.score} />
+          <ScoreBand score={data.score} focus={focus} />
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-            <div className="lg:col-span-3"><TopPriorities actions={data.score.actions} /></div>
-            <div className="lg:col-span-2"><RiskAlertsCard alerts={getRiskAlerts(data.rawInputs?.body ?? null, data.rawInputs?.finance ?? null)} /></div>
+            <div className="lg:col-span-3"><TopPriorities actions={data.score.actions} focus={focus} /></div>
+            <div className="lg:col-span-2">
+              <RiskAlertsCard alerts={getRiskAlerts(
+                focus === 'wealth' ? null : data.rawInputs?.body ?? null,
+                focus === 'health' ? null : data.rawInputs?.finance ?? null,
+              )} />
+            </div>
           </div>
 
           {/* ── TRACK — first scroll: how much progress, is it working ── */}
           <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-            <GoalProgressCard goals={data.goals} />
-            <RoadmapProgressCard started={data.roadmapStarted} progress={data.roadmapProgress} />
+            <GoalProgressCard goals={data.goals} focus={focus} />
+            <RoadmapProgressCard started={data.roadmapStarted} progress={roadmapProgress} />
           </div>
 
-          <NetWorthCard snapshots={data.netWorthSnapshots} age={data.rawInputs?.body?.age} />
+          {focus !== 'health' && (
+            <NetWorthCard snapshots={data.netWorthSnapshots} age={data.rawInputs?.body?.age} />
+          )}
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
             <div className="lg:col-span-3"><ScoreHistoryChart history={data.history} /></div>
             <div className="lg:col-span-2">
-              <AchievementsCard achievements={getAchievements(data.score, data.history, data.roadmapProgress, data.goals)} />
+              <AchievementsCard achievements={getAchievements(data.score, data.history, roadmapProgress, data.goals)} />
             </div>
           </div>
 
           {/* ── RETURN — bottom: what to do next, why come back next month ── */}
-          <NextStepsCard dimensions={data.score.dimensions} body={data.rawInputs?.body ?? null} finance={data.rawInputs?.finance ?? null} />
+          <NextStepsCard
+            dimensions={(() => {
+              const focused = data.score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+              return focused.length > 0 ? focused : data.score.dimensions;
+            })()}
+            body={data.rawInputs?.body ?? null} finance={data.rawInputs?.finance ?? null}
+          />
 
           <MonthlyReviewBand score={data.score} />
 
