@@ -7,26 +7,8 @@ import {
   type Insight, type Action, type Trajectory, type Dimension,
 } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
+import { saveRawInputs, loadRawInputs } from '@/lib/scoreInputs';
 import { SITE_URL } from '@/config/site';
-
-// ── Companion store for the RAW inputs behind a score ───────────────────────
-// saveScore() only persists the computed WellFiScore, not the BodyInputs/
-// FinanceInputs that produced it — but the results page's calculation
-// breakdown and health-wealth math cards need those raw numbers to stay
-// verifiable for a returning user too, not just right after calculating.
-// Deliberately not part of lib/scoreStorage.ts — a small, page-local
-// companion key, same plain-localStorage pattern already used elsewhere
-// (wfl_roadmap_start etc.) rather than growing the shared adapter's surface.
-const INPUTS_KEY = 'wfl_score_inputs_v1';
-function saveRawInputs(body: BodyInputs, finance: FinanceInputs) {
-  try { window.localStorage.setItem(INPUTS_KEY, JSON.stringify({ body, finance })); } catch { /* noop */ }
-}
-function loadRawInputs(): { body: BodyInputs; finance: FinanceInputs } | null {
-  try {
-    const raw = window.localStorage.getItem(INPUTS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
 const PREVIEW_FALLBACK: BodyInputs = {

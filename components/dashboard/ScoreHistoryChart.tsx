@@ -26,10 +26,34 @@ export function ScoreHistoryChart({ history }: { history: WellFiScore[] }) {
     );
   }
 
+  const current = points[points.length - 1];
+  const oldest = points[0];
+  const delta = current.score - oldest.score;
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
-      <p className="text-sm font-bold text-gray-900 dark:text-white mb-4">Score history</p>
-      <ResponsiveContainer width="100%" height={260}>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Score history</p>
+
+      {points.length > 1 && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div>
+            <p className={`font-mono tabular-nums text-lg font-black ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
+              {delta > 0 ? '+' : ''}{delta}
+            </p>
+            <p className="text-[10px] text-gray-400">Since {oldest.date}</p>
+          </div>
+          <div>
+            <p className="font-mono tabular-nums text-lg font-black text-gray-900 dark:text-white">{current.score}</p>
+            <p className="text-[10px] text-gray-400">Current</p>
+          </div>
+          <div>
+            <p className="font-mono tabular-nums text-lg font-black text-gray-400">{oldest.score}</p>
+            <p className="text-[10px] text-gray-400">{oldest.date}</p>
+          </div>
+        </div>
+      )}
+
+      <ResponsiveContainer width="100%" height={220}>
         <LineChart data={points} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-gray-100 dark:stroke-gray-800" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} />

@@ -2,20 +2,21 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { scoreColor, type WellFiScore, type Insight } from '@/lib/wellfilab-score';
+import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
-import {
-  getSubscription, getAccountSubscription, syncSubscriptionToAccount, cancelSubscription,
-  type StoredSubscription,
-} from '@/lib/subscriptionStorage';
-import { getCalcHistory, type CalcHistoryEntry } from '@/lib/dashboardData';
-import { getOnboarding } from '@/lib/onboardingStorage';
-import { getGoals, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
-import { getReminderPrefs, setReminderOptIn } from '@/lib/reminderPreference';
-import { AICoach } from './AICoach';
-import { HabitTracker } from './HabitTracker';
-import { PlanStatus } from './PlanStatus';
-import { QuickTools } from './QuickTools';
+import { loadRawInputs } from '@/lib/scoreInputs';
+import { getGoals, type Goal } from '@/lib/goalsStorage';
+import { getRiskAlerts } from '@/lib/riskAlerts';
+import { computeRoadmapProgress, type RoadmapProgressSummary } from '@/lib/roadmapProgress';
+import { getAchievements } from '@/lib/achievements';
+import { ScoreBand } from './ScoreBand';
+import { TopPriorities } from './TopPriorities';
+import { RiskAlertsCard } from './RiskAlertsCard';
+import { GoalProgressCard } from './GoalProgressCard';
+import { RoadmapProgressCard } from './RoadmapProgressCard';
+import { AchievementsCard } from './AchievementsCard';
+import { NextStepsCard } from './NextStepsCard';
+import { MonthlyReviewBand } from './MonthlyReviewBand';
 
 // recharts is heavy — load it only on the client, same pattern every
 // calculator widget already uses, instead of bloating the dashboard's
@@ -35,248 +36,20 @@ interface Props {
 interface DashboardData {
   score: WellFiScore | null;
   history: WellFiScore[];
-  subscription: StoredSubscription | null;
-  onboarded: boolean;
-  roadmapStarted: boolean;
-  phase1Done: boolean;
-  calcHistory: CalcHistoryEntry[];
   goals: Goal[];
+  rawInputs: ReturnType<typeof loadRawInputs>;
+  roadmapStarted: boolean;
+  roadmapProgress: RoadmapProgressSummary | null;
   greeting: string;
   dateStr: string;
 }
 
-function readRoadmapState(): { started: boolean; phase1Done: boolean } {
-  if (typeof window === 'undefined') return { started: false, phase1Done: false };
+function readRoadmapState(): { started: boolean; checks: Record<string, boolean> } {
+  if (typeof window === 'undefined') return { started: false, checks: {} };
   const started = !!window.localStorage.getItem('wfl_roadmap_start');
-  let phase1Done = false;
-  try {
-    const checked = JSON.parse(window.localStorage.getItem('wfl_roadmap_checked') ?? '{}');
-    phase1Done = !!checked['p1-0'] && !!checked['p1-1'] && !!checked['p1-2'];
-  } catch { /* noop */ }
-  return { started, phase1Done };
-}
-
-const DIMENSIONS: { key: 'body' | 'mind' | 'wealth' | 'life'; label: string; icon: string; barColor: string }[] = [
-  { key: 'body',   label: 'Body',   icon: '💪', barColor: 'bg-teal-500' },
-  { key: 'mind',   label: 'Mind',   icon: '🧠', barColor: 'bg-indigo-500' },
-  { key: 'wealth', label: 'Wealth', icon: '💰', barColor: 'bg-amber-500' },
-  { key: 'life',   label: 'Life',   icon: '🌱', barColor: 'bg-green-500' },
-];
-
-const INSIGHT_STYLE: Record<Insight['type'], string> = {
-  warning:     'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800',
-  opportunity: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800',
-  connection:  'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800',
-  strength:    'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800',
-};
-
-const LEVEL_LABEL: Record<WellFiScore['level'], string> = {
-  quick: 'Quick self-rating', body: 'Body details added', full: 'Full picture',
-};
-
-type StepState = 'done' | 'current' | 'upcoming' | 'optional';
-interface JourneyStep { icon: string; label: string; sub: string; state: StepState; href?: string; }
-
-const STEP_STYLE: Record<StepState, { dot: string; text: string; line: string }> = {
-  done:     { dot: 'bg-teal-600 text-white',                                    text: 'text-gray-700 dark:text-gray-300', line: 'bg-teal-600' },
-  current:  { dot: 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-900/40', text: 'text-amber-700 dark:text-amber-400 font-bold', line: 'bg-gray-200 dark:bg-gray-700' },
-  upcoming: { dot: 'bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700', text: 'text-gray-400', line: 'bg-gray-200 dark:bg-gray-700' },
-  optional: { dot: 'bg-white dark:bg-gray-900 text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-700', text: 'text-gray-400', line: 'bg-gray-200 dark:bg-gray-700' },
-};
-
-function buildJourney(
-  score: WellFiScore, subscription: StoredSubscription | null, onboarded: boolean,
-  roadmapStarted: boolean, phase1Done: boolean
-): JourneyStep[] {
-  const steps: JourneyStep[] = [{ icon: '🎯', label: 'Score taken', sub: score.archetype.name, state: 'done' }];
-
-  steps.push(roadmapStarted
-    ? { icon: '🗺️', label: 'View roadmap', sub: 'Started', state: 'done', href: '/roadmap' }
-    : { icon: '🗺️', label: 'View roadmap', sub: 'Do this next', state: 'current', href: '/roadmap' });
-
-  steps.push(phase1Done
-    ? { icon: '✅', label: 'Follow Phase 1', sub: '3 actions done', state: 'done', href: '/roadmap' }
-    : { icon: '✅', label: 'Follow Phase 1', sub: roadmapStarted ? '3 actions' : 'Start the roadmap first', state: roadmapStarted ? 'current' : 'upcoming', href: roadmapStarted ? '/roadmap' : undefined });
-
-  const daysSinceScore = score.date ? Math.floor((Date.now() - new Date(score.date).getTime()) / 86400000) : 0;
-  const checkInDue = daysSinceScore >= 7;
-  steps.push({
-    icon: '📊', label: '7-day check-in',
-    sub: checkInDue ? 'Due now' : `In ${Math.max(0, 7 - daysSinceScore)}d`,
-    state: checkInDue ? 'current' : 'upcoming',
-    href: checkInDue ? '/score' : undefined,
-  });
-
-  if (!subscription || subscription.status === 'cancelled') {
-    steps.push({ icon: '📋', label: 'Plan', sub: subscription ? 'Resubscribe' : 'Optional', state: 'optional', href: '/plan' });
-  } else if (!onboarded) {
-    steps.push({ icon: '📋', label: 'Plan', sub: 'Complete onboarding', state: 'current', href: `/plan/onboarding?plan=${subscription.planId}` });
-  } else {
-    steps.push({ icon: '📋', label: 'Plan', sub: 'Active', state: 'done', href: '/plan' });
-  }
-
-  return steps;
-}
-
-function JourneyTracker({ score, subscription, onboarded, roadmapStarted, phase1Done }: {
-  score: WellFiScore; subscription: StoredSubscription | null; onboarded: boolean;
-  roadmapStarted: boolean; phase1Done: boolean;
-}) {
-  const steps = buildJourney(score, subscription, onboarded, roadmapStarted, phase1Done);
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Your journey</p>
-      <div className="flex items-start">
-        {steps.map((s, i) => {
-          const style = STEP_STYLE[s.state];
-          const content = (
-            <div className="flex-1 flex flex-col items-center text-center min-w-0 px-1">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm mb-2 flex-shrink-0 ${style.dot}`}>{s.icon}</div>
-              <p className={`text-[11px] leading-tight ${style.text}`}>{s.label}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-full">{s.sub}</p>
-            </div>
-          );
-          return (
-            <div key={i} className="flex items-center flex-1 last:flex-none">
-              {s.href ? <Link href={s.href} className="flex-1 hover:opacity-80 transition-opacity">{content}</Link> : content}
-              {i < steps.length - 1 && <div className={`h-0.5 flex-1 -mt-6 ${style.line}`} />}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function RoadmapCard({ score, started }: { score: WellFiScore; started: boolean }) {
-  if (!started) {
-    return (
-      <Link href="/roadmap"
-        className="flex items-center gap-4 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl p-5 text-white hover:shadow-lg transition-all group">
-        <span className="text-3xl flex-shrink-0">🗺️</span>
-        <div className="min-w-0 flex-1">
-          <p className="font-bold text-sm">Your roadmap is ready →</p>
-          <p className="text-xs text-white/80 mt-0.5">Based on your score. Free. Personalised.</p>
-        </div>
-        <span className="flex-shrink-0 text-xs font-bold group-hover:translate-x-0.5 transition-transform">View →</span>
-      </Link>
-    );
-  }
-  return (
-    <Link href="/roadmap"
-      className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
-      <span className="text-3xl flex-shrink-0">{score.archetype.emoji}</span>
-      <div className="min-w-0 flex-1">
-        <p className="font-bold text-gray-900 dark:text-white text-sm">Your Roadmap</p>
-        <p className="text-xs text-gray-400 mt-0.5">{score.archetype.name} · Score {score.overall}/100</p>
-      </div>
-      <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">View your roadmap →</span>
-    </Link>
-  );
-}
-
-function MonthlyReviewBanner({ score, goals }: { score: WellFiScore; goals: Goal[] }) {
-  const daysSinceScore = score.date ? Math.floor((Date.now() - new Date(score.date).getTime()) / 86400000) : 0;
-  const staleGoals = goals.filter(g => !g.paused && Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
-  const reviewDue = daysSinceScore >= 28;
-  if (!reviewDue && staleGoals.length === 0) return null;
-
-  return (
-    <div className="flex items-center gap-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-5 text-white flex-wrap">
-      <span className="text-3xl flex-shrink-0">🗓️</span>
-      <div className="min-w-0 flex-1">
-        <p className="font-bold text-sm">{reviewDue ? "It's time for your monthly review" : 'A few goals need a quick update'}</p>
-        <p className="text-xs text-white/70 mt-0.5">
-          {reviewDue ? `Your score is ${daysSinceScore} days old — retake it to see what's changed, and check your roadmap and goals.` : `${staleGoals.length} goal${staleGoals.length > 1 ? 's haven\'t' : ' hasn\'t'} been updated in 25+ days.`}
-        </p>
-      </div>
-      <div className="flex gap-2 flex-shrink-0">
-        {reviewDue && <Link href="/score?retake=1" className="px-3.5 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-bold transition-colors">Retake score</Link>}
-        <Link href="/goals" className="px-3.5 py-2 rounded-lg bg-white text-purple-700 text-xs font-bold hover:bg-white/90 transition-colors">Review goals</Link>
-      </div>
-    </div>
-  );
-}
-
-function ReminderToggle() {
-  const [optedIn, setOptedIn] = useState<boolean | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => { getReminderPrefs().then(p => setOptedIn(p.optedIn)); }, []);
-
-  const toggle = async () => {
-    if (optedIn == null) return;
-    setSaving(true);
-    const next = !optedIn;
-    setOptedIn(next);
-    await setReminderOptIn(next);
-    setSaving(false);
-  };
-
-  if (optedIn == null) return null;
-
-  return (
-    <div className="flex items-center justify-between gap-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-      <div className="min-w-0">
-        <p className="text-sm font-bold text-gray-900 dark:text-white">📧 Monthly email reminder</p>
-        <p className="text-xs text-gray-400 mt-0.5">A once-a-month nudge to check your dashboard — nothing else, unsubscribe any time.</p>
-      </div>
-      <button onClick={toggle} disabled={saving}
-        className={`flex-shrink-0 relative w-11 h-6 rounded-full transition-colors ${optedIn ? 'bg-teal-600' : 'bg-gray-200 dark:bg-gray-700'} disabled:opacity-50`}>
-        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${optedIn ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
-      </button>
-    </div>
-  );
-}
-
-function GoalsSummaryCard({ goals }: { goals: Goal[] }) {
-  const active = goals.filter(g => !g.paused);
-  if (active.length === 0) {
-    return (
-      <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
-        <span className="text-3xl flex-shrink-0">🎯</span>
-        <div className="min-w-0 flex-1">
-          <p className="font-bold text-gray-900 dark:text-white text-sm">No goals set yet</p>
-          <p className="text-xs text-gray-400 mt-0.5">Set a health or wealth target and track it every month.</p>
-        </div>
-        <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Add a goal →</span>
-      </Link>
-    );
-  }
-
-  const progressPct = (g: Goal) => {
-    const span = g.target - g.startValue;
-    if (span === 0) return g.current === g.target ? 100 : 0;
-    return Math.max(0, Math.min(100, ((g.current - g.startValue) / span) * 100));
-  };
-  const avgPct = Math.round(active.reduce((s, g) => s + progressPct(g), 0) / active.length);
-
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Your goals — {avgPct}% average progress</p>
-        <Link href="/goals" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">View all →</Link>
-      </div>
-      <div className="grid sm:grid-cols-3 gap-3">
-        {active.slice(0, 3).map(g => {
-          const meta = GOAL_TYPE_META[g.type];
-          const pct = Math.round(progressPct(g));
-          return (
-            <div key={g.id} className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{meta.icon}</span>
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{g.label}</p>
-              </div>
-              <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
-                <div className="h-full bg-teal-500 rounded-full" style={{ width: `${pct}%` }} />
-              </div>
-              <p className="text-[11px] text-gray-400">{pct}% complete</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  let checks: Record<string, boolean> = {};
+  try { checks = JSON.parse(window.localStorage.getItem('wfl_roadmap_checks') ?? '{}'); } catch { /* noop */ }
+  return { started, checks };
 }
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
@@ -286,37 +59,20 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   useEffect(() => {
     const hour = new Date().getHours();
-    Promise.all([getLatestScore(), getScoreHistory(), getAccountSubscription(), getSubscription(), getGoals()])
-      .then(async ([score, history, accountSub, localSub, goals]) => {
-        // Account metadata (Clerk) is authoritative. If it's empty but this
-        // browser has a local record — e.g. checkout happened as a guest,
-        // then the same person signed in — link it to the account now so it
-        // survives future devices/browsers too, instead of staying stuck local.
-        let subscription = accountSub;
-        if (!subscription && localSub) {
-          await syncSubscriptionToAccount(localSub);
-          subscription = localSub;
-        }
-        const onboarding = subscription ? await getOnboarding(subscription.planId) : null;
+    Promise.all([getLatestScore(), getScoreHistory(), getGoals()])
+      .then(([score, history, goals]) => {
+        const rawInputs = loadRawInputs();
         const roadmap = readRoadmapState();
+        const roadmapProgress = score ? computeRoadmapProgress(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, roadmap.checks) : null;
         setData({
-          score, history, subscription,
-          onboarded:      !!onboarding,
-          roadmapStarted: roadmap.started,
-          phase1Done:     roadmap.phase1Done,
-          calcHistory:  getCalcHistory(),
-          goals,
-          greeting:     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
-          dateStr:      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+          score, history, goals, rawInputs,
+          roadmapStarted:  roadmap.started,
+          roadmapProgress,
+          greeting: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
+          dateStr:  new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         });
       });
   }, []);
-
-  const handleCancelSubscription = async () => {
-    if (!data?.subscription) return;
-    const updated = await cancelSubscription(data.subscription);
-    setData(prev => prev ? { ...prev, subscription: updated } : prev);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -350,13 +106,13 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
             <div className="flex gap-3">
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="text-2xl font-black" style={{ color: data?.score ? scoreColor(data.score.overall) : '#6b7280' }}>
+                <p className="font-mono tabular-nums text-2xl font-black" style={{ color: data?.score ? scoreColor(data.score.overall) : '#6b7280' }}>
                   {data?.score?.overall ?? '—'}
                 </p>
                 <p className="text-white/40 text-[11px]">WellFiLab Score</p>
               </div>
               <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="text-2xl font-black text-teal-400">{data?.score?.streakDays ?? '—'}</p>
+                <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{data?.score?.streakDays ?? '—'}</p>
                 <p className="text-white/40 text-[11px]">Day streak 🔥</p>
               </div>
             </div>
@@ -375,173 +131,37 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
             Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
           </p>
           <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
-            Take the WellFiLab Score →
+            Get my free score →
           </Link>
         </div>
       ) : (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-          {/* Your journey — where they are, what's next, why it matters */}
-          <JourneyTracker score={data.score} subscription={data.subscription} onboarded={data.onboarded}
-            roadmapStarted={data.roadmapStarted} phase1Done={data.phase1Done} />
+          {/* ── ACT — above the fold: where I stand, biggest problem, urgent risk ── */}
+          <ScoreBand score={data.score} />
 
-          {/* Roadmap quick link — vivid "ready" banner until started, then a calmer continue-card */}
-          <RoadmapCard score={data.score} started={data.roadmapStarted} />
-
-          {/* Monthly review nudge — the main reason to come back once the first flush of activity fades */}
-          <MonthlyReviewBanner score={data.score} goals={data.goals} />
-
-          {/* Goals summary */}
-          <GoalsSummaryCard goals={data.goals} />
-
-          {/* Daily habits — distinct from roadmap's one-time actions: checked off fresh every day */}
-          <HabitTracker />
-
-          {/* Monthly email reminder opt-in — real Resend email via a Vercel Cron job, deliberately generic content since score/goals data never leaves the browser */}
-          <ReminderToggle />
-
-          {/* Member stats strip */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Score depth',     value: LEVEL_LABEL[data.score.level] },
-              { label: 'Tools tried',     value: String(data.calcHistory.length) },
-              { label: 'Member since',    value: memberSince || '—' },
-            ].map(s => (
-              <div key={s.label} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3">
-                <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{s.value}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{s.label}</p>
-              </div>
-            ))}
+          <div className="grid lg:grid-cols-5 gap-6 items-stretch">
+            <div className="lg:col-span-3"><TopPriorities actions={data.score.actions} /></div>
+            <div className="lg:col-span-2"><RiskAlertsCard alerts={getRiskAlerts(data.rawInputs?.body ?? null, data.rawInputs?.finance ?? null)} /></div>
           </div>
 
-          {/* Score + archetype hero */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-            <div className="flex items-center gap-4 flex-wrap justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl">{data.score.archetype.emoji}</span>
-                <div>
-                  <p className="font-extrabold text-gray-900 dark:text-white text-lg leading-tight">{data.score.archetype.name}</p>
-                  <p className="text-xs text-gray-400">{data.score.archetype.tagline}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
-                  View full score →
-                </Link>
-                <Link href="/score?retake=1" className="text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:underline">
-                  🔄 Retake score
-                </Link>
-              </div>
-            </div>
+          {/* ── TRACK — first scroll: how much progress, is it working ── */}
+          <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+            <GoalProgressCard goals={data.goals} />
+            <RoadmapProgressCard started={data.roadmapStarted} progress={data.roadmapProgress} />
+          </div>
 
-            {/* 4 dimension progress bars */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              {DIMENSIONS.map(d => (
-                <div key={d.key}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                      <span>{d.icon}</span>{d.label}
-                    </span>
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">{data.score[d.key]}</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${d.barColor} transition-all duration-700`} style={{ width: `${data.score![d.key]}%` }} />
-                  </div>
-                </div>
-              ))}
+          <div className="grid lg:grid-cols-5 gap-6 items-stretch">
+            <div className="lg:col-span-3"><ScoreHistoryChart history={data.history} /></div>
+            <div className="lg:col-span-2">
+              <AchievementsCard achievements={getAchievements(data.score, data.history, data.roadmapProgress, data.goals)} />
             </div>
           </div>
 
-          {/* What your numbers say */}
-          {data.score.insights.length > 0 && (
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">What your numbers say</p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {data.score.insights.slice(0, 4).map((ins, i) => (
-                  <div key={i} className={`rounded-2xl border p-4 ${INSIGHT_STYLE[ins.type]}`}>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-xl flex-shrink-0">{ins.emoji}</span>
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-900 dark:text-white text-xs mb-1">{ins.headline}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{ins.detail}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* ── RETURN — bottom: what to do next, why come back next month ── */}
+          <NextStepsCard dimensions={data.score.dimensions} body={data.rawInputs?.body ?? null} finance={data.rawInputs?.finance ?? null} />
 
-          {/* Health cost + trajectories (full picture only) — or a nudge to unlock them */}
-          {data.score.level === 'full' && data.score.annualHealthCost != null ? (
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-1 rounded-2xl bg-gradient-to-br from-red-600 to-orange-600 p-5 text-white">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Estimated cost of your habits</p>
-                <p className="text-3xl font-black">₹{data.score.annualHealthCost.toLocaleString('en-IN')}<span className="text-sm font-bold text-white/60">/yr</span></p>
-                {data.score.lifetimeHealthCost != null && (
-                  <p className="text-xs text-white/80 mt-2">≈ ₹{(data.score.lifetimeHealthCost/10000000).toFixed(1)} Cr over your career</p>
-                )}
-                <p className="text-[10px] text-white/60 mt-2">A directional estimate from sleep, stress and BMI — not a measured bill.</p>
-              </div>
-              {data.score.trajectories && (
-                <div className="sm:col-span-2 grid grid-cols-3 gap-2.5">
-                  {data.score.trajectories.map(t => (
-                    <div key={t.scenario} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-3.5">
-                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2 truncate">{t.label}</p>
-                      <p className="text-sm font-black text-gray-900 dark:text-white">₹{(t.netWorthAt60/10000000).toFixed(1)}Cr</p>
-                      <p className="text-[10px] text-gray-400">at 60</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link href="/score" className="group block bg-gray-950 dark:bg-gray-900 rounded-2xl p-5 hover:shadow-lg transition-all">
-              <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                <span className="text-3xl flex-shrink-0">🔓</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-sm">Unlock your health cost in ₹ and life trajectories</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {data.score.level === 'quick' ? 'Add body and finance details' : 'Add finance details'} — 2 minutes, on the Score page.
-                  </p>
-                </div>
-                <span className="flex-shrink-0 text-xs font-bold text-teal-400 group-hover:translate-x-0.5 transition-transform">Continue →</span>
-              </div>
-            </Link>
-          )}
-
-          {/* AI Coach */}
-          <AICoach score={data.score} />
-
-          {/* Chart (2/3) + Plan status (1/3) */}
-          <div className="grid lg:grid-cols-3 gap-6 items-stretch">
-            <div className="lg:col-span-2"><ScoreHistoryChart history={data.history} /></div>
-            <div><PlanStatus subscription={data.subscription} onboarded={data.onboarded} email={userEmail} onCancel={handleCancelSubscription} /></div>
-          </div>
-
-          {/* Last 3 actions */}
-          {data.score.actions.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Do this next</p>
-              <div className="space-y-3">
-                {data.score.actions.slice(0, 3).map(a => (
-                  <div key={a.rank} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{a.rank}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">{a.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-1.5">{a.why}</p>
-                        <p className="text-xs font-semibold text-teal-600 dark:text-teal-400">{a.impact}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick tools */}
-          <QuickTools actions={data.score.actions} calcHistory={data.calcHistory} />
+          <MonthlyReviewBand score={data.score} />
 
           <p className="text-center text-[11px] text-gray-400 pt-2">
             Scores and history are stored on this device only. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>

@@ -6,17 +6,8 @@ import {
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
 import { getLatestScore } from '@/lib/scoreStorage';
+import { loadRawInputs } from '@/lib/scoreInputs';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
-
-// Same page-local companion key the /score and /roadmap pages already read —
-// duplicated deliberately rather than shared, matching the existing pattern.
-const INPUTS_KEY = 'wfl_score_inputs_v1';
-function loadRawInputs(): { body: BodyInputs; finance: FinanceInputs } | null {
-  try {
-    const raw = window.localStorage.getItem(INPUTS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
 
 interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
 

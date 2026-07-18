@@ -1,0 +1,71 @@
+/**
+ * lib/roadmapProgress.ts — real roadmap-completion summary, shared with app/roadmap/page.tsx.
+ *
+ * Mirrors the phase/checked-count logic that lives inline in the roadmap page
+ * (phase1/2/3 action banks, unlock thresholds) so the dashboard's Roadmap
+ * Progress widget reads the exact same real numbers instead of a second,
+ * drift-prone estimate of "how far along" the user is.
+ */
+
+import { getDimActions } from './roadmapActions';
+import type { WellFiScore, BodyInputs, FinanceInputs } from './wellfilab-score';
+
+export interface RoadmapProgressSummary {
+  totalActions: number;
+  totalChecked: number;
+  activePhaseNum: 1 | 2 | 3;
+  activePhaseLabel: string;
+  activePhaseTotal: number;
+  activePhaseChecked: number;
+  doneCount: number;
+  inProgressCount: number;
+  pendingCount: number;
+  pctComplete: number;
+}
+
+const PHASE_LABEL: Record<1 | 2 | 3, string> = { 1: 'Foundation', 2: 'Building', 3: 'Growing' };
+
+export function computeRoadmapProgress(
+  score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null,
+  checks: Record<string, boolean>
+): RoadmapProgressSummary {
+  const sortedDims = [...score.dimensions].sort((a, b) => a.score - b.score);
+  const lowestDim = sortedDims[0];
+  const secondDim = sortedDims[1];
+  const thirdDim = sortedDims[2];
+
+  const phase1Extras = getDimActions(lowestDim.id, lowestDim, body, finance).slice(0, 2);
+  const phase1AlgoActions = score.actions.slice(0, 3);
+  const phase1Total = phase1AlgoActions.length + phase1Extras.length;
+  const phase1Checked = phase1AlgoActions.map((_, i) => checks[`p1-alg-${i}`]).filter(Boolean).length
+    + phase1Extras.map((_, i) => checks[`p1-extra-${i}`]).filter(Boolean).length;
+
+  const phase2Actions = secondDim ? getDimActions(secondDim.id, secondDim, body, finance) : [];
+  const phase2Total = phase2Actions.length;
+  const phase2Checked = phase2Actions.map((_, i) => checks[`p2-${i}`]).filter(Boolean).length;
+  const phase2Unlocked = phase1Checked >= 2;
+
+  const phase3Actions = thirdDim ? getDimActions(thirdDim.id, thirdDim, body, finance) : [];
+  const phase3Total = phase3Actions.length;
+  const phase3Checked = phase3Actions.map((_, i) => checks[`p3-${i}`]).filter(Boolean).length;
+  const phase3Unlocked = phase2Checked >= 2;
+
+  const totalActions = phase1Total + phase2Total + phase3Total;
+  const totalChecked = phase1Checked + phase2Checked + phase3Checked;
+  const activePhaseNum: 1 | 2 | 3 = phase3Unlocked ? 3 : phase2Unlocked ? 2 : 1;
+  const [activePhaseTotal, activePhaseChecked] =
+    activePhaseNum === 1 ? [phase1Total, phase1Checked] :
+    activePhaseNum === 2 ? [phase2Total, phase2Checked] : [phase3Total, phase3Checked];
+
+  const doneCount = totalChecked;
+  const inProgressCount = Math.max(0, activePhaseTotal - activePhaseChecked);
+  const pendingCount = Math.max(0, totalActions - doneCount - inProgressCount);
+
+  return {
+    totalActions, totalChecked,
+    activePhaseNum, activePhaseLabel: PHASE_LABEL[activePhaseNum],
+    activePhaseTotal, activePhaseChecked,
+    doneCount, inProgressCount, pendingCount,
+    pctComplete: totalActions > 0 ? Math.round((totalChecked / totalActions) * 100) : 0,
+  };
+}
