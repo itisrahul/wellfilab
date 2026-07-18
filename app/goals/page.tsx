@@ -6,7 +6,7 @@ import {
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
 import { getLatestScore } from '@/lib/scoreStorage';
-import { loadRawInputs } from '@/lib/scoreInputs';
+import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
 import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
@@ -108,7 +108,7 @@ export default function GoalsPage() {
 
   useEffect(() => {
     Promise.all([getGoals(), getLatestScore()]).then(([g, s]) => { setGoals(g); setScore(s); });
-    setRawInputs(loadRawInputs());
+    syncScoreInputsFromAccount().then(setRawInputs);
     setFocus(getScoreFocus());
     // Deep link from a calculator's real result, e.g. /goals?prefill=net-worth&current=550000 —
     // read directly from the URL rather than useSearchParams, which would force this

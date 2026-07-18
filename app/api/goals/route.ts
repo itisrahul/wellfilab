@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { goals } from '@/lib/db/schema';
-import type { Goal, GoalType } from '@/lib/goalsStorage';
+import type { Goal } from '@/lib/goalsStorage';
 
 /** Account-level Goals, keyed by Clerk userId — mirrors lib/goalsStorage.ts's shape. */
 
@@ -33,21 +34,32 @@ export async function GET() {
   return NextResponse.json({ goals: rows.map(toGoal) });
 }
 
-interface AddGoalInput {
-  type: GoalType; label: string; target: number; current: number; targetDate?: string;
+const GOAL_TYPES = ['net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus', 'weight', 'sleep', 'fitness', 'hydration', 'wellfilab-score', 'custom'] as const;
+
+const addGoalSchema = z.object({
+  type: z.enum(GOAL_TYPES),
+  label: z.string().min(1).max(200),
+  target: z.number(),
+  current: z.number(),
+  targetDate: z.string().optional(),
   // Optional — present only when the one-time local→account import
   // (lib/accountImport.ts) is preserving a goal's real original history
   // instead of starting a fresh one. Absent on a normal "add goal" call.
-  id?: string; startValue?: number; startDate?: string; lastUpdated?: string;
-  paused?: boolean; history?: { date: string; value: number }[];
-}
+  id: z.string().optional(),
+  startValue: z.number().optional(),
+  startDate: z.string().optional(),
+  lastUpdated: z.string().optional(),
+  paused: z.boolean().optional(),
+  history: z.array(z.object({ date: z.string(), value: z.number() })).optional(),
+});
 
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  const input = (await req.json().catch(() => null)) as AddGoalInput | null;
-  if (!input) return NextResponse.json({ error: 'Invalid goal payload.' }, { status: 400 });
+  const parsed = addGoalSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid goal payload.', details: parsed.error.flatten() }, { status: 400 });
+  const input = parsed.data;
 
   const now = new Date();
   const id = input.id ?? crypto.randomUUID();

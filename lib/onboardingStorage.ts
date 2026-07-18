@@ -1,12 +1,13 @@
 /**
  * lib/onboardingStorage.ts — storage adapter for plan onboarding answers.
  *
- * Same pattern as scoreStorage.ts / subscriptionStorage.ts: local-only today,
- * async so call sites already await it and won't need to change when a real
- * backend exists. The actual delivery mechanism for onboarding answers is
- * the email sent to hello@wellfilab.com (see app/plan/onboarding/page.tsx) —
- * this local copy exists so the dashboard can show "onboarding complete"
- * without a server round trip.
+ * Backed by /api/onboarding (Postgres, keyed by Clerk userId + plan) when
+ * signed in, with localStorage as an always-on fallback/cache — same
+ * pattern as lib/scoreStorage.ts. The actual delivery mechanism for
+ * onboarding answers is still the email sent to hello@wellfilab.com (see
+ * app/plan/onboarding/page.tsx) — this exists so the dashboard can show
+ * "onboarding complete" without a server round trip, and now also so it
+ * survives a cleared browser or a different device when signed in.
  */
 
 export type PlanKind = 'diet' | 'finance' | 'bundle';
@@ -42,9 +43,20 @@ function writeJSON(k: string, value: unknown): void {
 
 export async function saveOnboarding(record: OnboardingRecord): Promise<OnboardingRecord> {
   writeJSON(key(record.plan), record);
+  try { await fetch('/api/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }); }
+  catch { /* signed out, offline, or a server error — local copy above is still saved */ }
   return record;
 }
 
 export async function getOnboarding(plan: PlanKind): Promise<OnboardingRecord | null> {
+  try {
+    const res = await fetch(`/api/onboarding?plan=${plan}`);
+    if (res.ok) {
+      const { record } = await res.json();
+      if (record) return record as OnboardingRecord;
+    }
+  } catch {
+    /* offline, signed out (401), or a server error — fall back to local */
+  }
   return readJSON<OnboardingRecord | null>(key(plan), null);
 }

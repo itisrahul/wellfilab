@@ -4,14 +4,14 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { scoreColor, type WellFiScore } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
-import { loadRawInputs } from '@/lib/scoreInputs';
+import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { getGoals, type Goal } from '@/lib/goalsStorage';
 import { getSnapshots, syncNetWorthGoal, type NetWorthSnapshot } from '@/lib/netWorthHistory';
 import { getRiskAlerts } from '@/lib/riskAlerts';
 import { computeRoadmapProgress } from '@/lib/roadmapProgress';
 import { getAchievements } from '@/lib/achievements';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
-import { loadRoadmapChecks, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { syncRoadmapChecksFromAccount, type RoadmapChecks } from '@/lib/roadmapChecks';
 import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { ScoreBand } from './ScoreBand';
@@ -45,17 +45,11 @@ interface DashboardData {
   history: WellFiScore[];
   goals: Goal[];
   netWorthSnapshots: NetWorthSnapshot[];
-  rawInputs: ReturnType<typeof loadRawInputs>;
+  rawInputs: Awaited<ReturnType<typeof syncScoreInputsFromAccount>>;
   roadmapStarted: boolean;
   roadmapChecks: RoadmapChecks;
   greeting: string;
   dateStr: string;
-}
-
-function readRoadmapState(): { started: boolean; checks: RoadmapChecks } {
-  if (typeof window === 'undefined') return { started: false, checks: {} };
-  const started = !!window.localStorage.getItem('wfl_roadmap_start');
-  return { started, checks: loadRoadmapChecks() };
 }
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
@@ -67,17 +61,19 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   const loadDashboard = () => {
     const hour = new Date().getHours();
-    return Promise.all([getLatestScore(), getScoreHistory(), getGoals(), getSnapshots()])
-      .then(([score, history, rawGoals, netWorthSnapshots]) => {
-        const rawInputs = loadRawInputs();
-        const roadmap = readRoadmapState();
+    return Promise.all([
+      getLatestScore(), getScoreHistory(), getGoals(), getSnapshots(),
+      syncScoreInputsFromAccount(), syncRoadmapChecksFromAccount(),
+    ])
+      .then(([score, history, rawGoals, netWorthSnapshots, rawInputs, roadmapChecks]) => {
+        const started = typeof window !== 'undefined' && !!window.localStorage.getItem('wfl_roadmap_start');
         // A 'net-worth' goal reads its current value from the latest real
         // snapshot instead of a stale manual entry — see syncNetWorthGoal.
         const goals = rawGoals.map(g => syncNetWorthGoal(g, netWorthSnapshots));
         setData({
           score, history, goals, netWorthSnapshots, rawInputs,
-          roadmapStarted: roadmap.started,
-          roadmapChecks:  roadmap.checks,
+          roadmapStarted: started,
+          roadmapChecks,
           greeting: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
           dateStr:  new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         });

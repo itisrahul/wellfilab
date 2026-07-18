@@ -8,7 +8,7 @@ import {
   type Insight, type Action, type Trajectory, type Dimension,
 } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
-import { saveRawInputs, loadRawInputs, saveAge, loadAge } from '@/lib/scoreInputs';
+import { saveRawInputs, syncScoreInputsFromAccount, saveAge, loadAge } from '@/lib/scoreInputs';
 import { getSnapshots } from '@/lib/netWorthHistory';
 import { buildRiskManagementPlan } from '@/lib/riskManagement';
 import { setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
@@ -99,11 +99,10 @@ export default function ScorePage() {
     const wantsRetake = typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).get('retake') === '1';
     setWealthAge(loadAge() ?? undefined);
-    Promise.all([getLatestScore(), getScoreHistory()]).then(([latest, hist]) => {
+    Promise.all([getLatestScore(), getScoreHistory(), syncScoreInputsFromAccount()]).then(([latest, hist, savedInputs]) => {
       setHistory(hist);
       if (latest && !wantsRetake) {
         setScore(latest);
-        const savedInputs = loadRawInputs();
         if (savedInputs) { setBody(savedInputs.body ?? {}); setFinance(savedInputs.finance); }
         setStage('results');
       }

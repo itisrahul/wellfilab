@@ -19,10 +19,11 @@
  * lib/wellfilab-score.ts.
  */
 
-import { pgTable, text, timestamp, doublePrecision, boolean, jsonb, index } from 'drizzle-orm/pg-core';
-import type { WellFiScore } from '../wellfilab-score';
+import { pgTable, text, timestamp, doublePrecision, boolean, integer, jsonb, index, primaryKey } from 'drizzle-orm/pg-core';
+import type { WellFiScore, BodyInputs, FinanceInputs } from '../wellfilab-score';
 import type { GoalType, GoalHistoryPoint } from '../goalsStorage';
 import type { RoadmapChecks } from '../roadmapChecks';
+import type { PlanKind } from '../onboardingStorage';
 
 export const scores = pgTable('scores', {
   id: text('id').primaryKey(),
@@ -68,3 +69,35 @@ export const roadmapChecks = pgTable('roadmap_checks', {
   checks: jsonb('checks').$type<RoadmapChecks>().notNull().default({}),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * One row per user — the raw BodyInputs/FinanceInputs behind a saved score
+ * (lib/scoreInputs.ts). All three data columns are nullable and updated
+ * independently (a health-only intake never has finance, a wealth-only
+ * intake never has body) — the API route does a partial merge on write
+ * rather than requiring the full set every time.
+ */
+export const scoreInputs = pgTable('score_inputs', {
+  userId: text('user_id').primaryKey(),
+  body: jsonb('body').$type<BodyInputs | null>(),
+  finance: jsonb('finance').$type<FinanceInputs | null>(),
+  age: integer('age'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Plan onboarding answers (lib/onboardingStorage.ts) — composite key since a
+ * user can have answered onboarding for more than one plan (diet, finance,
+ * bundle). The real delivery mechanism is still the email sent at submit
+ * time (see app/plan/onboarding/page.tsx); this just makes the same answers
+ * queryable/durable instead of living only in that one browser.
+ */
+export const onboarding = pgTable('onboarding', {
+  userId: text('user_id').notNull(),
+  plan: text('plan').$type<PlanKind>().notNull(),
+  email: text('email').notNull(),
+  answers: jsonb('answers').$type<Record<string, unknown>>().notNull(),
+  submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.plan] }),
+]);

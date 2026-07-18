@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getLatestScore, getScoreHistory } from '@/lib/scoreStorage';
-import { loadRawInputs } from '@/lib/scoreInputs';
+import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { CALCULATORS, getBySlug } from '@/config/tools';
 import { calculateFullScore, type WellFiScore, type Dimension, type BodyInputs, type FinanceInputs } from '@/lib/wellfilab-score';
 import { getRelevantAffiliates, type Affiliate } from '@/lib/affiliates';
@@ -12,7 +12,7 @@ import {
 } from '@/lib/roadmapActions';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
-import { loadRoadmapChecks, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { syncRoadmapChecksFromAccount, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
 
 const START_KEY = 'wfl_roadmap_start';
 
@@ -26,8 +26,8 @@ export default function RoadmapPage() {
   const [focus, setFocus] = useState<ScoreFocus>('both');
 
   useEffect(() => {
-    setChecks(loadRoadmapChecks());
-    setRawInputs(loadRawInputs());
+    syncRoadmapChecksFromAccount().then(setChecks);
+    syncScoreInputsFromAccount().then(setRawInputs);
     setFocus(getScoreFocus());
     let started = window.localStorage.getItem(START_KEY);
     Promise.all([getLatestScore(), getScoreHistory()]).then(([s, h]) => {

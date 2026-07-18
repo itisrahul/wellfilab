@@ -8,6 +8,13 @@
       "when": 1784393751841,
       "tag": "0000_old_midnight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784400303779,
+      "tag": "0001_wealthy_the_stranger",
+      "breakpoints": true
     }
   ]
 }

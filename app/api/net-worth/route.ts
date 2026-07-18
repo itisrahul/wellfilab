@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { z } from 'zod';
 import { eq, asc } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { netWorthSnapshots } from '@/lib/db/schema';
@@ -24,17 +25,23 @@ export async function GET() {
   return NextResponse.json({ snapshots: rows.map(toSnapshot) });
 }
 
+const addSnapshotSchema = z.object({
+  assets: z.number(),
+  liabilities: z.number(),
+  // Optional — present only when the one-time local→account import
+  // (lib/accountImport.ts) is preserving a snapshot's real original date
+  // instead of stamping it as taken today.
+  id: z.string().optional(),
+  date: z.string().optional(),
+});
+
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  // id/date are optional — present only when the one-time local→account
-  // import (lib/accountImport.ts) is preserving a snapshot's real original
-  // date instead of stamping it as taken today.
-  const body = (await req.json().catch(() => null)) as { assets: number; liabilities: number; id?: string; date?: string } | null;
-  if (!body || typeof body.assets !== 'number' || typeof body.liabilities !== 'number') {
-    return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 });
-  }
+  const parsed = addSnapshotSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid payload.', details: parsed.error.flatten() }, { status: 400 });
+  const body = parsed.data;
 
   const id = body.id ?? crypto.randomUUID();
   const date = body.date ? new Date(body.date) : new Date();

@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { getGoals, getGoalHistory, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
 import { getSnapshots, type NetWorthSnapshot } from '@/lib/netWorthHistory';
-import { loadRoadmapChecks, checkedAt, type RoadmapChecks } from '@/lib/roadmapChecks';
+import { syncRoadmapChecksFromAccount, checkedAt, type RoadmapChecks } from '@/lib/roadmapChecks';
 import { fmtINR } from '@/lib/roadmapActions';
 import type { WellFiScore } from '@/lib/wellfilab-score';
 
@@ -44,11 +44,11 @@ export default function HistoryPage() {
   const [roadmapChecks, setRoadmapChecks] = useState<RoadmapChecks>({});
 
   useEffect(() => {
-    Promise.all([getScoreHistory(), getGoals(), getSnapshots()]).then(([scores, g, snaps]) => {
+    Promise.all([getScoreHistory(), getGoals(), getSnapshots(), syncRoadmapChecksFromAccount()]).then(([scores, g, snaps, checks]) => {
       setScoreHistory(scores);
       setGoals(g);
       setNetWorthSnapshots(snaps);
-      setRoadmapChecks(loadRoadmapChecks());
+      setRoadmapChecks(checks);
       setLoading(false);
     });
   }, []);
