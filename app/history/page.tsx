@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { getGoals, getGoalHistory, GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
 import { getSnapshots, type NetWorthSnapshot } from '@/lib/netWorthHistory';
@@ -35,6 +36,7 @@ function labelRoadmapCheck(id: string): string {
 }
 
 export default function HistoryPage() {
+  const { isSignedIn } = useUser();
   const [loading, setLoading] = useState(true);
   const [scoreHistory, setScoreHistory] = useState<WellFiScore[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -242,7 +244,9 @@ export default function HistoryPage() {
         )}
 
         <p className="text-center text-[11px] text-gray-400 pt-2">
-          Every entry here comes from data stored on this device. <Link href="/dashboard" className="underline hover:text-teal-600 dark:hover:text-teal-400">Back to dashboard</Link>
+          {isSignedIn
+            ? 'Every entry here is synced to your account.'
+            : "Every entry here comes from data stored on this device. Sign in to keep it synced across devices."} <Link href="/dashboard" className="underline hover:text-teal-600 dark:hover:text-teal-400">Back to dashboard</Link>
         </p>
       </div>
     </div>

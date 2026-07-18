@@ -231,7 +231,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           <MonthlyReviewBand score={data.score} />
 
           <p className="text-center text-[11px] text-gray-400 pt-2">
-            Scores and history are stored on this device only. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
+            Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
           </p>
         </div>
       )}

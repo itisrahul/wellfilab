@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import {
   calculateBodyScore, calculateFullScore, calculateWealthOnlyScore, scoreColor, scoreLabel, netWorthVerdict,
   type QuickInputs, type BodyInputs, type FinanceInputs, type WellFiScore,
@@ -739,6 +740,7 @@ interface ResultsProps {
 }
 
 function Results({ score, body, finance, history, onRetake }: ResultsProps) {
+  const { isSignedIn } = useUser();
   const animatedOverall = useCountUp(score.overall);
   const [whyOpen, setWhyOpen] = useState(false);
   const [netWorth, setNetWorth] = useState<number | null>(null);
@@ -897,7 +899,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
           {priorScores.length >= 4 && (
             <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-1">📊 {priorScores.length + 1} assessments tracked — that's real, visible history.</p>
           )}
-          <p className="text-xs text-gray-400 mt-1 mb-4">Score saved on this device. Come back in 30 days to track your progress.</p>
+          <p className="text-xs text-gray-400 mt-1 mb-4">
+            {isSignedIn ? 'Score saved to your account.' : 'Score saved on this device — sign in to keep it across devices.'} Come back in 30 days to track your progress.
+          </p>
           <button onClick={onRetake} className="print:hidden text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
             Retake with new numbers
           </button>

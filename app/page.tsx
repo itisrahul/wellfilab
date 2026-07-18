@@ -45,7 +45,7 @@ const FAQ = [
   },
   {
     q: "Is my data private?",
-    a: "Your score, goals, and history are stored on your own device, not in a central database we can browse. We're upfront about the tradeoff: that also means clearing your browser data loses your history today — we'd rather say that plainly than pretend otherwise.",
+    a: "You can use the score, roadmap, and goals with no account at all — that data stays on your own device only. If you create a free account, that same data also syncs to our database (scoped to your account, nobody else's) so it follows you across devices instead of disappearing if you clear your browser.",
   },
   {
     q: "Is it actually free?",

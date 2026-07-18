@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -27,7 +28,9 @@ function Section({ icon, title, children }: { icon: string; title: string; child
   );
 }
 
-export default function MethodologyPage() {
+export default async function MethodologyPage() {
+  const { userId } = await auth();
+  const isSignedIn = !!userId;
   return (
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
       <div className="bg-gray-950">
@@ -167,9 +170,9 @@ export default function MethodologyPage() {
 
         <Section icon="🔒" title="Your data">
           <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            Your score, inputs, and history are stored only in your browser's local storage on this device.
-            Nothing is sent to a server or shared. Clearing your browser data or switching devices loses your
-            history — there is no account-wide sync today.
+            {isSignedIn
+              ? "Your score, inputs, and history are saved to your account, so signing in on another device shows the same data. We don't share it or use it to compare you against anyone else."
+              : "Used without an account, your score, inputs, and history are stored only in your browser's local storage on this device — clearing your browser data or switching devices loses your history. Sign in to save it to your account instead, so it follows you across devices."}
           </p>
         </Section>
 
