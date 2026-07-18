@@ -2,13 +2,14 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
-  calculateBodyScore, calculateFullScore, scoreColor, scoreLabel,
+  calculateBodyScore, calculateFullScore, scoreColor, scoreLabel, netWorthVerdict,
   type QuickInputs, type BodyInputs, type FinanceInputs, type WellFiScore,
   type Insight, type Action, type Trajectory, type Dimension,
 } from '@/lib/wellfilab-score';
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
 import { saveRawInputs, loadRawInputs } from '@/lib/scoreInputs';
 import { getSnapshots } from '@/lib/netWorthHistory';
+import { buildRiskManagementPlan } from '@/lib/riskManagement';
 import { SITE_URL } from '@/config/site';
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
@@ -607,6 +608,11 @@ interface ResultsProps {
 function Results({ score, body, finance, history, onRetake }: ResultsProps) {
   const animatedOverall = useCountUp(score.overall);
   const [whyOpen, setWhyOpen] = useState(false);
+  const [netWorth, setNetWorth] = useState<number | null>(null);
+
+  useEffect(() => {
+    getSnapshots().then(snaps => setNetWorth(snaps.length > 0 ? snaps[snaps.length - 1].netWorth : null));
+  }, []);
 
   const hasRawInputs = body.age != null && finance.monthlyIncome != null;
   const b = body as BodyInputs;
@@ -672,6 +678,15 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
 
         {/* SECTION 2B-ii: How you compare */}
         <BenchmarkSection score={score} history={history} />
+
+        {/* SECTION 2B-iii: Risk management plan — age + risk-tolerance adjusted, real actions */}
+        {hasRawInputs && (
+          <RiskManagementSection
+            age={b.age} netWorth={netWorth} monthlyIncome={f.monthlyIncome} monthlyExpenses={f.monthlyExpenses}
+            equityAllocationPct={f.equityAllocationPct} riskTolerance={f.riskTolerance}
+            hasEmergencyFund={f.hasEmergencyFund} hasInsurance={f.hasInsurance} hasLifeInsurance={f.hasLifeInsurance}
+          />
+        )}
 
         {/* SECTION 2C: What-if simulator — interactive only, not meaningful in a printed report */}
         {hasRawInputs && <div className="print:hidden"><WhatIfSimulator body={b} finance={f} baseline={score} /></div>}
@@ -1014,6 +1029,79 @@ function BenchmarkSection({ score, history }: { score: WellFiScore; history: Wel
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+const EQUITY_VERDICT_STYLE: Record<string, string> = {
+  'Appropriate': 'text-green-600 dark:text-green-400',
+  'High for your age': 'text-red-600 dark:text-red-400',
+  'Conservative for your horizon': 'text-amber-600 dark:text-amber-400',
+  'Not yet answered': 'text-gray-400',
+};
+
+function RiskManagementSection({ age, netWorth, monthlyIncome, monthlyExpenses, equityAllocationPct, riskTolerance, hasEmergencyFund, hasInsurance, hasLifeInsurance }: {
+  age: number; netWorth: number | null; monthlyIncome: number; monthlyExpenses: number;
+  equityAllocationPct?: number; riskTolerance?: 'sell' | 'hold' | 'buy-more';
+  hasEmergencyFund: boolean; hasInsurance: boolean; hasLifeInsurance?: boolean;
+}) {
+  const nwVerdict = netWorth != null ? netWorthVerdict(age, netWorth) : null;
+  const plan = buildRiskManagementPlan({
+    age, netWorth, netWorthVerdictLabel: nwVerdict, monthlyIncome, monthlyExpenses,
+    equityAllocationPct, riskTolerance, hasEmergencyFund, hasInsurance, hasLifeInsurance,
+  });
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+      <p className="font-bold text-gray-900 dark:text-white mb-1">Your risk management plan</p>
+      <p className="text-xs text-gray-400 mb-5">
+        Adjusted for your age ({age}){riskTolerance ? ` and stated risk tolerance` : ''} — not the same advice for everyone.
+      </p>
+
+      <div className="grid sm:grid-cols-2 gap-3 mb-5">
+        <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Target allocation for age {age}</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{plan.recommendedEquityPct}% equity / {plan.recommendedDebtCashPct}% debt+cash</p>
+          {plan.currentEquityPct != null && (
+            <p className={`text-xs font-semibold mt-1 ${EQUITY_VERDICT_STYLE[plan.equityVerdict]}`}>
+              You're at {plan.currentEquityPct}% — {plan.equityVerdict}
+            </p>
+          )}
+        </div>
+        <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Emergency fund target</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">
+            {plan.emergencyFundMonths} months{plan.emergencyFundTarget ? ` — ${fmtINR(plan.emergencyFundTarget)}` : ''}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">{age >= 45 ? 'Larger buffer — less runway to recover this close to retirement' : 'Standard 3-month buffer for your age'}</p>
+        </div>
+        <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Health insurance target</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{fmtINR(plan.healthInsuranceTarget)}</p>
+          <p className="text-xs text-gray-400 mt-1">Indicative for your age band — not underwriting advice</p>
+        </div>
+        <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Life insurance target</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{plan.lifeInsuranceTarget ? fmtINR(plan.lifeInsuranceTarget) : '—'}</p>
+          <p className="text-xs text-gray-400 mt-1">≈10× annual income — the standard rule of thumb</p>
+        </div>
+      </div>
+
+      {plan.netWorthVerdict && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Net worth for age {age}: <span className="font-bold text-gray-900 dark:text-white">{plan.netWorthVerdict.label}</span> — about {plan.netWorthVerdict.ratio.toFixed(1)}× the typical figure for your age band.
+        </p>
+      )}
+
+      {plan.actions.length > 0 && (
+        <div className="space-y-2">
+          {plan.actions.map((a, i) => (
+            <div key={i} className="flex gap-2.5 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
+              <span className="flex-shrink-0">→</span><span>{a}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
