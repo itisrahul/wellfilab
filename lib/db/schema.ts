@@ -101,3 +101,21 @@ export const onboarding = pgTable('onboarding', {
 }, (t) => [
   primaryKey({ columns: [t.userId, t.plan] }),
 ]);
+
+/**
+ * Anonymous daily view counters for the tools directory's "Trending" and
+ * "Most Popular" sections (see app/tools/page.tsx). One row per
+ * (tool slug, calendar day) — no user id, no IP, no session token: this is
+ * a plain aggregate count, compatible with the site's own "100% private"
+ * promise on every calculator page. "Trending this week" = this week's sum
+ * vs. the prior week's; "Most popular" = all-time sum. Real numbers only —
+ * see the no-fabricated-stats decision behind the tools discovery page.
+ */
+export const toolViews = pgTable('tool_views', {
+  slug: text('slug').notNull(),
+  date: text('date').notNull(), // 'YYYY-MM-DD', UTC — a plain date key, not a timestamp, so the increment upsert is a simple equality match
+  count: integer('count').notNull().default(0),
+}, (t) => [
+  primaryKey({ columns: [t.slug, t.date] }),
+  index('tool_views_date_idx').on(t.date),
+]);

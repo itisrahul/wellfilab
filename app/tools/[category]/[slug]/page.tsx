@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getBySlug, getRelated, getAllSlugs } from '@/config/tools';
 import { ToolRenderer }   from '@/components/tools/ToolRenderer';
+import { TrackToolView }  from '@/components/tools/TrackToolView';
 import { ToolSEOContent } from '@/components/tools/ToolSEOContent';
 import { PairWith }       from '@/components/tools/PairWith';
 import { ExploreTools }   from '@/components/tools/ExploreTools';
@@ -47,6 +48,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
 
   return (
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
+      <TrackToolView slug={calc.slug} />
       <StructuredData slug={calc.slug} title={calc.title} desc={calc.metaDesc} url={pageUrl} />
       {calc.faq.length > 0 && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

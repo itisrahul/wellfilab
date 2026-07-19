@@ -15,6 +15,13 @@
       "when": 1784400303779,
       "tag": "0001_wealthy_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784484340240,
+      "tag": "0002_chunky_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }
