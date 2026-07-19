@@ -15,18 +15,24 @@ module.exports = {
         },
         'cycle-node-pulse': {
           '0%, 100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255,255,255,0)' },
-          '15%': { transform: 'scale(1.12)', boxShadow: '0 0 0 8px rgba(255,255,255,0.15)' },
-          '30%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255,255,255,0)' },
+          '10%': { transform: 'scale(1.15)', boxShadow: '0 0 0 8px rgba(255,255,255,0.18)' },
+          '20%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255,255,255,0)' },
         },
         'cycle-center-pulse': {
           '0%, 100%': { transform: 'scale(1)', opacity: '1' },
           '50%': { transform: 'scale(1.05)', opacity: '0.9' },
         },
+        'cycle-caption': {
+          '0%, 3%':   { opacity: '0', transform: 'translateY(4px)' },
+          '7%, 13%':  { opacity: '1', transform: 'translateY(0)' },
+          '18%, 100%': { opacity: '0', transform: 'translateY(0)' },
+        },
       },
       animation: {
-        'cycle-sweep': 'cycle-sweep 8s linear infinite',
-        'cycle-node-pulse': 'cycle-node-pulse 8s ease-in-out infinite',
+        'cycle-sweep': 'cycle-sweep 9s linear infinite',
+        'cycle-node-pulse': 'cycle-node-pulse 9s ease-in-out infinite',
         'cycle-center-pulse': 'cycle-center-pulse 4s ease-in-out infinite',
+        'cycle-caption': 'cycle-caption 9s ease-in-out infinite',
       },
     },
   },
