@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { SITE_NAME } from '@/config/site';
+import { SITE_NAME, PLANS_ENABLED } from '@/config/site';
 
 const EXPLORE_LINKS = [
   ['/tools',   'Tools'],
   ['/guides',  'Guides'],
   ['/score',   'WellFiLab Score'],
   ['/roadmap', 'Roadmap'],
-  ['/plan',    'Plans & Pricing'],
+  ...(PLANS_ENABLED ? [['/plan', 'Plans & Pricing']] : []),
 ];
 
 const COMPANY_LINKS = [

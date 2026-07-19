@@ -178,64 +178,67 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           </Link>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-10">
 
           {/* ── Focus — Health only / Wealth only / Both (the 3 real user flows) ── */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center justify-between gap-3 flex-wrap -mb-4">
             <p className="text-xs text-gray-400">Track and get recommendations for:</p>
             <FocusSelector focus={focus} onChange={handleFocusChange} />
           </div>
 
-          {/* ── ACT — above the fold: where I stand, biggest problem, urgent risk ── */}
-          <ScoreBand score={score} focus={focus} />
-
-          <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-            <div className="lg:col-span-3"><TopPriorities actions={score.actions} focus={focus} /></div>
-            <div className="lg:col-span-2">
-              <RiskAlertsCard alerts={getRiskAlerts(
-                focus === 'wealth' ? null : rawInputs?.body ?? null,
-                focus === 'health' ? null : rawInputs?.finance ?? null,
-              )} />
+          {/* ══ WHERE YOU STAND — the answer to "how am I doing," above the fold ══ */}
+          <section className="space-y-6">
+            <ScoreBand score={score} focus={focus} />
+            <div className="grid lg:grid-cols-5 gap-6 items-stretch">
+              <div className="lg:col-span-3"><TopPriorities actions={score.actions} focus={focus} /></div>
+              <div className="lg:col-span-2">
+                <RiskAlertsCard alerts={getRiskAlerts(
+                  focus === 'wealth' ? null : rawInputs?.body ?? null,
+                  focus === 'health' ? null : rawInputs?.finance ?? null,
+                )} />
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── TRACK — first scroll: how much progress, is it working ── */}
-          <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-            <GoalProgressCard goals={goals} focus={focus} />
-            <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
-          </div>
+          {/* ══ YOUR PROGRESS — the reason to actually come back ══ */}
+          <section>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your Progress</h2>
+            <div className="space-y-6">
+              <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+                <GoalProgressCard goals={goals} focus={focus} />
+                <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
+              </div>
 
-          {focus !== 'health' && (
-            <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />
-          )}
+              {focus !== 'health' && (
+                <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />
+              )}
 
-          <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-            <div className="lg:col-span-3"><ScoreHistoryChart history={history ?? []} /></div>
-            <div className="lg:col-span-2">
+              <div>
+                <div className="flex items-center justify-end mb-2">
+                  <Link href="/history" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex-shrink-0">
+                    Full history →
+                  </Link>
+                </div>
+                <ScoreHistoryChart history={history ?? []} />
+              </div>
+            </div>
+          </section>
+
+          {/* ══ KEEP GOING — what to do next, why to come back next month ══ */}
+          <section>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Keep Going</h2>
+            <div className="space-y-6">
+              <NextStepsCard
+                dimensions={(() => {
+                  const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+                  return focused.length > 0 ? focused : score.dimensions;
+                })()}
+                body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
+              />
               <AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} />
+              <MonthlyReviewBand score={score} />
             </div>
-          </div>
-
-          <Link href="/history"
-            className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
-            <span className="text-3xl flex-shrink-0">📜</span>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-gray-900 dark:text-white text-sm">See your full history</p>
-              <p className="text-xs text-gray-400 mt-0.5">Score, net worth, goals, and roadmap — every real update, in one timeline.</p>
-            </div>
-            <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">View history →</span>
-          </Link>
-
-          {/* ── RETURN — bottom: what to do next, why come back next month ── */}
-          <NextStepsCard
-            dimensions={(() => {
-              const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
-              return focused.length > 0 ? focused : score.dimensions;
-            })()}
-            body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
-          />
-
-          <MonthlyReviewBand score={score} />
+          </section>
 
           <p className="text-center text-[11px] text-gray-400 pt-2">
             Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>

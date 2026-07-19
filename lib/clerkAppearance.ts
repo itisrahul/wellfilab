@@ -30,13 +30,19 @@ export function useClerkAppearance(): Appearance {
       fontFamily: 'var(--font-inter), system-ui, sans-serif',
     },
     elements: {
+      // Google OAuth isn't wired up yet — hide the social button row and
+      // its "or" divider rather than show a button that would fail. Also
+      // disable the connection in Clerk's dashboard (Configure -> SSO
+      // Connections) once you're ready; this is the immediate UI-level fix.
+      socialButtons: 'hidden',
+      socialButtonsBlockButton: 'hidden',
+      dividerRow: 'hidden',
       card: 'shadow-lg border border-gray-200 dark:border-gray-800',
       footer: 'bg-white dark:bg-gray-900',
       footerAction: 'bg-white dark:bg-gray-900',
       footerActionLink: 'text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300',
       formButtonPrimary: 'bg-teal-600 hover:bg-teal-700 text-white normal-case',
       formFieldInput: 'focus:border-teal-500 focus:ring-teal-500',
-      socialButtonsBlockButton: 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800',
       identityPreviewEditButton: 'text-teal-600 dark:text-teal-400',
       formResendCodeLink: 'text-teal-600 dark:text-teal-400',
       otpCodeFieldInput: 'focus:border-teal-500',

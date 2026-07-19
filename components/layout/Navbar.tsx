@@ -7,6 +7,7 @@ import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs';
 import { useClerkAppearance } from '@/lib/clerkAppearance';
 import { CALCULATORS, getGroups, type Category } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
+import { PLANS_ENABLED } from '@/config/site';
 
 type Hit =
   | { kind: 'tool'; slug: string; cat: string; icon: string; label: string; desc: string }
@@ -212,7 +213,7 @@ const NAV = [
   { href:'/score',   label:'Score',   hasMega:false },
   { href:'/roadmap', label:'Roadmap', hasMega:false },
   { href:'/goals',   label:'Goals',   hasMega:false },
-  { href:'/plan',    label:'Plans',   hasMega:false },
+  ...(PLANS_ENABLED ? [{ href:'/plan', label:'Plans', hasMega:false }] : []),
   { href:'/about',   label:'About',   hasMega:false },
 ];
 

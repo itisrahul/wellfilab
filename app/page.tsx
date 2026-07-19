@@ -6,7 +6,7 @@ import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { HeroCycle } from '@/components/home/HeroCycle';
-import { SITE_NAME, SITE_URL } from '@/config/site';
+import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} — Your Personal Health & Wealth Operating System`,
@@ -562,8 +562,9 @@ export default function HomePage() {
 
         {/* ══════════════════════════════════════════════
             PLANS — kept as a secondary upsell, not the primary CTA
+            (hidden while PLANS_ENABLED is false — see config/site.ts)
         ══════════════════════════════════════════════ */}
-        <section className="rounded-3xl overflow-hidden">
+        {PLANS_ENABLED && <section className="rounded-3xl overflow-hidden">
           <div className="bg-gray-950 p-10 md:p-14">
             <div className="grid md:grid-cols-5 gap-10 items-center">
               <div className="md:col-span-3">
@@ -597,7 +598,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* ══════════════════════════════════════════════
             14 · STRONG FINAL CTA

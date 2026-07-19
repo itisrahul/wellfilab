@@ -15,6 +15,7 @@ import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { syncRoadmapChecksFromAccount, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
 import { SWR_KEYS } from '@/lib/swrKeys';
+import { PLANS_ENABLED } from '@/config/site';
 
 const START_KEY = 'wfl_roadmap_start';
 
@@ -344,18 +345,20 @@ export default function RoadmapPage() {
         {/* SECTION 8: Tools for your roadmap */}
         <div className="print:hidden"><ToolsSection lowestDim={lowestDim} secondDim={secondDim} /></div>
 
-        {/* SECTION 9: Upgrade (subtle) */}
-        <div className="print:hidden bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 text-center">
-          <p className="font-bold text-gray-900 dark:text-white text-sm mb-1.5">Want this taken further?</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-md mx-auto mb-3">
-            This roadmap is generated from your score. A personalised plan is created specifically for you — built by a real person, not an algorithm. You can ask questions.
-          </p>
-          <p className="text-[11px] text-gray-400 mb-4">₹149/month · 48hr delivery · 30-day refund guarantee</p>
-          <Link href="/plan" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition-all">
-            Get personalised plan →
-          </Link>
-          <p className="text-[10px] text-gray-400 mt-3">This roadmap is free forever</p>
-        </div>
+        {/* SECTION 9: Upgrade (subtle) — hidden while PLANS_ENABLED is false */}
+        {PLANS_ENABLED && (
+          <div className="print:hidden bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 text-center">
+            <p className="font-bold text-gray-900 dark:text-white text-sm mb-1.5">Want this taken further?</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-md mx-auto mb-3">
+              This roadmap is generated from your score. A personalised plan is created specifically for you — built by a real person, not an algorithm. You can ask questions.
+            </p>
+            <p className="text-[11px] text-gray-400 mb-4">₹149/month · 48hr delivery · 30-day refund guarantee</p>
+            <Link href="/plan" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition-all">
+              Get personalised plan →
+            </Link>
+            <p className="text-[10px] text-gray-400 mt-3">This roadmap is free forever</p>
+          </div>
+        )}
 
       </div>
     </div>

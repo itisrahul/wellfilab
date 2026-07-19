@@ -10,8 +10,10 @@
  */
 import Link from 'next/link';
 import type { PostCategory } from '@/lib/types';
+import { PLANS_ENABLED } from '@/config/site';
 
 export function PlanUpsell({ category: _category }: { category: PostCategory }) {
+  if (!PLANS_ENABLED) return null;
   return (
     <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30 rounded-2xl border border-teal-200 dark:border-teal-800 p-6 text-center">
       <p className="font-bold text-gray-900 dark:text-white text-lg mb-1.5">Ready to go beyond reading?</p>
