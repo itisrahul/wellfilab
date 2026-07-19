@@ -23,6 +23,10 @@ export interface RoadmapProgressSummary {
   inProgressCount: number;
   pendingCount: number;
   pctComplete: number;
+  /** The real, currently-active phase's actions with their real checked
+   * state — same titles the roadmap page itself generates (getDimActions),
+   * not a second copy. Powers the dashboard's Action Plan timeline. */
+  activePhaseActions: { title: string; checked: boolean }[];
 }
 
 const PHASE_LABEL: Record<1 | 2 | 3, string> = { 1: 'Foundation', 2: 'Building', 3: 'Growing' };
@@ -71,11 +75,22 @@ export function computeRoadmapProgress(
   const inProgressCount = Math.max(0, activePhaseTotal - activePhaseChecked);
   const pendingCount = Math.max(0, totalActions - doneCount - inProgressCount);
 
+  const activePhaseActions: { title: string; checked: boolean }[] =
+    activePhaseNum === 1
+      ? [
+          ...phase1AlgoActions.map((a, i) => ({ title: a.title, checked: !!checks[`p1-alg-${i}`] })),
+          ...phase1Extras.map((a, i) => ({ title: a.title, checked: !!checks[`p1-extra-${i}`] })),
+        ]
+      : activePhaseNum === 2
+      ? phase2Actions.map((a, i) => ({ title: a.title, checked: !!checks[`p2-${i}`] }))
+      : phase3Actions.map((a, i) => ({ title: a.title, checked: !!checks[`p3-${i}`] }));
+
   return {
     totalActions, totalChecked,
     activePhaseNum, activePhaseLabel: PHASE_LABEL[activePhaseNum],
     activePhaseTotal, activePhaseChecked,
     doneCount, inProgressCount, pendingCount,
     pctComplete: totalActions > 0 ? Math.round((totalChecked / totalActions) * 100) : 0,
+    activePhaseActions,
   };
 }

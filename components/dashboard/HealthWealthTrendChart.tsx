@@ -5,12 +5,12 @@ import type { WellFiScore } from '@/lib/wellfilab-score';
  * actual saved score history. Same data source as the single-line
  * ScoreHistoryChart, just split into the two halves shown side by side
  * above it. */
-export function HealthWealthTrendChart({ history }: { history: WellFiScore[] }) {
+export function HealthWealthTrendChart({ history, limit = 10 }: { history: WellFiScore[]; limit?: number }) {
   const points = history
     .filter(h => h.date)
     .slice()
     .reverse()
-    .slice(-10)
+    .slice(-limit)
     .map(h => ({
       date: new Date(h.date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       health: Math.round((h.body + h.mind) / 2),

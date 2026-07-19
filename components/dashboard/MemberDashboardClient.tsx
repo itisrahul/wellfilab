@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import useSWR, { mutate } from 'swr';
-import { Heart, DollarSign, Droplet, Wallet } from 'lucide-react';
+import { Heart, DollarSign, Droplet, Wallet, TrendingUp, TrendingDown, Circle, CheckCircle2 } from 'lucide-react';
 import { scoreColor, scoreLabel } from '@/lib/wellfilab-score';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
@@ -19,11 +19,9 @@ import { SWR_KEYS } from '@/lib/swrKeys';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { DashboardShell } from './DashboardShell';
 import { LockedInsightTile } from './LockedInsightTile';
-import { HealthWealthTrendChart } from './HealthWealthTrendChart';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
 import { NetWorthCard } from './NetWorthCard';
-import { RoadmapProgressCard } from './RoadmapProgressCard';
 import { AchievementsCard } from './AchievementsCard';
 import { NextStepsCard } from './NextStepsCard';
 import { MonthlyReviewBand } from './MonthlyReviewBand';
@@ -35,6 +33,14 @@ import { FocusSelector } from './FocusSelector';
 const ScoreHistoryChart = dynamic(
   () => import('./ScoreHistoryChart').then(m => m.ScoreHistoryChart),
   { ssr: false, loading: () => <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 h-full min-h-[300px] animate-pulse" /> }
+);
+const HealthWealthTrendChart = dynamic(
+  () => import('./HealthWealthTrendChart').then(m => m.HealthWealthTrendChart),
+  { ssr: false, loading: () => <div className="h-60 animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" /> }
+);
+const MiniTrendLine = dynamic(
+  () => import('./MiniTrendLine').then(m => m.MiniTrendLine),
+  { ssr: false }
 );
 
 interface Props {
@@ -66,29 +72,44 @@ function DimTile({ label, score, icon }: { label: string; score: number; icon: s
   );
 }
 
-function ScoreSummaryCard({ label, icon, score, delta, dims }: {
+function ScoreSummaryCard({ label, icon, score, delta, dims, series }: {
   label: string; icon: React.ReactNode; score: number; delta?: number;
   dims: { id: string; label: string; score: number; icon: string }[];
+  series: number[];
 }) {
   const color = scoreColor(score);
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <span style={{ color }}>{icon}</span>
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{label} Score</p>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span style={{ color }}>{icon}</span>
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{label} Score</p>
+        </div>
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style={{ color, backgroundColor: `${color}1a` }}>
+          {delta != null && delta >= 0 && <TrendingUp size={11} />}
+          {delta != null && delta < 0 && <TrendingDown size={11} />}
+          {scoreLabel(score)}
+        </span>
       </div>
       <div className="flex items-end gap-2 mb-1">
         <span className="font-mono tabular-nums text-4xl font-black" style={{ color }}>{Math.round(score)}</span>
         <span className="text-gray-400 text-sm mb-1">/100</span>
-        <span className="mb-1.5 ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ color, backgroundColor: `${color}1a` }}>{scoreLabel(score)}</span>
       </div>
-      {delta != null && (
-        <p className={`text-xs font-semibold ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+      {delta != null ? (
+        <p className={`text-xs font-semibold flex items-center gap-1 ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+          {delta > 0 ? <TrendingUp size={12} /> : delta < 0 ? <TrendingDown size={12} /> : null}
           {delta > 0 ? '+' : ''}{delta} pts since last check-in
         </p>
+      ) : <div className="h-4" />}
+
+      {series.length > 1 && (
+        <div className="-mx-2 mt-1">
+          <MiniTrendLine data={series} color={color} />
+        </div>
       )}
+
       {dims.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 mt-4">
+        <div className="grid grid-cols-3 gap-2 mt-3">
           {dims.map(d => <DimTile key={d.id} label={d.label} score={d.score} icon={d.icon} />)}
         </div>
       )}
@@ -96,10 +117,13 @@ function ScoreSummaryCard({ label, icon, score, delta, dims }: {
   );
 }
 
+const TREND_WINDOWS = [3, 6, 10] as const;
+
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [focus, setFocus] = useState<ScoreFocus>('both');
   const [showImportBanner, setShowImportBanner] = useState(false);
   const [roadmapStarted, setRoadmapStarted] = useState(false);
+  const [trendWindow, setTrendWindow] = useState<typeof TREND_WINDOWS[number]>(6);
   const firstName = userName.split(' ')[0];
 
   // Cached by shared keys (lib/swrKeys.ts) — the same data fetched here is
@@ -168,6 +192,14 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   const latestNetWorth = netWorthSnapshots && netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1] : null;
 
+  // Oldest -> newest, for the mini sparklines and the trend window below.
+  const chronological = (history ?? []).slice().reverse();
+  const healthSeriesFull = chronological.map(h => Math.round((h.body + h.mind) / 2));
+  const wealthSeriesFull = chronological.map(h => h.wealth);
+  const windowed = chronological.slice(-trendWindow);
+  const healthImprovement = windowed.length > 1 ? Math.round((windowed[windowed.length - 1].body + windowed[windowed.length - 1].mind) / 2) - Math.round((windowed[0].body + windowed[0].mind) / 2) : null;
+  const wealthImprovement = windowed.length > 1 ? windowed[windowed.length - 1].wealth - windowed[0].wealth : null;
+
   const content = loading ? (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
   ) : !score ? (
@@ -198,10 +230,10 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
       {/* ── Split Health / Wealth score cards ── */}
       <div className="grid lg:grid-cols-2 gap-5">
         {focus !== 'wealth' && (
-          <ScoreSummaryCard label="Health" icon={<Heart size={16} />} score={healthScore ?? score.body} delta={healthDelta} dims={healthDims} />
+          <ScoreSummaryCard label="Health" icon={<Heart size={16} />} score={healthScore ?? score.body} delta={healthDelta} dims={healthDims} series={healthSeriesFull} />
         )}
         {focus !== 'health' && (
-          <ScoreSummaryCard label="Wealth" icon={<DollarSign size={16} />} score={score.wealth} delta={wealthDelta} dims={wealthDims} />
+          <ScoreSummaryCard label="Wealth" icon={<DollarSign size={16} />} score={score.wealth} delta={wealthDelta} dims={wealthDims} series={wealthSeriesFull} />
         )}
       </div>
 
@@ -228,17 +260,71 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           </div>
         </div>
 
+        {/* Real connected timeline — the current active phase's real actions
+            (same generator the roadmap page itself uses, see
+            lib/roadmapProgress.ts's activePhaseActions) with their real
+            checked state, not a duplicated/invented list. */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Action Plan</p>
-          <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Action Plan</p>
+            {roadmapProgress && <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">Phase {roadmapProgress.activePhaseNum} · {roadmapProgress.activePhaseLabel}</span>}
+          </div>
+          {!roadmapStarted ? (
+            <div className="text-center py-6">
+              <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
+              <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
+            </div>
+          ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
+            <div className="relative space-y-4">
+              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+              {roadmapProgress.activePhaseActions.slice(0, 4).map((a, i) => (
+                <div key={i} className="relative flex items-start gap-3">
+                  <span className="relative z-10 flex-shrink-0 mt-0.5 bg-white dark:bg-gray-900">
+                    {a.checked
+                      ? <CheckCircle2 size={22} className="text-emerald-500" />
+                      : <Circle size={22} className="text-gray-300 dark:text-gray-600" />}
+                  </span>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <p className={`text-sm font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}>{a.title}</p>
+                  </div>
+                  <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${a.checked ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                    {a.checked ? 'Done' : 'Not Started'}
+                  </span>
+                </div>
+              ))}
+              <Link href="/roadmap" className="block text-center text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-1">View full action plan →</Link>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-6">No active phase yet — take your score to build a roadmap.</p>
+          )}
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Trend Analysis</p>
-            <Link href="/history" className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline">Full history →</Link>
+            <select value={trendWindow} onChange={e => setTrendWindow(Number(e.target.value) as typeof TREND_WINDOWS[number])}
+              className="text-[11px] font-semibold border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 focus:outline-none">
+              {TREND_WINDOWS.map(w => <option key={w} value={w}>Last {w} check-ins</option>)}
+            </select>
           </div>
-          <HealthWealthTrendChart history={history ?? []} />
+          <HealthWealthTrendChart history={history ?? []} limit={trendWindow} />
+          {(healthImprovement != null || wealthImprovement != null) && (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {healthImprovement != null && focus !== 'wealth' && (
+                <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/20">
+                  <p className="text-[10px] text-gray-400">Health Improvement</p>
+                  <p className={`font-mono tabular-nums text-sm font-bold ${healthImprovement >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>{healthImprovement > 0 ? '+' : ''}{healthImprovement} points</p>
+                </div>
+              )}
+              {wealthImprovement != null && focus !== 'health' && (
+                <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                  <p className="text-[10px] text-gray-400">Wealth Improvement</p>
+                  <p className={`font-mono tabular-nums text-sm font-bold ${wealthImprovement >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-500'}`}>{wealthImprovement > 0 ? '+' : ''}{wealthImprovement} points</p>
+                </div>
+              )}
+            </div>
+          )}
+          <Link href="/history" className="block text-center text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline mt-3">Full history →</Link>
         </div>
       </div>
 
