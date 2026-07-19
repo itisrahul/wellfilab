@@ -63,25 +63,29 @@ export function ConvergingHero() {
         WellFiLab — your personal Health and Wealth Operating System. Measure your real numbers, get a personalised roadmap, and track your progress every month.
       </h1>
 
-      <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-2">
+      {/* Real grid columns, not flex — the cycle diagram's own nodes extend
+          outside its box on every side by design (see HeroCycle's comment),
+          so each zone needs a guaranteed, non-negotiable width rather than
+          hoping a gap value is generous enough. */}
+      <div className="relative flex flex-col xl:grid xl:grid-cols-[280px_minmax(280px,auto)_280px] xl:items-center xl:justify-items-center gap-10 xl:gap-6">
 
         {/* HEALTH panel */}
-        <div className="order-2 lg:order-1 flex-1 space-y-2.5 max-w-xs mx-auto lg:mx-0 w-full">
-          <p className="flex items-center gap-1.5 text-teal-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center lg:justify-start">
+        <div className="order-2 xl:order-1 space-y-2.5 max-w-xs mx-auto xl:mx-0 w-full xl:justify-self-end">
+          <p className="flex items-center gap-1.5 text-teal-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center xl:justify-start">
             <Heart size={13} /> Health <span className="text-white/25 font-normal normal-case">— example</span>
           </p>
           {HEALTH_CARDS.map(c => <MetricCard key={c.label} {...c} accent="teal" />)}
         </div>
 
         {/* Center — the real, interactive product-journey cycle */}
-        <div className="order-1 lg:order-2 flex-shrink-0">
-          <HeroCycle />
+        <div className="order-1 xl:order-2">
+          <HeroCycle compact />
         </div>
 
         {/* WEALTH panel */}
-        <div className="order-3 flex-1 space-y-2.5 max-w-xs mx-auto lg:mx-0 w-full">
-          <p className="flex items-center gap-1.5 text-amber-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center lg:justify-end">
-            <span className="text-white/25 font-normal normal-case lg:order-1">example —</span> <span className="lg:order-2">Wealth</span> <DollarSign size={13} className="lg:order-3" />
+        <div className="order-3 space-y-2.5 max-w-xs mx-auto xl:mx-0 w-full xl:justify-self-start">
+          <p className="flex items-center gap-1.5 text-amber-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center xl:justify-end">
+            <span className="text-white/25 font-normal normal-case xl:order-1">example —</span> <span className="xl:order-2">Wealth</span> <DollarSign size={13} className="xl:order-3" />
           </p>
           {WEALTH_CARDS.map(c => <MetricCard key={c.label} {...c} accent="amber" />)}
         </div>
