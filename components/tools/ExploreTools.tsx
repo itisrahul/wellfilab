@@ -68,7 +68,7 @@ export function ExploreCalculators({ related }: { related: Calculator[] }) {
             </div>
           </div>
           <Link
-            href={`/${current.category}/${current.slug}`}
+            href={`/tools/${current.category}/${current.slug}`}
             className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors"
           >
             Open {current.short} →

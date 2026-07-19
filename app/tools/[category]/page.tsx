@@ -24,9 +24,8 @@ export default function CategoryPage({ params }: { params: { category: string } 
   if (!VALID.includes(cat)) notFound();
   const m = META[cat], isH = cat === 'health', ac = m.ac;
   const groups = getGroups(cat), all = getByCategory(cat), popular = all.filter(c => c.popular);
-  const hBorder = isH ? 'border-l-teal-400' : 'border-l-amber-400';
-  const hHover  = isH ? 'hover:border-teal-200 hover:bg-teal-50 dark:hover:bg-teal-950/20' : 'hover:border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20';
-  const hTitle  = isH ? 'group-hover:text-teal-700 dark:group-hover:text-teal-400' : 'group-hover:text-amber-700 dark:group-hover:text-amber-400';
+  const hHover  = isH ? 'hover:border-teal-300 dark:hover:border-teal-700' : 'hover:border-amber-300 dark:hover:border-amber-700';
+  const hTitle  = isH ? 'group-hover:text-teal-600 dark:group-hover:text-teal-400' : 'group-hover:text-amber-600 dark:group-hover:text-amber-400';
 
   return (
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
@@ -65,16 +64,15 @@ export default function CategoryPage({ params }: { params: { category: string } 
                 </div>
                 <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
                   {calcs.map(c=>(
-                    <Link key={c.slug} href={`/tools/${cat}/${c.slug}`} className={`group flex items-start gap-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 border-l-2 ${hBorder} ${hHover} hover:shadow-md transition-all`}>
-                      <span className="text-2xl flex-shrink-0 mt-0.5">{c.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-1 mb-1">
-                          <h3 className={`font-semibold text-sm text-gray-800 dark:text-gray-200 ${hTitle} transition-colors leading-tight`}>{c.title}</h3>
-                          {c.popular&&<span className={isH ? "flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400" : "flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"}>Popular</span>}
-                        </div>
-                        <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{c.desc}</p>
-                        <div className="flex flex-wrap gap-1 mt-2">{c.tags.slice(0,2).map(tag=><span key={tag} className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">{tag}</span>)}</div>
+                    <Link key={c.slug} href={`/tools/${cat}/${c.slug}`} className={`group p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 ${hHover} hover:shadow-md transition-all`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-2xl">{c.icon}</span>
+                        {c.new
+                          ? <span className="flex-shrink-0 text-[10px] font-bold text-white bg-teal-600 px-2 py-1 rounded-full">NEW</span>
+                          : c.popular && <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-full">⭐ Popular</span>}
                       </div>
+                      <p className={`font-bold text-gray-900 dark:text-white text-sm ${hTitle} transition-colors`}>{c.short}</p>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">{c.desc}</p>
                     </Link>
                   ))}
                 </div>

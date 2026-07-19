@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ALL_POSTS } from '@/lib/posts';
 import { PostCard } from '@/components/ui/PostCard';
@@ -19,6 +19,16 @@ export default function GuidesPage() {
   const [cat,  setCat]  = useState<PostCategory | 'all'>('all');
   const [q,    setQ]    = useState('');
   const [page, setPage] = useState(1);
+
+  // Deep link from a breadcrumb, e.g. /guides?category=health — read
+  // directly from the URL rather than useSearchParams, which would force
+  // this otherwise-static page into a Suspense boundary just for this one
+  // optional feature (same pattern as the roadmap page's ?prefill= link).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const c = new URLSearchParams(window.location.search).get('category') as PostCategory | null;
+    if (c && CATS.some(x => x.slug === c)) setCat(c);
+  }, []);
 
   const sorted = useMemo(() =>
     [...ALL_POSTS].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),

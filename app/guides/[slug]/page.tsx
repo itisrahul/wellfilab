@@ -91,7 +91,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         <nav className="text-xs text-gray-400 flex items-center gap-1.5 mb-8">
           <Link href="/" className="hover:text-gray-600 dark:hover:text-gray-200">Home</Link>
           <span>/</span>
-          <Link href={`/${post.category}`} className="hover:text-gray-600 dark:hover:text-gray-200 capitalize">{post.category}</Link>
+          <Link href={`/guides?category=${post.category}`} className="hover:text-gray-600 dark:hover:text-gray-200 capitalize">{post.category}</Link>
           <span>/</span>
           <span className="text-gray-600 dark:text-gray-300 truncate font-medium">{post.tag}</span>
         </nav>

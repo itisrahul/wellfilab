@@ -29,7 +29,7 @@ export function PairWith({ calc }: { calc: Calculator }) {
         {pairs.map(p => (
           <Link
             key={p.slug}
-            href={`/${p.target.category}/${p.target.slug}`}
+            href={`/tools/${p.target.category}/${p.target.slug}`}
             className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-sm transition-all group"
           >
             <span className="text-xl flex-shrink-0">{p.target.icon}</span>
