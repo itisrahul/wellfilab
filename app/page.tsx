@@ -5,6 +5,7 @@ import { ALL_POSTS } from '@/lib/posts';
 import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
+import { HeroCycle } from '@/components/home/HeroCycle';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -89,15 +90,14 @@ export default function HomePage() {
             Your Personal Health &amp; Wealth Operating System
           </p>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight mb-6">
-            Know your score.<br/>
-            Fix what's hurting you first.<br/>
-            Watch it improve every month.
+          <h1 className="sr-only">
+            WellFiLab measures your real health and money numbers, tells you what's hurting you most, and tracks your progress every month.
           </h1>
 
-          <p className="text-teal-100/85 text-xl leading-relaxed mb-4 max-w-2xl mx-auto">
-            Not a calculator. Not a quiz. WellFiLab measures your real health and money numbers, tells you exactly what's costing you the most, and gives you a step-by-step plan — then tracks whether it's actually working.
-          </p>
+          <div className="mb-8">
+            <HeroCycle />
+          </div>
+
           <p className="text-teal-100/60 text-sm mb-10">
             Free · 5 minutes · No signup required to see your score
           </p>
