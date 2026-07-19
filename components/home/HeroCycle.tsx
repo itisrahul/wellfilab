@@ -44,15 +44,19 @@ export function HeroCycle() {
           />
         </svg>
 
-        {/* Center — brand mark, pulsing gently. No fabricated score number
-            here on purpose: this diagram illustrates the product flow, not
-            a claim about what any specific score is. */}
+        {/* Center — brand mark, pulsing gently, and a real link to /score
+            (the natural "start here" action). No fabricated score number
+            on purpose: this diagram illustrates the product flow, not a
+            claim about what any specific score is. */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="motion-safe:animate-cycle-center-pulse flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
+          <Link
+            href="/score" aria-label="Get your free WellFiLab score"
+            className="motion-safe:animate-cycle-center-pulse group flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm hover:bg-white/25 hover:border-white/40 hover:scale-105 transition-all"
+          >
             <svg width="26" height="26" viewBox="0 0 34 34" fill="none" aria-hidden="true">
               <path d="M6 10L10 24L17 15L24 24L28 10" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </div>
+          </Link>
         </div>
 
         {/* Six real stops on the product journey, each a working link */}
@@ -72,8 +76,11 @@ export function HeroCycle() {
         ))}
       </div>
 
-      {/* Rotating caption — one line, fixed height so nothing shifts as it cycles */}
-      <div className="relative h-6 motion-reduce:h-auto mt-6 max-w-sm text-center" aria-hidden="true">
+      {/* Rotating caption — one line, fixed height so nothing shifts as it cycles.
+          Explicit width (not max-width): every child is `absolute`, so the
+          container has nothing in normal flow to size itself against and
+          would otherwise collapse to zero width. */}
+      <div className="relative w-72 sm:w-80 h-10 motion-reduce:h-auto mt-10 text-center" aria-hidden="true">
         {STAGES.map((s, i) => (
           <p
             key={s.label}

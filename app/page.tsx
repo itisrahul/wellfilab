@@ -86,7 +86,7 @@ export default function HomePage() {
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white/10 to-transparent"/>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28 text-center">
-          <p className="inline-flex items-center gap-1.5 mb-6 px-3.5 py-1.5 rounded-full bg-white/15 border border-white/25 text-white text-xs font-bold uppercase tracking-widest">
+          <p className="inline-flex items-center gap-1.5 mb-14 px-3.5 py-1.5 rounded-full bg-white/15 border border-white/25 text-white text-xs font-bold uppercase tracking-widest">
             Your Personal Health &amp; Wealth Operating System
           </p>
 
@@ -94,7 +94,7 @@ export default function HomePage() {
             WellFiLab measures your real health and money numbers, tells you what's hurting you most, and tracks your progress every month.
           </h1>
 
-          <div className="mb-8">
+          <div className="mb-14">
             <HeroCycle />
           </div>
 
