@@ -87,7 +87,7 @@ export function HeroCycle({ compact = false }: { compact?: boolean }) {
             >
               {s.icon}
             </div>
-            {!compact && <span className="text-[11px] font-bold text-white/80 group-hover:text-white uppercase tracking-wide transition-colors">{s.label}</span>}
+            <span className={`font-bold text-white/80 group-hover:text-white uppercase tracking-wide transition-colors whitespace-nowrap ${compact ? 'text-[9px]' : 'text-[11px]'}`}>{s.label}</span>
           </Link>
         ))}
       </div>

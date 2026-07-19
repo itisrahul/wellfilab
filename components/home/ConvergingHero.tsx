@@ -67,7 +67,7 @@ export function ConvergingHero() {
           outside its box on every side by design (see HeroCycle's comment),
           so each zone needs a guaranteed, non-negotiable width rather than
           hoping a gap value is generous enough. */}
-      <div className="relative flex flex-col xl:grid xl:grid-cols-[280px_minmax(280px,auto)_280px] xl:items-center xl:justify-items-center gap-10 xl:gap-6">
+      <div className="relative flex flex-col xl:grid xl:grid-cols-[280px_minmax(280px,auto)_280px] xl:items-center xl:justify-items-center gap-10 xl:gap-10">
 
         {/* HEALTH panel */}
         <div className="order-2 xl:order-1 space-y-2.5 max-w-xs mx-auto xl:mx-0 w-full xl:justify-self-end">
