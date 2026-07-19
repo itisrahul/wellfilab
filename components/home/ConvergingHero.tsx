@@ -35,16 +35,20 @@ const WEALTH_CARDS = [
 function MetricCard({ icon: Icon, label, value, unit, accent }: {
   icon: typeof Moon; label: string; value: string; unit: string; accent: 'teal' | 'amber';
 }) {
-  const color = accent === 'teal' ? 'text-teal-400' : 'text-amber-400';
-  const border = accent === 'teal' ? 'border-teal-500/20 hover:border-teal-500/40' : 'border-amber-500/20 hover:border-amber-500/40';
+  // Light mode sits on a saturated teal background (see the hero section's
+  // light-mode gradient) — a teal-on-teal accent would nearly disappear
+  // there, so the health side uses plain white instead in light mode and
+  // only switches to the teal accent once the background is actually dark.
+  const color = accent === 'teal' ? 'text-white dark:text-teal-400' : 'text-amber-200 dark:text-amber-400';
+  const border = accent === 'teal' ? 'border-white/20 dark:border-teal-500/20 hover:border-white/30 dark:hover:border-teal-500/40' : 'border-amber-200/30 dark:border-amber-500/20 hover:border-amber-200/50 dark:hover:border-amber-500/40';
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.04] border ${border} backdrop-blur-sm transition-colors`}>
-      <div className={`w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 ${color}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/10 dark:bg-white/[0.04] border ${border} backdrop-blur-sm transition-colors`}>
+      <div className={`w-9 h-9 rounded-xl bg-white/10 dark:bg-white/5 flex items-center justify-center flex-shrink-0 ${color}`}>
         <Icon size={16} strokeWidth={2} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-white/40">{label}</p>
-        <p className={`font-mono tabular-nums font-bold text-lg ${color}`}>{value}<span className="text-xs font-normal text-white/40">{unit}</span></p>
+        <p className="text-[11px] text-white/70 dark:text-white/40">{label}</p>
+        <p className={`font-mono tabular-nums font-bold text-lg ${color}`}>{value}<span className="text-xs font-normal text-white/70 dark:text-white/40">{unit}</span></p>
       </div>
     </div>
   );
@@ -53,8 +57,10 @@ function MetricCard({ icon: Icon, label, value, unit, accent }: {
 export function ConvergingHero() {
   return (
     <div className="relative">
-      {/* Ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Ambient glow — a soft white highlight on the light-mode teal
+          background (a teal glow would be invisible there), a teal glow
+          once the background is actually dark. */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/10 dark:bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Real page heading — kept off-screen since the visible centerpiece
           below is the interactive product-journey diagram, not static text,
@@ -71,8 +77,8 @@ export function ConvergingHero() {
 
         {/* HEALTH panel */}
         <div className="order-2 xl:order-1 space-y-2.5 max-w-xs mx-auto xl:mx-0 w-full xl:justify-self-end">
-          <p className="flex items-center gap-1.5 text-teal-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center xl:justify-start">
-            <Heart size={13} /> Health <span className="text-white/25 font-normal normal-case">— example</span>
+          <p className="flex items-center gap-1.5 text-white dark:text-teal-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center xl:justify-start">
+            <Heart size={13} /> Health <span className="text-white/50 dark:text-white/25 font-normal normal-case">— example</span>
           </p>
           {HEALTH_CARDS.map(c => <MetricCard key={c.label} {...c} accent="teal" />)}
         </div>
@@ -84,8 +90,8 @@ export function ConvergingHero() {
 
         {/* WEALTH panel */}
         <div className="order-3 space-y-2.5 max-w-xs mx-auto xl:mx-0 w-full xl:justify-self-start">
-          <p className="flex items-center gap-1.5 text-amber-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center xl:justify-end">
-            <span className="text-white/25 font-normal normal-case xl:order-1">example —</span> <span className="xl:order-2">Wealth</span> <DollarSign size={13} className="xl:order-3" />
+          <p className="flex items-center gap-1.5 text-amber-200 dark:text-amber-400 text-xs font-bold uppercase tracking-widest mb-3 justify-center xl:justify-end">
+            <span className="text-white/50 dark:text-white/25 font-normal normal-case xl:order-1">example —</span> <span className="xl:order-2">Wealth</span> <DollarSign size={13} className="xl:order-3" />
           </p>
           {WEALTH_CARDS.map(c => <MetricCard key={c.label} {...c} accent="amber" />)}
         </div>

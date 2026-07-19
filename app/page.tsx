@@ -78,26 +78,26 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════
           1 · HERO — answers "where am I / what's my problem / how does this help" in one screen
       ══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950">
-        <div className="absolute inset-0 opacity-40" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0)',
+      <section className="relative overflow-hidden bg-gradient-to-br from-teal-700 via-teal-600 to-cyan-500 dark:bg-gradient-to-b dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+        <div className="absolute inset-0 opacity-100 dark:opacity-40" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0)',
           backgroundSize: '28px 28px',
         }}/>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-14 md:pt-20">
           <ConvergingHero />
 
-          <p className="text-white/40 text-sm text-center mt-10 mb-8">
+          <p className="text-teal-100/70 dark:text-white/40 text-sm text-center mt-10 mb-8">
             Free · 5 minutes · No signup required to see your score
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <Link href="/score"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-gray-900 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 dark:text-gray-900 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
               Get my free score →
             </Link>
             <Link href="/tools"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-base border-2 border-white/20 hover:border-white/30 transition-all">
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 dark:border-white/20 dark:hover:border-white/30 transition-all">
               Browse {CALCULATORS.length}+ free tools →
             </Link>
           </div>
@@ -113,17 +113,17 @@ export default function HomePage() {
             ].map(f => (
               <div key={f.label} className="text-center">
                 <span className="text-2xl block mb-2">{f.icon}</span>
-                <p className="text-white/60 text-xs font-semibold leading-snug">{f.label}</p>
+                <p className="text-teal-50/90 dark:text-white/60 text-xs font-semibold leading-snug">{f.label}</p>
               </div>
             ))}
           </div>
 
           <div>
-            <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4 text-center">Most popular</p>
+            <p className="text-teal-100/70 dark:text-white/40 text-xs font-bold uppercase tracking-widest mb-4 text-center">Most popular</p>
             <div className="flex flex-wrap justify-center gap-2.5">
               {popular.map(c => (
                 <Link key={c.slug} href={`/tools/${c.category}/${c.slug}`}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all hover:scale-[1.03] backdrop-blur-sm">
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/12 hover:bg-white/22 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-white/20 hover:border-white/40 dark:border-white/10 dark:hover:border-white/20 text-white text-sm font-semibold transition-all hover:scale-[1.03] backdrop-blur-sm">
                   <span className="text-lg">{c.icon}</span>
                   {c.short}
                 </Link>
