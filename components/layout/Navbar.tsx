@@ -248,6 +248,11 @@ export function Navbar() {
   const closeSearch = useCallback(() => setShowSrch(false), []);
   const closeMega   = useCallback(() => setShowTools(false), []);
 
+  // The dashboard has its own sidebar app-shell (see DashboardShell) instead
+  // of the site's top nav — suppressed here rather than in layout.tsx so the
+  // logic stays with the component that already reads the pathname.
+  if (pathname?.startsWith('/dashboard')) return null;
+
   return (
     <header ref={headerRef} className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">

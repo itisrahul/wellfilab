@@ -1,4 +1,6 @@
+'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { SITE_NAME, PLANS_ENABLED } from '@/config/site';
 
 const EXPLORE_LINKS = [
@@ -18,6 +20,10 @@ const COMPANY_LINKS = [
 ];
 
 export function Footer() {
+  const pathname = usePathname();
+  // Same reasoning as Navbar — the dashboard has its own sidebar app-shell.
+  if (pathname?.startsWith('/dashboard')) return null;
+
   return (
     <footer className="bg-gray-950 mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-8">

@@ -3,7 +3,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import useSWR, { mutate } from 'swr';
-import { scoreColor } from '@/lib/wellfilab-score';
+import { Heart, DollarSign, Droplet, Wallet } from 'lucide-react';
+import { scoreColor, scoreLabel } from '@/lib/wellfilab-score';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { getGoals } from '@/lib/goalsStorage';
@@ -16,8 +17,9 @@ import { syncRoadmapChecksFromAccount } from '@/lib/roadmapChecks';
 import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
-import { ScoreBand } from './ScoreBand';
-import { TopPriorities } from './TopPriorities';
+import { DashboardShell } from './DashboardShell';
+import { LockedInsightTile } from './LockedInsightTile';
+import { HealthWealthTrendChart } from './HealthWealthTrendChart';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
 import { NetWorthCard } from './NetWorthCard';
@@ -42,6 +44,9 @@ interface Props {
   memberSince: string;
 }
 
+const HEALTH_DIM_IDS = ['sleep', 'movement', 'stress'];
+const WEALTH_DIM_IDS = ['savings', 'investing', 'debt'];
+
 /** Refetches every account data source — used after the one-time import
  * banner completes, since it may have just written into all of them. */
 function refreshAllAccountData() {
@@ -51,12 +56,51 @@ function refreshAllAccountData() {
   ]);
 }
 
+function DimTile({ label, score, icon }: { label: string; score: number; icon: string }) {
+  const color = scoreColor(score);
+  return (
+    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+      <p className="text-[11px] text-gray-400 mb-1">{icon} {label}</p>
+      <p className="font-mono tabular-nums font-bold text-sm" style={{ color }}>{Math.round(score)}<span className="text-gray-400 font-normal">/100</span></p>
+    </div>
+  );
+}
+
+function ScoreSummaryCard({ label, icon, score, delta, dims }: {
+  label: string; icon: React.ReactNode; score: number; delta?: number;
+  dims: { id: string; label: string; score: number; icon: string }[];
+}) {
+  const color = scoreColor(score);
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <span style={{ color }}>{icon}</span>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{label} Score</p>
+      </div>
+      <div className="flex items-end gap-2 mb-1">
+        <span className="font-mono tabular-nums text-4xl font-black" style={{ color }}>{Math.round(score)}</span>
+        <span className="text-gray-400 text-sm mb-1">/100</span>
+        <span className="mb-1.5 ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ color, backgroundColor: `${color}1a` }}>{scoreLabel(score)}</span>
+      </div>
+      {delta != null && (
+        <p className={`text-xs font-semibold ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+          {delta > 0 ? '+' : ''}{delta} pts since last check-in
+        </p>
+      )}
+      {dims.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {dims.map(d => <DimTile key={d.id} label={d.label} score={d.score} icon={d.icon} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [focus, setFocus] = useState<ScoreFocus>('both');
   const [showImportBanner, setShowImportBanner] = useState(false);
   const [roadmapStarted, setRoadmapStarted] = useState(false);
   const firstName = userName.split(' ')[0];
-  const initial = userName.trim().charAt(0).toUpperCase() || 'W';
 
   // Cached by shared keys (lib/swrKeys.ts) — the same data fetched here is
   // reused (not re-fetched) when the user then visits /goals, /roadmap, or
@@ -84,8 +128,6 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
   }, []);
 
   useEffect(() => {
-    // Mirrors the original behavior: the first time a score is seen and no
-    // start flag exists yet, stamp "now" as when the roadmap effectively began.
     if (score && typeof window !== 'undefined' && !window.localStorage.getItem('wfl_roadmap_start')) {
       const now = new Date().toISOString();
       window.localStorage.setItem('wfl_roadmap_start', now);
@@ -105,146 +147,165 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const monthLabel = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   const roadmapProgress = score
     ? computeRoadmapProgress(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, roadmapChecks ?? {}, focus)
     : null;
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+  // Real deltas vs the previous saved check-in — never against an assumed
+  // "last month," since real check-in cadence varies. Skipped across a
+  // scoreVersion boundary, same rule the algorithm itself uses for
+  // `scoreChange`, so a formula update never shows as a fake swing.
+  const prevEntry = history && history.length > 1 ? history[1] : null;
+  const prevValid = !!(prevEntry && score && prevEntry.scoreVersion === score.scoreVersion);
+  const healthScore = score ? Math.round((score.body + score.mind) / 2) : null;
+  const healthDelta = prevValid && healthScore != null ? healthScore - Math.round((prevEntry!.body + prevEntry!.mind) / 2) : undefined;
+  const wealthDelta = prevValid && score ? score.wealth - prevEntry!.wealth : undefined;
 
-      {/* ── Header — dark gradient with teal glow ── */}
-      <div className="relative overflow-hidden bg-gray-950">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
+  const healthDims = score?.dimensions.filter(d => HEALTH_DIM_IDS.includes(d.id)) ?? [];
+  const wealthDims = score?.dimensions.filter(d => WEALTH_DIM_IDS.includes(d.id)) ?? [];
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          <div className="flex items-start justify-between gap-6 flex-wrap">
+  const latestNetWorth = netWorthSnapshots && netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1] : null;
 
-            <div className="flex items-center gap-4">
-              {userImageUrl ? (
-                <img src={userImageUrl} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-white/20 flex-shrink-0" />
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-xl font-black text-white flex-shrink-0">
-                  {initial}
+  const content = loading ? (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
+  ) : !score ? (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
+      <p className="text-4xl mb-4">🎯</p>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't taken your WellFiLab Score yet</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+        Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
+      </p>
+      <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
+        Get my free score →
+      </Link>
+    </div>
+  ) : (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">{greeting}, {firstName}! 👋</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Here's your health and wealth overview — {monthLabel}</p>
+        </div>
+        <FocusSelector focus={focus} onChange={handleFocusChange} />
+      </div>
+
+      {showImportBanner && <ImportLocalDataBanner onDone={handleImportDone} />}
+
+      {/* ── Split Health / Wealth score cards ── */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        {focus !== 'wealth' && (
+          <ScoreSummaryCard label="Health" icon={<Heart size={16} />} score={healthScore ?? score.body} delta={healthDelta} dims={healthDims} />
+        )}
+        {focus !== 'health' && (
+          <ScoreSummaryCard label="Wealth" icon={<DollarSign size={16} />} score={score.wealth} delta={wealthDelta} dims={wealthDims} />
+        )}
+      </div>
+
+      {/* ── Priorities / Action Plan / Trend Analysis ── */}
+      <div className="grid lg:grid-cols-3 gap-5 items-stretch">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Priorities</p>
+          <div className="space-y-3">
+            {score.actions.slice(0, 3).map(a => (
+              <div key={a.rank} className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight">{a.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{a.why}</p>
                 </div>
-              )}
-              <div>
-                <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
-                  {!loading ? dateStr : ' '}
-                </p>
-                <h1 className="text-2xl font-extrabold text-white mb-0.5">
-                  {!loading ? `${greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋
-                </h1>
-                <p className="text-white/50 text-sm">{userEmail}{memberSince ? ` · Member since ${memberSince}` : ''}</p>
+                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  a.howEasy === 'today' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'
+                  : a.howEasy === 'this-week' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
+                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                }`}>
+                  {a.howEasy === 'today' ? 'High' : a.howEasy === 'this-week' ? 'Medium' : 'Low'} Priority
+                </span>
               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="font-mono tabular-nums text-2xl font-black" style={{ color: score ? scoreColor(score.overall) : '#6b7280' }}>
-                  {score?.overall ?? '—'}
-                </p>
-                <p className="text-white/40 text-[11px]">WellFiLab Score</p>
-              </div>
-              <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{score?.streakDays ?? '—'}</p>
-                <p className="text-white/40 text-[11px]">Review streak 🔥</p>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Action Plan</p>
+          <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Trend Analysis</p>
+            <Link href="/history" className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline">Full history →</Link>
+          </div>
+          <HealthWealthTrendChart history={history ?? []} />
         </div>
       </div>
 
-      {!loading && showImportBanner && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
-          <ImportLocalDataBanner onDone={handleImportDone} />
+      {/* ── Real-time insights — real "as of last update" tiles mixed with
+           honestly-locked tiles for data we don't have access to yet (no
+           wearable or bank/investment integration exists) ── */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Insights</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {focus !== 'wealth' && rawInputs?.body?.sleepHours != null && (
+            <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+              <Droplet size={16} className="text-teal-500 mb-2" />
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Sleep</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">{rawInputs.body.sleepHours}h · last reported</p>
+            </div>
+          )}
+          {focus !== 'health' && latestNetWorth && (
+            <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+              <Wallet size={16} className="text-amber-500 mb-2" />
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Net Worth</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">₹{latestNetWorth.netWorth.toLocaleString('en-IN')} · last snapshot</p>
+            </div>
+          )}
+          {focus !== 'wealth' && <LockedInsightTile icon="❤️" label="Heart Rate" connectLabel="Connect a wearable" />}
+          {focus !== 'wealth' && <LockedInsightTile icon="🔥" label="Calories Burned" connectLabel="Connect a wearable" />}
+          {focus !== 'health' && <LockedInsightTile icon="🏦" label="Bank Balance" connectLabel="Connect your bank" />}
+          {focus !== 'health' && <LockedInsightTile icon="📈" label="Investments" connectLabel="Connect your broker" />}
         </div>
+      </div>
+
+      {/* ── Everything else that already works well ── */}
+      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+        <GoalProgressCard goals={goals} focus={focus} />
+        {focus !== 'health' && <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />}
+      </div>
+
+      {focus !== 'wealth' && (
+        <RiskAlertsCard alerts={getRiskAlerts(
+          rawInputs?.body ?? null,
+          focus === 'health' ? null : rawInputs?.finance ?? null,
+        )} />
       )}
 
-      {loading ? (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
-      ) : !score ? (
-        // ── No score yet — CTA to take it ──
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
-          <p className="text-4xl mb-4">🎯</p>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't taken your WellFiLab Score yet</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
-          </p>
-          <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
-            Get my free score →
-          </Link>
-        </div>
-      ) : (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+      <div className="grid lg:grid-cols-5 gap-6 items-stretch">
+        <div className="lg:col-span-3"><ScoreHistoryChart history={history ?? []} /></div>
+        <div className="lg:col-span-2"><AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} /></div>
+      </div>
 
-          {/* ── Focus — Health only / Wealth only / Both (the 3 real user flows) ── */}
-          <div className="flex items-center justify-between gap-3 flex-wrap -mb-4">
-            <p className="text-xs text-gray-400">Track and get recommendations for:</p>
-            <FocusSelector focus={focus} onChange={handleFocusChange} />
-          </div>
+      <NextStepsCard
+        dimensions={(() => {
+          const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+          return focused.length > 0 ? focused : score.dimensions;
+        })()}
+        body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
+      />
 
-          {/* ══ WHERE YOU STAND — the answer to "how am I doing," above the fold ══ */}
-          <section className="space-y-6">
-            <ScoreBand score={score} focus={focus} />
-            <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-              <div className="lg:col-span-3"><TopPriorities actions={score.actions} focus={focus} /></div>
-              <div className="lg:col-span-2">
-                <RiskAlertsCard alerts={getRiskAlerts(
-                  focus === 'wealth' ? null : rawInputs?.body ?? null,
-                  focus === 'health' ? null : rawInputs?.finance ?? null,
-                )} />
-              </div>
-            </div>
-          </section>
+      <MonthlyReviewBand score={score} />
 
-          {/* ══ YOUR PROGRESS — the reason to actually come back ══ */}
-          <section>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your Progress</h2>
-            <div className="space-y-6">
-              <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-                <GoalProgressCard goals={goals} focus={focus} />
-                <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
-              </div>
-
-              {focus !== 'health' && (
-                <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />
-              )}
-
-              <div>
-                <div className="flex items-center justify-end mb-2">
-                  <Link href="/history" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex-shrink-0">
-                    Full history →
-                  </Link>
-                </div>
-                <ScoreHistoryChart history={history ?? []} />
-              </div>
-            </div>
-          </section>
-
-          {/* ══ KEEP GOING — what to do next, why to come back next month ══ */}
-          <section>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Keep Going</h2>
-            <div className="space-y-6">
-              <NextStepsCard
-                dimensions={(() => {
-                  const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
-                  return focused.length > 0 ? focused : score.dimensions;
-                })()}
-                body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
-              />
-              <AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} />
-              <MonthlyReviewBand score={score} />
-            </div>
-          </section>
-
-          <p className="text-center text-[11px] text-gray-400 pt-2">
-            Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
-          </p>
-        </div>
-      )}
+      <p className="text-center text-[11px] text-gray-400 pt-2">
+        Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
+      </p>
     </div>
+  );
+
+  return (
+    <DashboardShell score={score} scoreChangeLabel={score?.scoreChange != null ? `${score.scoreChange > 0 ? '+' : ''}${score.scoreChange} pts since last check-in` : undefined}>
+      {content}
+    </DashboardShell>
   );
 }
