@@ -114,22 +114,30 @@ async function sendPaymentEmail({ email, planId, billing, amount }: {
  */
 export async function POST(req: Request) {
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  // Fail closed: a missing secret must reject the request, not skip
+  // verification. This endpoint grants paid subscription status, so an
+  // unverified request must never be treated as trusted.
+  if (!webhookSecret) {
+    console.error('RAZORPAY_WEBHOOK_SECRET is not set — rejecting webhook');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
 
   try {
     const body      = await req.text();
     const signature = req.headers.get('x-razorpay-signature') ?? '';
 
     // ── Verify signature ─────────────────────────────────────────────────────
-    if (webhookSecret) {
-      const expectedSig = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(body)
-        .digest('hex');
+    const expectedSig = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(body)
+      .digest('hex');
 
-      if (expectedSig !== signature) {
-        console.error('Webhook signature mismatch');
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-      }
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expBuf = Buffer.from(expectedSig, 'utf8');
+    const validSig = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
+    if (!validSig) {
+      console.error('Webhook signature mismatch');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
     const event = JSON.parse(body);

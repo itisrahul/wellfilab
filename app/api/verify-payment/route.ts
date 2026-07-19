@@ -13,15 +13,21 @@ export async function POST(req: Request) {
     } = await req.json();
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    // Fail closed: a missing secret must reject the request, not report
+    // "verified" without ever checking a signature.
     if (!keySecret) {
-      return NextResponse.json({ verified: true, dev: true });
+      console.error('RAZORPAY_KEY_SECRET is not set — cannot verify payment');
+      return NextResponse.json({ verified: false, error: 'Payment verification not configured' }, { status: 500 });
     }
 
     // Verify subscription payment signature
     const body     = `${razorpay_payment_id}|${razorpay_subscription_id}`;
     const expected = crypto.createHmac('sha256', keySecret).update(body).digest('hex');
 
-    if (expected !== razorpay_signature) {
+    const sigBuf = Buffer.from(razorpay_signature ?? '', 'utf8');
+    const expBuf = Buffer.from(expected, 'utf8');
+    const validSig = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
+    if (!validSig) {
       console.error('Payment signature mismatch');
       return NextResponse.json({ verified: false, error: 'Invalid signature' }, { status: 400 });
     }
