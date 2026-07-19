@@ -17,7 +17,6 @@ import { syncRoadmapChecksFromAccount } from '@/lib/roadmapChecks';
 import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
-import { DashboardShell } from './DashboardShell';
 import { LockedInsightTile } from './LockedInsightTile';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
@@ -200,32 +199,71 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
   const healthImprovement = windowed.length > 1 ? Math.round((windowed[windowed.length - 1].body + windowed[windowed.length - 1].mind) / 2) - Math.round((windowed[0].body + windowed[0].mind) / 2) : null;
   const wealthImprovement = windowed.length > 1 ? windowed[windowed.length - 1].wealth - windowed[0].wealth : null;
 
-  const content = loading ? (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
-  ) : !score ? (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
-      <p className="text-4xl mb-4">🎯</p>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't taken your WellFiLab Score yet</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-        Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
-      </p>
-      <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
-        Get my free score →
-      </Link>
-    </div>
-  ) : (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
 
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">{greeting}, {firstName}! 👋</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Here's your health and wealth overview — {monthLabel}</p>
+      {/* ── Header — dark gradient with teal glow, same treatment as the rest of the site ── */}
+      <div className="relative overflow-hidden bg-gray-950">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10">
+          <div className="flex items-start justify-between gap-6 flex-wrap">
+            <div className="flex items-center gap-4">
+              {userImageUrl ? (
+                <img src={userImageUrl} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-white/20 flex-shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-xl font-black text-white flex-shrink-0">
+                  {firstName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">{!loading ? monthLabel : ' '}</p>
+                <h1 className="text-2xl font-extrabold text-white mb-0.5">{!loading ? `${greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋</h1>
+                <p className="text-white/50 text-sm">{userEmail}{memberSince ? ` · Member since ${memberSince}` : ''}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
+                <p className="font-mono tabular-nums text-2xl font-black" style={{ color: score ? scoreColor(score.overall) : '#6b7280' }}>{score?.overall ?? '—'}</p>
+                <p className="text-white/40 text-[11px]">WellFiLab Score</p>
+              </div>
+              <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
+                <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{score?.streakDays ?? '—'}</p>
+                <p className="text-white/40 text-[11px]">Review streak 🔥</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <FocusSelector focus={focus} onChange={handleFocusChange} />
       </div>
 
-      {showImportBanner && <ImportLocalDataBanner onDone={handleImportDone} />}
+      {!loading && showImportBanner && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+          <ImportLocalDataBanner onDone={handleImportDone} />
+        </div>
+      )}
+
+      {loading ? (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
+      ) : !score ? (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
+          <p className="text-4xl mb-4">🎯</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't taken your WellFiLab Score yet</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
+          </p>
+          <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-all">
+            Get my free score →
+          </Link>
+        </div>
+      ) : (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+      {/* ── Focus selector ── */}
+      <div className="flex items-center justify-end gap-3 flex-wrap">
+        <FocusSelector focus={focus} onChange={handleFocusChange} />
+      </div>
 
       {/* ── Split Health / Wealth score cards ── */}
       <div className="grid lg:grid-cols-2 gap-5">
@@ -386,12 +424,8 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
       <p className="text-center text-[11px] text-gray-400 pt-2">
         Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
       </p>
+      </div>
+      )}
     </div>
-  );
-
-  return (
-    <DashboardShell score={score} scoreChangeLabel={score?.scoreChange != null ? `${score.scoreChange > 0 ? '+' : ''}${score.scoreChange} pts since last check-in` : undefined}>
-      {content}
-    </DashboardShell>
   );
 }
