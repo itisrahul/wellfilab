@@ -6,7 +6,6 @@ import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { ConvergingHero } from '@/components/home/ConvergingHero';
-import { HeroCycle } from '@/components/home/HeroCycle';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -131,19 +130,6 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          HOW IT WORKS — the real 6-step product loop, each stop a working
-          link (see components/home/HeroCycle.tsx). Kept on a dark
-          background since its cards are styled for one.
-      ══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-gray-950 py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">How it works</p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-10">One loop: measure, improve, track, repeat.</h2>
-          <HeroCycle />
         </div>
       </section>
 

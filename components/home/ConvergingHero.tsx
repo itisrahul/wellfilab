@@ -1,4 +1,5 @@
 import { Heart, DollarSign, Moon, Activity, Wind, PiggyBank, TrendingUp, CreditCard } from 'lucide-react';
+import { HeroCycle } from './HeroCycle';
 
 /**
  * Homepage hero — dark gradient with a converging Health/Wealth visual,
@@ -55,7 +56,14 @@ export function ConvergingHero() {
       {/* Ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-4">
+      {/* Real page heading — kept off-screen since the visible centerpiece
+          below is the interactive product-journey diagram, not static text,
+          but search engines and screen readers still need a real h1. */}
+      <h1 className="sr-only">
+        WellFiLab — your personal Health and Wealth Operating System. Measure your real numbers, get a personalised roadmap, and track your progress every month.
+      </h1>
+
+      <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-2">
 
         {/* HEALTH panel */}
         <div className="order-2 lg:order-1 flex-1 space-y-2.5 max-w-xs mx-auto lg:mx-0 w-full">
@@ -65,21 +73,9 @@ export function ConvergingHero() {
           {HEALTH_CARDS.map(c => <MetricCard key={c.label} {...c} accent="teal" />)}
         </div>
 
-        {/* Center — brand */}
-        <div className="order-1 lg:order-2 flex-shrink-0 text-center px-2 lg:px-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-amber-400 mb-5 shadow-lg shadow-teal-500/20">
-            <svg width="30" height="30" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-              <path d="M6 10L10 24L17 15L24 24L28 10" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">WellFiLab</h1>
-          <p className="text-white/60 text-sm md:text-base mb-1 text-balance">Your Personal Health and Wealth<br className="hidden md:block" /> Operating System</p>
-          <p className="text-sm font-semibold mb-2">
-            <span className="text-teal-400">Measure.</span>{' '}
-            <span className="text-white/70">Integrate.</span>{' '}
-            <span className="text-amber-400">Optimize.</span>{' '}
-            <span className="text-white">Grow.</span>
-          </p>
+        {/* Center — the real, interactive product-journey cycle */}
+        <div className="order-1 lg:order-2 flex-shrink-0">
+          <HeroCycle />
         </div>
 
         {/* WEALTH panel */}
