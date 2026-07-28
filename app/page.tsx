@@ -5,7 +5,7 @@ import { ALL_POSTS } from '@/lib/posts';
 import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
-import { ConvergingHero } from '@/components/home/ConvergingHero';
+import { ScorePreviewCard } from '@/components/home/ScorePreviewCard';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -76,7 +76,7 @@ export default function HomePage() {
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          1 · HERO — answers "where am I / what's my problem / how does this help" in one screen
+          1 · HERO — one bold claim, one visual proof, one action.
       ══════════════════════════════════════════════ */}
       <section className="relative overflow-hidden bg-gradient-to-br from-teal-700 via-teal-600 to-cyan-500 dark:bg-gradient-to-b dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
         <div className="absolute inset-0 opacity-100 dark:opacity-40" style={{
@@ -84,41 +84,40 @@ export default function HomePage() {
           backgroundSize: '28px 28px',
         }}/>
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-14 md:pt-20">
-          <ConvergingHero />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-          <p className="text-teal-100/70 dark:text-white/40 text-sm text-center mt-10 mb-8">
-            Free · 5 minutes · No signup required to see your score
-          </p>
+            <div className="text-center lg:text-left">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6 text-balance">
+                Your body and your bank account.{' '}
+                <span className="text-teal-200 dark:text-teal-400">One score.</span>
+              </h1>
+              <p className="text-teal-50/90 dark:text-white/70 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
+                The only free tool that turns your real sleep, stress, savings, and debt into one number — then tells you exactly what to fix first.
+              </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
-            <Link href="/score"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 dark:text-gray-900 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
-              Get my free score →
-            </Link>
-            <Link href="/tools"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 dark:border-white/20 dark:hover:border-white/30 transition-all">
-              Browse {CALCULATORS.length}+ free tools →
-            </Link>
-          </div>
-
-          {/* Real feature claims — every one of these is a genuine, shipped
-              capability, not aspirational marketing copy. */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14 max-w-3xl mx-auto">
-            {[
-              { icon: '🗂️', label: 'All Your Data in One Place' },
-              { icon: '🤖', label: 'AI-Powered Insights' },
-              { icon: '🎯', label: 'Personalized Action Plans' },
-              { icon: '📈', label: 'Systematic Improvement' },
-            ].map(f => (
-              <div key={f.label} className="text-center">
-                <span className="text-2xl block mb-2">{f.icon}</span>
-                <p className="text-teal-50/90 dark:text-white/60 text-xs font-semibold leading-snug">{f.label}</p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
+                <Link href="/score"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 dark:text-gray-900 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
+                  Get my free score →
+                </Link>
+                <Link href="/tools"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 dark:border-white/20 dark:hover:border-white/30 transition-all">
+                  Browse {CALCULATORS.length}+ free tools
+                </Link>
               </div>
-            ))}
+
+              <p className="text-teal-100/70 dark:text-white/40 text-sm">
+                Free · 5 minutes · No signup required to see your score
+              </p>
+            </div>
+
+            <div className="max-w-sm mx-auto w-full">
+              <ScorePreviewCard />
+            </div>
           </div>
 
-          <div>
+          <div className="mt-16 md:mt-20">
             <p className="text-teal-100/70 dark:text-white/40 text-xs font-bold uppercase tracking-widest mb-4 text-center">Most popular</p>
             <div className="flex flex-wrap justify-center gap-2.5">
               {popular.map(c => (
