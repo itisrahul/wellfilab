@@ -3,8 +3,9 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import useSWR, { mutate } from 'swr';
-import { Heart, DollarSign, Droplet, Wallet, TrendingUp, TrendingDown, Circle, CheckCircle2 } from 'lucide-react';
+import { Heart, DollarSign, Droplet, Wallet, TrendingUp, TrendingDown, Circle, CheckCircle2, Flame } from 'lucide-react';
 import { scoreColor, scoreLabel } from '@/lib/wellfilab-score';
+import { ScoreRing } from '@/components/ui/ScoreRing';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { getGoals } from '@/lib/goalsStorage';
@@ -202,39 +203,68 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
 
-      {/* ── Header — dark gradient with teal glow, same treatment as the rest of the site ── */}
-      <div className="relative overflow-hidden bg-gray-950">
+      {/* ── Hero — one bold moment: the real score, big, with real
+           identity (archetype) instead of a small badge buried in a
+           header bar. Same dark-gradient brand language as the homepage
+           hero, not a duplicated but distinct look. ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 opacity-30" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0)', backgroundSize: '28px 28px'}} />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          <div className="flex items-start justify-between gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              {userImageUrl ? (
-                <img src={userImageUrl} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-white/20 flex-shrink-0" />
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-xl font-black text-white flex-shrink-0">
-                  {firstName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div>
-                <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">{!loading ? monthLabel : ' '}</p>
-                <h1 className="text-2xl font-extrabold text-white mb-0.5">{!loading ? `${greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋</h1>
-                <p className="text-white/50 text-sm">{userEmail}{memberSince ? ` · Member since ${memberSince}` : ''}</p>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-12">
+          <div className="flex items-center gap-3 mb-6">
+            {userImageUrl ? (
+              <img src={userImageUrl} alt="" className="w-10 h-10 rounded-xl object-cover border-2 border-white/20 flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-sm font-black text-white flex-shrink-0">
+                {firstName.charAt(0).toUpperCase()}
               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="font-mono tabular-nums text-2xl font-black" style={{ color: score ? scoreColor(score.overall) : '#6b7280' }}>{score?.overall ?? '—'}</p>
-                <p className="text-white/40 text-[11px]">WellFiLab Score</p>
-              </div>
-              <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-5 py-3 min-w-[92px]">
-                <p className="font-mono tabular-nums text-2xl font-black text-teal-400">{score?.streakDays ?? '—'}</p>
-                <p className="text-white/40 text-[11px]">Review streak 🔥</p>
-              </div>
+            )}
+            <div>
+              <p className="text-white font-bold text-sm leading-tight">{!loading ? `${greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋</p>
+              <p className="text-white/40 text-xs">{!loading ? monthLabel : ' '}</p>
             </div>
           </div>
+
+          {score && (
+            <div className="flex flex-col md:flex-row items-center md:items-end gap-8">
+              <div className="relative flex-shrink-0" style={{ width: 150, height: 150 }}>
+                <ScoreRing pct={score.overall} color={scoreColor(score.overall)} size={150} thick={12} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-mono tabular-nums font-black text-5xl text-white leading-none">{score.overall}</span>
+                  <span className="text-white/40 text-[11px] font-bold uppercase tracking-widest mt-1">Score</span>
+                </div>
+              </div>
+              <div className="text-center md:text-left flex-1">
+                <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-1">Your WellFiLab archetype</p>
+                <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight mb-2">
+                  {score.archetype.emoji} {score.archetype.name}
+                </h1>
+                <p className="text-white/60 text-base leading-relaxed max-w-lg">{score.archetype.tagline}</p>
+                <div className="flex items-center justify-center md:justify-start gap-3 mt-4 flex-wrap">
+                  {score.streakDays > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1.5">
+                      <Flame size={13} /> {score.streakDays} day streak
+                    </span>
+                  )}
+                  {score.scoreChange != null && score.scoreChange !== 0 && (
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border ${
+                      score.scoreChange > 0
+                        ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                        : 'text-red-300 bg-red-500/10 border-red-500/20'
+                    }`}>
+                      {score.scoreChange > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                      {score.scoreChange > 0 ? '+' : ''}{score.scoreChange} pts since last check-in
+                    </span>
+                  )}
+                  <Link href="/score" className="text-xs font-bold text-white/50 hover:text-white transition-colors underline underline-offset-2">
+                    Retake your score →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -275,65 +305,49 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
         )}
       </div>
 
-      {/* ── Priorities / Action Plan / Trend Analysis ── */}
-      <div className="grid lg:grid-cols-3 gap-5 items-stretch">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Priorities</p>
-          <div className="space-y-3">
-            {score.actions.slice(0, 3).map(a => (
-              <div key={a.rank} className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight">{a.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{a.why}</p>
-                </div>
-                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  a.howEasy === 'today' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'
-                  : a.howEasy === 'this-week' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
-                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                }`}>
-                  {a.howEasy === 'today' ? 'High' : a.howEasy === 'this-week' ? 'Medium' : 'Low'} Priority
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Real connected timeline — the current active phase's real actions
-            (same generator the roadmap page itself uses, see
-            lib/roadmapProgress.ts's activePhaseActions) with their real
-            checked state, not a duplicated/invented list. */}
+      {/* ── Do This Next / Trend Analysis — merged Priorities + Action Plan
+           into one focused card (same real data, less box-sprawl) next to
+           Trend, instead of three same-weight boxes competing for attention. ── */}
+      <div className="grid lg:grid-cols-2 gap-5 items-stretch">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Action Plan</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Do This Next</p>
             {roadmapProgress && <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">Phase {roadmapProgress.activePhaseNum} · {roadmapProgress.activePhaseLabel}</span>}
           </div>
+
+          {score.actions[0] && (
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900 mb-4">
+              <span className="flex-shrink-0 text-[10px] font-black text-white bg-teal-600 rounded-full w-5 h-5 flex items-center justify-center mt-0.5">1</span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{score.actions[0].title}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{score.actions[0].why}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Real connected checklist — the current active phase's real
+              actions (same generator the roadmap page itself uses, see
+              lib/roadmapProgress.ts's activePhaseActions) with their real
+              checked state, not a duplicated/invented list. */}
           {!roadmapStarted ? (
-            <div className="text-center py-6">
+            <div className="text-center py-4">
               <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
               <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
             </div>
           ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
-            <div className="relative space-y-4">
-              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-              {roadmapProgress.activePhaseActions.slice(0, 4).map((a, i) => (
-                <div key={i} className="relative flex items-start gap-3">
-                  <span className="relative z-10 flex-shrink-0 mt-0.5 bg-white dark:bg-gray-900">
-                    {a.checked
-                      ? <CheckCircle2 size={22} className="text-emerald-500" />
-                      : <Circle size={22} className="text-gray-300 dark:text-gray-600" />}
-                  </span>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <p className={`text-sm font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}>{a.title}</p>
-                  </div>
-                  <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${a.checked ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                    {a.checked ? 'Done' : 'Not Started'}
-                  </span>
+            <div className="space-y-2.5">
+              {roadmapProgress.activePhaseActions.slice(0, 3).map((a, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  {a.checked
+                    ? <CheckCircle2 size={17} className="text-emerald-500 flex-shrink-0" />
+                    : <Circle size={17} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />}
+                  <p className={`text-xs font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
                 </div>
               ))}
-              <Link href="/roadmap" className="block text-center text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-1">View full action plan →</Link>
+              <Link href="/roadmap" className="block text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-2">View full action plan →</Link>
             </div>
           ) : (
-            <p className="text-xs text-gray-400 text-center py-6">No active phase yet — take your score to build a roadmap.</p>
+            <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
           )}
         </div>
 
@@ -393,33 +407,41 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
         </div>
       </div>
 
-      {/* ── Everything else that already works well ── */}
-      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-        <GoalProgressCard goals={goals} focus={focus} />
-        {focus !== 'health' && <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />}
+      {/* ── Your full picture — real detail, visually secondary to the hero
+           and Do This Next zone above so the page has one clear focal point
+           instead of a dozen equal-weight boxes. ── */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Your Full Picture</p>
+
+        <div className="space-y-6">
+          <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+            <GoalProgressCard goals={goals} focus={focus} />
+            {focus !== 'health' && <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />}
+          </div>
+
+          {focus !== 'wealth' && (
+            <RiskAlertsCard alerts={getRiskAlerts(
+              rawInputs?.body ?? null,
+              focus === 'health' ? null : rawInputs?.finance ?? null,
+            )} />
+          )}
+
+          <div className="grid lg:grid-cols-5 gap-6 items-stretch">
+            <div className="lg:col-span-3"><ScoreHistoryChart history={history ?? []} /></div>
+            <div className="lg:col-span-2"><AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} /></div>
+          </div>
+
+          <NextStepsCard
+            dimensions={(() => {
+              const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
+              return focused.length > 0 ? focused : score.dimensions;
+            })()}
+            body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
+          />
+
+          <MonthlyReviewBand score={score} />
+        </div>
       </div>
-
-      {focus !== 'wealth' && (
-        <RiskAlertsCard alerts={getRiskAlerts(
-          rawInputs?.body ?? null,
-          focus === 'health' ? null : rawInputs?.finance ?? null,
-        )} />
-      )}
-
-      <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-        <div className="lg:col-span-3"><ScoreHistoryChart history={history ?? []} /></div>
-        <div className="lg:col-span-2"><AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} /></div>
-      </div>
-
-      <NextStepsCard
-        dimensions={(() => {
-          const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, focus));
-          return focused.length > 0 ? focused : score.dimensions;
-        })()}
-        body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
-      />
-
-      <MonthlyReviewBand score={score} />
 
       <p className="text-center text-[11px] text-gray-400 pt-2">
         Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
