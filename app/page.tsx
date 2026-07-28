@@ -1,11 +1,27 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Layers, TrendingUp, Map as MapIcon, ShieldCheck, CircleCheck, Fingerprint, LineChart } from 'lucide-react';
 import { CALCULATORS, getByCategory } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
+import { HeroShowcase } from '@/components/home/HeroShowcase';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
+
+const HERO_FEATURES = [
+  { icon: Layers, label: 'Unify Health & Wealth' },
+  { icon: TrendingUp, label: 'Track. Score. Improve.' },
+  { icon: MapIcon, label: 'Personalized Roadmaps' },
+  { icon: ShieldCheck, label: 'Real Numbers, Real Score' },
+];
+
+const TRUST_STRIP = [
+  { icon: ShieldCheck, label: 'Secure & Private', body: 'Your data is encrypted and protected' },
+  { icon: CircleCheck, label: 'Data You Own', body: 'Local by default — sync it only if you want to' },
+  { icon: Fingerprint, label: 'Personalized for You', body: 'Insights and a roadmap built from your numbers' },
+  { icon: LineChart, label: 'Built for the Long Run', body: 'Retake monthly and watch your score move' },
+];
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} — Your Personal Health & Wealth Operating System`,
@@ -75,62 +91,81 @@ export default function HomePage() {
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          1 · HERO — one bold claim, one visual proof, one action.
+          1 · HERO — light, clean device-mockup composite (per the
+          reference the user shared) instead of a flat colour wash.
       ══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-700 via-teal-600 to-cyan-500 dark:bg-gradient-to-b dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-        <div className="absolute inset-0 opacity-100 dark:opacity-40" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0)',
-          backgroundSize: '28px 28px',
-        }}/>
+      <section className="relative overflow-hidden bg-gray-50 dark:bg-gray-950">
+        <div className="absolute top-0 left-1/3 w-[32rem] h-[32rem] bg-teal-400/10 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-400/10 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
 
             <div className="text-center lg:text-left">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6 text-balance">
-                Your body and your bank account.{' '}
-                <span className="text-teal-200 dark:text-teal-400">One score.</span>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight mb-6 text-balance">
+                <span className="block text-gray-900 dark:text-white">Your Health.</span>
+                <span className="block text-gray-900 dark:text-white">Your Wealth.</span>
+                <span className="block text-teal-600 dark:text-teal-400">One Real Score.</span>
               </h1>
-              <p className="text-teal-50/90 dark:text-white/70 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
-                The only free tool that turns your real sleep, stress, savings, and debt into one number — then tells you exactly what to fix first.
+              <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
+                WellFiLab is your personal health and wealth operating system — turning your real sleep, stress, savings, and debt into one score, with a roadmap that tells you exactly what to fix first.
               </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-8 max-w-md mx-auto lg:mx-0">
+                {HERO_FEATURES.map(f => (
+                  <div key={f.label} className="flex items-center gap-2 text-left">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                      <f.icon size={15} />
+                    </span>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 leading-tight">{f.label}</span>
+                  </div>
+                ))}
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
                 <Link href="/score"
-                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white text-teal-800 dark:text-gray-900 font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
                   Get my free score →
                 </Link>
-                <Link href="/tools"
-                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold text-base border-2 border-white/30 hover:border-white/50 dark:border-white/20 dark:hover:border-white/30 transition-all">
-                  Browse {CALCULATORS.length}+ free tools
+                <Link href="#how-it-works"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-white font-bold text-base border-2 border-gray-200 dark:border-gray-800 transition-all">
+                  See how it works
                 </Link>
               </div>
 
-              <p className="text-teal-100/70 dark:text-white/40 text-sm">
+              <p className="text-gray-400 dark:text-gray-500 text-sm">
                 Free · 5 minutes · No signup required to see your score
               </p>
             </div>
 
-            <div className="max-w-sm mx-auto w-full">
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-br from-teal-500/20 to-amber-400/20 rounded-[2rem] blur-2xl pointer-events-none" />
-                {/* Real photo goes here — drop your file at
-                    public/images/hero.jpg (portrait or square works best,
-                    ~1000px+ wide) and it appears automatically, no code
-                    changes needed. */}
-                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl bg-gray-200 dark:bg-gray-800">
-                  <img src="/images/hero.jpg" alt="A WellFiLab member reviewing their health and wealth score" className="w-full h-full object-cover" />
-                </div>
-              </div>
+            <div className="w-full pb-6 lg:pb-0">
+              <HeroShowcase />
             </div>
           </div>
 
-          <div className="mt-16 md:mt-20">
-            <p className="text-teal-100/70 dark:text-white/40 text-xs font-bold uppercase tracking-widest mb-4 text-center">Most popular</p>
+          {/* ── Trust strip ── */}
+          <div className="mt-16 md:mt-20 pt-10 border-t border-gray-200 dark:border-gray-800">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {TRUST_STRIP.map(t => (
+                <div key={t.label} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                    <t.icon size={16} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{t.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-snug">{t.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-14">
+            <p className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest mb-4 text-center">Most popular</p>
             <div className="flex flex-wrap justify-center gap-2.5">
               {popular.map(c => (
                 <Link key={c.slug} href={`/tools/${c.category}/${c.slug}`}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/12 hover:bg-white/22 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-white/20 hover:border-white/40 dark:border-white/10 dark:hover:border-white/20 text-white text-sm font-semibold transition-all hover:scale-[1.03] backdrop-blur-sm">
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold transition-all hover:scale-[1.03]">
                   <span className="text-lg">{c.icon}</span>
                   {c.short}
                 </Link>
@@ -175,7 +210,7 @@ export default function HomePage() {
             roadmap/goal/dashboard mockups in different shapes. A first-time
             visitor should be able to read this in 15 seconds.
         ══════════════════════════════════════════════ */}
-        <section>
+        <section id="how-it-works" className="scroll-mt-24">
           <div className="text-center mb-10">
             <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">How it works</p>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Three steps. That's it.</h2>
