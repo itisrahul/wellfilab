@@ -27,6 +27,10 @@ export interface RoadmapProgressSummary {
    * state — same titles the roadmap page itself generates (getDimActions),
    * not a second copy. Powers the dashboard's Action Plan timeline. */
   activePhaseActions: { title: string; checked: boolean }[];
+  /** Per-phase status for the dashboard's 3-phase overview row — computed
+   * from the same phase1/2/3 totals already derived above, just surfaced
+   * instead of only exposing the currently-active phase. */
+  phases: { num: 1 | 2 | 3; label: string; total: number; checked: number; pct: number; status: 'completed' | 'active' | 'locked' }[];
 }
 
 const PHASE_LABEL: Record<1 | 2 | 3, string> = { 1: 'Foundation', 2: 'Building', 3: 'Growing' };
@@ -85,6 +89,16 @@ export function computeRoadmapProgress(
       ? phase2Actions.map((a, i) => ({ title: a.title, checked: !!checks[`p2-${i}`] }))
       : phase3Actions.map((a, i) => ({ title: a.title, checked: !!checks[`p3-${i}`] }));
 
+  const phasePct = (checked: number, total: number) => total > 0 ? Math.round((checked / total) * 100) : 0;
+  const phaseStatus = (num: 1 | 2 | 3, checked: number, total: number, unlocked: boolean): 'completed' | 'active' | 'locked' =>
+    !unlocked ? 'locked' : (total > 0 && checked >= total) ? 'completed' : 'active';
+
+  const phases: RoadmapProgressSummary['phases'] = [
+    { num: 1, label: PHASE_LABEL[1], total: phase1Total, checked: phase1Checked, pct: phasePct(phase1Checked, phase1Total), status: phaseStatus(1, phase1Checked, phase1Total, true) },
+    { num: 2, label: PHASE_LABEL[2], total: phase2Total, checked: phase2Checked, pct: phasePct(phase2Checked, phase2Total), status: phaseStatus(2, phase2Checked, phase2Total, phase2Unlocked) },
+    { num: 3, label: PHASE_LABEL[3], total: phase3Total, checked: phase3Checked, pct: phasePct(phase3Checked, phase3Total), status: phaseStatus(3, phase3Checked, phase3Total, phase3Unlocked) },
+  ];
+
   return {
     totalActions, totalChecked,
     activePhaseNum, activePhaseLabel: PHASE_LABEL[activePhaseNum],
@@ -92,5 +106,6 @@ export function computeRoadmapProgress(
     doneCount, inProgressCount, pendingCount,
     pctComplete: totalActions > 0 ? Math.round((totalChecked / totalActions) * 100) : 0,
     activePhaseActions,
+    phases,
   };
 }

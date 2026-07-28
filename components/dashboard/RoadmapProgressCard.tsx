@@ -14,10 +14,17 @@ export function RoadmapProgressCard({ started, progress }: { started: boolean; p
     );
   }
 
-  const { doneCount, inProgressCount, pendingCount, totalActions, activePhaseNum, activePhaseLabel, pctComplete } = progress;
-  const donePct = Math.round((doneCount / totalActions) * 100);
-  const progressPct = Math.round((inProgressCount / totalActions) * 100);
-  const pendingPct = 100 - donePct - progressPct;
+  const { phases } = progress;
+  const STATUS_STYLE: Record<typeof phases[number]['status'], string> = {
+    completed: 'border-teal-400 bg-teal-50 dark:bg-teal-950/20',
+    active: 'border-amber-300 bg-amber-50 dark:bg-amber-950/20',
+    locked: 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900',
+  };
+  const STATUS_BADGE: Record<typeof phases[number]['status'], { label: string; className: string }> = {
+    completed: { label: 'Completed', className: 'bg-teal-600 text-white' },
+    active: { label: 'In progress', className: 'bg-amber-500 text-white' },
+    locked: { label: 'Locked', className: 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400' },
+  };
 
   return (
     <div id="roadmap-progress" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
@@ -26,21 +33,15 @@ export function RoadmapProgressCard({ started, progress }: { started: boolean; p
         <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">View →</span>
       </Link>
 
-      <div className="h-2.5 rounded-full overflow-hidden flex bg-gray-100 dark:bg-gray-800 mb-3">
-        {donePct > 0 && <div className="h-full bg-teal-600" style={{ width: `${donePct}%` }} />}
-        {progressPct > 0 && <div className="h-full bg-amber-500" style={{ width: `${progressPct}%` }} />}
-        {pendingPct > 0 && <div className="h-full bg-gray-200 dark:bg-gray-700" style={{ width: `${pendingPct}%` }} />}
+      <div className="grid grid-cols-3 gap-2.5">
+        {phases.map(p => (
+          <div key={p.num} className={`rounded-xl border-2 p-2.5 ${STATUS_STYLE[p.status]}`}>
+            <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400 mb-1.5">Phase {p.num} · {p.label}</p>
+            <span className={`inline-block text-[8px] font-bold px-1.5 py-0.5 rounded-full mb-1.5 ${STATUS_BADGE[p.status].className}`}>{STATUS_BADGE[p.status].label}</span>
+            <p className="font-mono tabular-nums text-xs font-black text-gray-900 dark:text-white">{p.status === 'locked' ? '—' : `${p.pct}%`}</p>
+          </div>
+        ))}
       </div>
-
-      <div className="flex items-center gap-4 text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-teal-600 inline-block" />Done ({doneCount})</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />In progress ({inProgressCount})</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 inline-block" />Pending ({pendingCount})</span>
-      </div>
-
-      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-        Phase {activePhaseNum} — {activePhaseLabel} · <span className="font-mono tabular-nums">{pctComplete}%</span> complete
-      </p>
       <LinkBar>
         <LinkChip targetId="top-priorities">Phase 1 = your Top Priorities</LinkChip>
       </LinkBar>

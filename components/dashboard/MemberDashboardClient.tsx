@@ -3,8 +3,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import useSWR, { mutate } from 'swr';
-import { Heart, DollarSign, Droplet, Wallet, TrendingUp, TrendingDown, Circle, CheckCircle2, Flame } from 'lucide-react';
-import { scoreColor, scoreLabel } from '@/lib/wellfilab-score';
+import { Heart, Brain, Wallet, Leaf, Flame, Circle, CheckCircle2 } from 'lucide-react';
+import { scoreColor } from '@/lib/wellfilab-score';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
@@ -18,22 +18,25 @@ import { syncRoadmapChecksFromAccount } from '@/lib/roadmapChecks';
 import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
-import { LockedInsightTile } from './LockedInsightTile';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
 import { NetWorthCard } from './NetWorthCard';
+import { CashFlowCard } from './CashFlowCard';
+import { EquityAllocationCard } from './EquityAllocationCard';
+import { HealthOverviewCard } from './HealthOverviewCard';
+import { WealthOverviewCard } from './WealthOverviewCard';
+import { TopOpportunitiesCard } from './TopOpportunitiesCard';
+import { RoadmapProgressCard } from './RoadmapProgressCard';
+import { MiniScoreCard } from './MiniScoreCard';
 import { AchievementsCard } from './AchievementsCard';
 import { NextStepsCard } from './NextStepsCard';
 import { MonthlyReviewBand } from './MonthlyReviewBand';
 import { FocusSelector } from './FocusSelector';
+import { LinkChip, LinkBar } from './LinkChip';
 
 // recharts is heavy — load it only on the client, same pattern every
 // calculator widget already uses, instead of bloating the dashboard's
 // initial JS payload with a library only this one chart needs.
-const ScoreHistoryChart = dynamic(
-  () => import('./ScoreHistoryChart').then(m => m.ScoreHistoryChart),
-  { ssr: false, loading: () => <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 h-full min-h-[300px] animate-pulse" /> }
-);
 const HealthWealthTrendChart = dynamic(
   () => import('./HealthWealthTrendChart').then(m => m.HealthWealthTrendChart),
   { ssr: false, loading: () => <div className="h-60 animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" /> }
@@ -50,8 +53,7 @@ interface Props {
   memberSince: string;
 }
 
-const HEALTH_DIM_IDS = ['sleep', 'movement', 'stress'];
-const WEALTH_DIM_IDS = ['savings', 'investing', 'debt'];
+const TREND_WINDOWS = [3, 6, 10] as const;
 
 /** Refetches every account data source — used after the one-time import
  * banner completes, since it may have just written into all of them. */
@@ -62,62 +64,40 @@ function refreshAllAccountData() {
   ]);
 }
 
-function DimTile({ label, score, icon }: { label: string; score: number; icon: string }) {
-  const color = scoreColor(score);
-  return (
-    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
-      <p className="text-[11px] text-gray-400 mb-1">{icon} {label}</p>
-      <p className="font-mono tabular-nums font-bold text-sm" style={{ color }}>{Math.round(score)}<span className="text-gray-400 font-normal">/100</span></p>
-    </div>
-  );
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function ScoreSummaryCard({ label, icon, score, delta, dims, series }: {
-  label: string; icon: React.ReactNode; score: number; delta?: number;
-  dims: { id: string; label: string; score: number; icon: string }[];
-  series: number[];
+/** The big overall-score card that anchors the top row — same real ring
+ * used on the homepage preview and the score results page, plus the real
+ * archetype identity (not shown anywhere else on this redesigned page). */
+function WellFiScoreCard({ overall, delta, archetypeName, archetypeEmoji, series }: {
+  overall: number; delta?: number; archetypeName: string; archetypeEmoji: string; series: number[];
 }) {
-  const color = scoreColor(score);
+  const color = scoreColor(overall);
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span style={{ color }}>{icon}</span>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{label} Score</p>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">WellFi Score</p>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="relative flex-shrink-0" style={{ width: 56, height: 56 }}>
+          <ScoreRing pct={overall} color={color} size={56} thick={6} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-mono tabular-nums font-black text-lg" style={{ color }}>{overall}</span>
+          </div>
         </div>
-        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style={{ color, backgroundColor: `${color}1a` }}>
-          {delta != null && delta >= 0 && <TrendingUp size={11} />}
-          {delta != null && delta < 0 && <TrendingDown size={11} />}
-          {scoreLabel(score)}
-        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{archetypeEmoji} {archetypeName}</p>
+          {delta != null && (
+            <p className={`text-[10px] font-semibold ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+              {delta > 0 ? '↑' : delta < 0 ? '↓' : '·'} {delta !== 0 ? `${Math.abs(delta)} vs last` : 'No change'}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="flex items-end gap-2 mb-1">
-        <span className="font-mono tabular-nums text-4xl font-black" style={{ color }}>{Math.round(score)}</span>
-        <span className="text-gray-400 text-sm mb-1">/100</span>
-      </div>
-      {delta != null ? (
-        <p className={`text-xs font-semibold flex items-center gap-1 ${delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-          {delta > 0 ? <TrendingUp size={12} /> : delta < 0 ? <TrendingDown size={12} /> : null}
-          {delta > 0 ? '+' : ''}{delta} pts since last check-in
-        </p>
-      ) : <div className="h-4" />}
-
-      {series.length > 1 && (
-        <div className="-mx-2 mt-1">
-          <MiniTrendLine data={series} color={color} />
-        </div>
-      )}
-
-      {dims.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          {dims.map(d => <DimTile key={d.id} label={d.label} score={d.score} icon={d.icon} />)}
-        </div>
-      )}
+      {series.length > 1 && <div className="-mx-2 mt-auto"><MiniTrendLine data={series} color={color} /></div>}
     </div>
   );
 }
-
-const TREND_WINDOWS = [3, 6, 10] as const;
 
 export function MemberDashboardClient({ userName, userEmail, userImageUrl, memberSince }: Props) {
   const [focus, setFocus] = useState<ScoreFocus>('both');
@@ -171,7 +151,6 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const monthLabel = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   const roadmapProgress = score
     ? computeRoadmapProgress(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, roadmapChecks ?? {}, focus)
@@ -183,90 +162,19 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
   // `scoreChange`, so a formula update never shows as a fake swing.
   const prevEntry = history && history.length > 1 ? history[1] : null;
   const prevValid = !!(prevEntry && score && prevEntry.scoreVersion === score.scoreVersion);
-  const healthScore = score ? Math.round((score.body + score.mind) / 2) : null;
-  const healthDelta = prevValid && healthScore != null ? healthScore - Math.round((prevEntry!.body + prevEntry!.mind) / 2) : undefined;
-  const wealthDelta = prevValid && score ? score.wealth - prevEntry!.wealth : undefined;
-
-  const healthDims = score?.dimensions.filter(d => HEALTH_DIM_IDS.includes(d.id)) ?? [];
-  const wealthDims = score?.dimensions.filter(d => WEALTH_DIM_IDS.includes(d.id)) ?? [];
-
-  const latestNetWorth = netWorthSnapshots && netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1] : null;
+  const deltaOf = (curr?: number, prev?: number) => prevValid && curr != null && prev != null ? curr - prev : undefined;
 
   // Oldest -> newest, for the mini sparklines and the trend window below.
   const chronological = (history ?? []).slice().reverse();
+  const seriesOf = (key: 'overall' | 'body' | 'mind' | 'wealth' | 'life') => chronological.map(h => h[key]);
   const healthSeriesFull = chronological.map(h => Math.round((h.body + h.mind) / 2));
-  const wealthSeriesFull = chronological.map(h => h.wealth);
+  const wealthSeriesFull = seriesOf('wealth');
   const windowed = chronological.slice(-trendWindow);
   const healthImprovement = windowed.length > 1 ? Math.round((windowed[windowed.length - 1].body + windowed[windowed.length - 1].mind) / 2) - Math.round((windowed[0].body + windowed[0].mind) / 2) : null;
   const wealthImprovement = windowed.length > 1 ? windowed[windowed.length - 1].wealth - windowed[0].wealth : null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-
-      {/* ── Hero — one bold moment: the real score, big, with real
-           identity (archetype) instead of a small badge buried in a
-           header bar. Same dark-gradient brand language as the homepage
-           hero, not a duplicated but distinct look. ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 opacity-30" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0)', backgroundSize: '28px 28px'}} />
-
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-12">
-          <div className="flex items-center gap-3 mb-6">
-            {userImageUrl ? (
-              <img src={userImageUrl} alt="" className="w-10 h-10 rounded-xl object-cover border-2 border-white/20 flex-shrink-0" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center text-sm font-black text-white flex-shrink-0">
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <p className="text-white font-bold text-sm leading-tight">{!loading ? `${greeting}, ${firstName}` : `Welcome, ${firstName}`} 👋</p>
-              <p className="text-white/40 text-xs">{!loading ? monthLabel : ' '}</p>
-            </div>
-          </div>
-
-          {score && (
-            <div className="flex flex-col md:flex-row items-center md:items-end gap-8">
-              <div className="relative flex-shrink-0" style={{ width: 150, height: 150 }}>
-                <ScoreRing pct={score.overall} color={scoreColor(score.overall)} size={150} thick={12} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-mono tabular-nums font-black text-5xl text-white leading-none">{score.overall}</span>
-                  <span className="text-white/40 text-[11px] font-bold uppercase tracking-widest mt-1">Score</span>
-                </div>
-              </div>
-              <div className="text-center md:text-left flex-1">
-                <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-1">Your WellFiLab archetype</p>
-                <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight mb-2">
-                  {score.archetype.emoji} {score.archetype.name}
-                </h1>
-                <p className="text-white/60 text-base leading-relaxed max-w-lg">{score.archetype.tagline}</p>
-                <div className="flex items-center justify-center md:justify-start gap-3 mt-4 flex-wrap">
-                  {score.streakDays > 0 && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1.5">
-                      <Flame size={13} /> {score.streakDays} day streak
-                    </span>
-                  )}
-                  {score.scoreChange != null && score.scoreChange !== 0 && (
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border ${
-                      score.scoreChange > 0
-                        ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
-                        : 'text-red-300 bg-red-500/10 border-red-500/20'
-                    }`}>
-                      {score.scoreChange > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                      {score.scoreChange > 0 ? '+' : ''}{score.scoreChange} pts since last check-in
-                    </span>
-                  )}
-                  <Link href="/score" className="text-xs font-bold text-white/50 hover:text-white transition-colors underline underline-offset-2">
-                    Retake your score →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {!loading && showImportBanner && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
@@ -288,121 +196,123 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           </Link>
         </div>
       ) : (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-      {/* ── Focus selector ── */}
-      <div className="flex items-center justify-end gap-3 flex-wrap">
-        <FocusSelector focus={focus} onChange={handleFocusChange} />
-      </div>
-
-      {/* ── Your Progress — the one big tracking chart, promoted to the top
-           so "how am I doing over time" is answered before anything else.
-           A single line (not the split health/wealth view) so a first-time
-           user can read it in one glance; the detailed split view still
-           lives further down for anyone who wants it. ── */}
-      <ScoreHistoryChart history={history ?? []} />
-
-      {/* ── Split Health / Wealth score cards ── */}
-      <div className="grid lg:grid-cols-2 gap-5">
-        {focus !== 'wealth' && (
-          <ScoreSummaryCard label="Health" icon={<Heart size={16} />} score={healthScore ?? score.body} delta={healthDelta} dims={healthDims} series={healthSeriesFull} />
-        )}
-        {focus !== 'health' && (
-          <ScoreSummaryCard label="Wealth" icon={<DollarSign size={16} />} score={score.wealth} delta={wealthDelta} dims={wealthDims} series={wealthSeriesFull} />
-        )}
-      </div>
-
-      {/* ── Do This Next — Priorities + Action Plan merged into one focused
-           card (same real data, less box-sprawl), full width now that Trend
-           lives at the top of the page instead of squeezed alongside it. ── */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Do This Next</p>
-          {roadmapProgress && <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">Phase {roadmapProgress.activePhaseNum} · {roadmapProgress.activePhaseLabel}</span>}
+      {/* ── Welcome bar — light, information-first, replacing the old dark
+           gradient hero. Every stat here is real: no fabricated "synced Xm
+           ago" timestamp, since we don't track one — just an honest
+           signed-in-vs-local status. ── */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {userImageUrl ? (
+            <img src={userImageUrl} alt="" title={userEmail} className="w-11 h-11 rounded-xl object-cover border border-gray-200 dark:border-gray-800 flex-shrink-0" />
+          ) : (
+            <div className="w-11 h-11 rounded-xl bg-teal-600 flex items-center justify-center text-base font-black text-white flex-shrink-0">
+              {firstName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h1 className="text-lg font-extrabold text-gray-900 dark:text-white leading-tight">{greeting}, {firstName} 👋</h1>
+            <p className="text-xs text-gray-400">Here's your health, wealth and life overview.</p>
+          </div>
         </div>
-
-        {score.actions[0] && (
-          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900 mb-4">
-            <span className="flex-shrink-0 text-[10px] font-black text-white bg-teal-600 rounded-full w-5 h-5 flex items-center justify-center mt-0.5">1</span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{score.actions[0].title}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{score.actions[0].why}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Real connected checklist — the current active phase's real
-            actions (same generator the roadmap page itself uses, see
-            lib/roadmapProgress.ts's activePhaseActions) with their real
-            checked state, not a duplicated/invented list. */}
-        {!roadmapStarted ? (
-          <div className="text-center py-4">
-            <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
-            <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
-          </div>
-        ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
-          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5">
-            {roadmapProgress.activePhaseActions.slice(0, 4).map((a, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                {a.checked
-                  ? <CheckCircle2 size={17} className="text-emerald-500 flex-shrink-0" />
-                  : <Circle size={17} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />}
-                <p className={`text-xs font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
-              </div>
-            ))}
-            <Link href="/roadmap" className="block text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-2 sm:col-span-2">View full action plan →</Link>
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
-        )}
-      </div>
-
-      {/* ── Real-time insights — real "as of last update" tiles mixed with
-           honestly-locked tiles for data we don't have access to yet (no
-           wearable or bank/investment integration exists) ── */}
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Insights</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {focus !== 'wealth' && rawInputs?.body?.sleepHours != null && (
-            <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-              <Droplet size={16} className="text-teal-500 mb-2" />
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Sleep</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{rawInputs.body.sleepHours}h · last reported</p>
-            </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900 rounded-full px-3 py-1.5">
+            <CheckCircle2 size={13} /> Synced to your account
+          </span>
+          {score.date && (
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-full px-3 py-1.5">
+              Last check-in {fmtDate(score.date)}
+            </span>
           )}
-          {focus !== 'health' && latestNetWorth && (
-            <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-              <Wallet size={16} className="text-amber-500 mb-2" />
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Net Worth</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">₹{latestNetWorth.netWorth.toLocaleString('en-IN')} · last snapshot</p>
-            </div>
+          {score.streakDays > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 rounded-full px-3 py-1.5">
+              <Flame size={13} /> {score.streakDays} day streak
+            </span>
           )}
-          {focus !== 'wealth' && <LockedInsightTile icon="❤️" label="Heart Rate" connectLabel="Connect a wearable" />}
-          {focus !== 'wealth' && <LockedInsightTile icon="🔥" label="Calories Burned" connectLabel="Connect a wearable" />}
-          {focus !== 'health' && <LockedInsightTile icon="🏦" label="Bank Balance" connectLabel="Connect your bank" />}
-          {focus !== 'health' && <LockedInsightTile icon="📈" label="Investments" connectLabel="Connect your broker" />}
+          <FocusSelector focus={focus} onChange={handleFocusChange} />
         </div>
       </div>
 
-      {/* ── Your full picture — real detail, visually secondary to the hero
-           and Do This Next zone above so the page has one clear focal point
-           instead of a dozen equal-weight boxes. ── */}
-      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Your Full Picture</p>
+      {/* ── Row 1 — every real score dimension the algorithm returns, plus
+           the overall ring. Same numbers as score.body/mind/wealth/life,
+           not a derived split. ── */}
+      <div className={`grid gap-4 ${focus === 'both' ? 'sm:grid-cols-2 lg:grid-cols-5' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
+        {focus !== 'wealth' && <MiniScoreCard label="Body" icon={<Heart size={14} />} score={score.body} delta={deltaOf(score.body, prevEntry?.body)} series={seriesOf('body')} />}
+        {focus !== 'wealth' && <MiniScoreCard label="Mind" icon={<Brain size={14} />} score={score.mind} delta={deltaOf(score.mind, prevEntry?.mind)} series={seriesOf('mind')} />}
+        {focus !== 'health' && <MiniScoreCard label="Wealth" icon={<Wallet size={14} />} score={score.wealth} delta={deltaOf(score.wealth, prevEntry?.wealth)} series={wealthSeriesFull} />}
+        {focus === 'both' && <MiniScoreCard label="Life" icon={<Leaf size={14} />} score={score.life} delta={deltaOf(score.life, prevEntry?.life)} series={seriesOf('life')} />}
+        <WellFiScoreCard overall={score.overall} delta={deltaOf(score.overall, prevEntry?.overall)} archetypeName={score.archetype.name} archetypeEmoji={score.archetype.emoji} series={seriesOf('overall')} />
+      </div>
+
+      {/* ── Row 2 — real wealth detail: net worth (assets/liabilities), real
+           income vs expenses, and a real self-reported equity split. No
+           fabricated portfolio/fund breakdown — we have no broker link. ── */}
+      {focus !== 'health' && (
+        <div className="grid lg:grid-cols-3 gap-4">
+          <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />
+          <CashFlowCard finance={rawInputs?.finance ?? null} />
+          <EquityAllocationCard finance={rawInputs?.finance ?? null} />
+        </div>
+      )}
+
+      {/* ── Row 3 — health/wealth overview tiles + the algorithm's own
+           top-ranked opportunities (real "why" + real impact estimate, not
+           an "AI insights" feature we don't actually have). ── */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        {focus !== 'wealth' && <HealthOverviewCard body={rawInputs?.body ?? null} />}
+        {focus !== 'health' && <WealthOverviewCard finance={rawInputs?.finance ?? null} />}
+        <TopOpportunitiesCard actions={score.actions} />
+      </div>
+
+      {/* ── Row 4 — goals, all 3 roadmap phases at a glance, and the active
+           phase's real checklist. ── */}
+      <div className="grid lg:grid-cols-3 gap-4 items-stretch">
+        <GoalProgressCard goals={goals} focus={focus} />
+        <RoadmapProgressCard started={roadmapStarted} progress={roadmapProgress} />
+        <div id="upcoming-actions" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Upcoming actions</p>
+            {roadmapProgress && <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">Phase {roadmapProgress.activePhaseNum}</span>}
+          </div>
+          {!roadmapStarted ? (
+            <div className="text-center py-4">
+              <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
+              <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
+            </div>
+          ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
+            <div className="space-y-2.5">
+              {roadmapProgress.activePhaseActions.slice(0, 4).map((a, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  {a.checked
+                    ? <CheckCircle2 size={17} className="text-emerald-500 flex-shrink-0" />
+                    : <Circle size={17} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />}
+                  <p className={`text-xs font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
+                </div>
+              ))}
+              <Link href="/roadmap" className="block text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-2">View full action plan →</Link>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
+          )}
+          <LinkBar>
+            <LinkChip targetId="roadmap-progress">Part of your Roadmap Progress</LinkChip>
+          </LinkBar>
+        </div>
+      </div>
+
+      <RiskAlertsCard alerts={getRiskAlerts(
+        focus === 'wealth' ? null : rawInputs?.body ?? null,
+        focus === 'health' ? null : rawInputs?.finance ?? null,
+      )} />
+
+      {/* ── Your full picture — detailed trend, achievements, next steps and
+           the monthly review, kept as real secondary detail rather than
+           competing with the rows above for attention. ── */}
+      <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5 mt-4">Your Full Picture</p>
 
         <div className="space-y-6">
-          <div className="grid lg:grid-cols-2 gap-6 items-stretch">
-            <GoalProgressCard goals={goals} focus={focus} />
-            {focus !== 'health' && <NetWorthCard snapshots={netWorthSnapshots ?? []} age={rawInputs?.body?.age} />}
-          </div>
-
-          {focus !== 'wealth' && (
-            <RiskAlertsCard alerts={getRiskAlerts(
-              rawInputs?.body ?? null,
-              focus === 'health' ? null : rawInputs?.finance ?? null,
-            )} />
-          )}
-
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
             <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
               <div className="flex items-center justify-between mb-1">
@@ -447,7 +357,7 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
       </div>
 
       <p className="text-center text-[11px] text-gray-400 pt-2">
-        Scores and history are synced to your account — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
+        Your data is private, encrypted, and synced to your account only — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
       </p>
       </div>
       )}
