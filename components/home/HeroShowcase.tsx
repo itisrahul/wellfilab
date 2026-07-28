@@ -120,9 +120,11 @@ export function HeroShowcase() {
 
       {/* ── Real photo accent, bottom-left — drop your file at
            public/images/hero.jpg (square-ish crop, 600px+) and it appears
-           here automatically. ── */}
-      <div className="hidden lg:block absolute -bottom-8 -left-10 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-xl bg-gray-200 dark:bg-gray-800">
-        <img src="/images/hero.jpg" alt="A WellFiLab member" className="w-full h-full object-cover" />
+           here automatically. Crop biased toward the bottom-left of the
+           source image since the current file is a wide composite with
+           its subject in that corner, not a pre-cropped portrait. ── */}
+      <div className="hidden lg:block absolute -bottom-8 -left-10 w-28 h-28 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-xl bg-gray-200 dark:bg-gray-800">
+        <img src="/images/hero.jpg" alt="A WellFiLab member" className="w-full h-full object-cover object-[8%_78%]" />
       </div>
     </div>
   );
