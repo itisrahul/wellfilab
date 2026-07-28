@@ -295,6 +295,13 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
         <FocusSelector focus={focus} onChange={handleFocusChange} />
       </div>
 
+      {/* ── Your Progress — the one big tracking chart, promoted to the top
+           so "how am I doing over time" is answered before anything else.
+           A single line (not the split health/wealth view) so a first-time
+           user can read it in one glance; the detailed split view still
+           lives further down for anyone who wants it. ── */}
+      <ScoreHistoryChart history={history ?? []} />
+
       {/* ── Split Health / Wealth score cards ── */}
       <div className="grid lg:grid-cols-2 gap-5">
         {focus !== 'wealth' && (
@@ -305,79 +312,49 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
         )}
       </div>
 
-      {/* ── Do This Next / Trend Analysis — merged Priorities + Action Plan
-           into one focused card (same real data, less box-sprawl) next to
-           Trend, instead of three same-weight boxes competing for attention. ── */}
-      <div className="grid lg:grid-cols-2 gap-5 items-stretch">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Do This Next</p>
-            {roadmapProgress && <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">Phase {roadmapProgress.activePhaseNum} · {roadmapProgress.activePhaseLabel}</span>}
-          </div>
+      {/* ── Do This Next — Priorities + Action Plan merged into one focused
+           card (same real data, less box-sprawl), full width now that Trend
+           lives at the top of the page instead of squeezed alongside it. ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Do This Next</p>
+          {roadmapProgress && <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">Phase {roadmapProgress.activePhaseNum} · {roadmapProgress.activePhaseLabel}</span>}
+        </div>
 
-          {score.actions[0] && (
-            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900 mb-4">
-              <span className="flex-shrink-0 text-[10px] font-black text-white bg-teal-600 rounded-full w-5 h-5 flex items-center justify-center mt-0.5">1</span>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{score.actions[0].title}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{score.actions[0].why}</p>
+        {score.actions[0] && (
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900 mb-4">
+            <span className="flex-shrink-0 text-[10px] font-black text-white bg-teal-600 rounded-full w-5 h-5 flex items-center justify-center mt-0.5">1</span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{score.actions[0].title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{score.actions[0].why}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Real connected checklist — the current active phase's real
+            actions (same generator the roadmap page itself uses, see
+            lib/roadmapProgress.ts's activePhaseActions) with their real
+            checked state, not a duplicated/invented list. */}
+        {!roadmapStarted ? (
+          <div className="text-center py-4">
+            <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
+            <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
+          </div>
+        ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
+          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5">
+            {roadmapProgress.activePhaseActions.slice(0, 4).map((a, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                {a.checked
+                  ? <CheckCircle2 size={17} className="text-emerald-500 flex-shrink-0" />
+                  : <Circle size={17} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />}
+                <p className={`text-xs font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
               </div>
-            </div>
-          )}
-
-          {/* Real connected checklist — the current active phase's real
-              actions (same generator the roadmap page itself uses, see
-              lib/roadmapProgress.ts's activePhaseActions) with their real
-              checked state, not a duplicated/invented list. */}
-          {!roadmapStarted ? (
-            <div className="text-center py-4">
-              <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
-              <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
-            </div>
-          ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
-            <div className="space-y-2.5">
-              {roadmapProgress.activePhaseActions.slice(0, 3).map((a, i) => (
-                <div key={i} className="flex items-center gap-2.5">
-                  {a.checked
-                    ? <CheckCircle2 size={17} className="text-emerald-500 flex-shrink-0" />
-                    : <Circle size={17} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />}
-                  <p className={`text-xs font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
-                </div>
-              ))}
-              <Link href="/roadmap" className="block text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-2">View full action plan →</Link>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
-          )}
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Trend Analysis</p>
-            <select value={trendWindow} onChange={e => setTrendWindow(Number(e.target.value) as typeof TREND_WINDOWS[number])}
-              className="text-[11px] font-semibold border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 focus:outline-none">
-              {TREND_WINDOWS.map(w => <option key={w} value={w}>Last {w} check-ins</option>)}
-            </select>
+            ))}
+            <Link href="/roadmap" className="block text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline pt-2 sm:col-span-2">View full action plan →</Link>
           </div>
-          <HealthWealthTrendChart history={history ?? []} limit={trendWindow} />
-          {(healthImprovement != null || wealthImprovement != null) && (
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {healthImprovement != null && focus !== 'wealth' && (
-                <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/20">
-                  <p className="text-[10px] text-gray-400">Health Improvement</p>
-                  <p className={`font-mono tabular-nums text-sm font-bold ${healthImprovement >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>{healthImprovement > 0 ? '+' : ''}{healthImprovement} points</p>
-                </div>
-              )}
-              {wealthImprovement != null && focus !== 'health' && (
-                <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                  <p className="text-[10px] text-gray-400">Wealth Improvement</p>
-                  <p className={`font-mono tabular-nums text-sm font-bold ${wealthImprovement >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-500'}`}>{wealthImprovement > 0 ? '+' : ''}{wealthImprovement} points</p>
-                </div>
-              )}
-            </div>
-          )}
-          <Link href="/history" className="block text-center text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline mt-3">Full history →</Link>
-        </div>
+        ) : (
+          <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
+        )}
       </div>
 
       {/* ── Real-time insights — real "as of last update" tiles mixed with
@@ -427,7 +404,33 @@ export function MemberDashboardClient({ userName, userEmail, userImageUrl, membe
           )}
 
           <div className="grid lg:grid-cols-5 gap-6 items-stretch">
-            <div className="lg:col-span-3"><ScoreHistoryChart history={history ?? []} /></div>
+            <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Health vs. Wealth trend</p>
+                <select value={trendWindow} onChange={e => setTrendWindow(Number(e.target.value) as typeof TREND_WINDOWS[number])}
+                  className="text-[11px] font-semibold border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 focus:outline-none">
+                  {TREND_WINDOWS.map(w => <option key={w} value={w}>Last {w} check-ins</option>)}
+                </select>
+              </div>
+              <HealthWealthTrendChart history={history ?? []} limit={trendWindow} />
+              {(healthImprovement != null || wealthImprovement != null) && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {healthImprovement != null && focus !== 'wealth' && (
+                    <div className="p-2.5 rounded-lg bg-teal-50 dark:bg-teal-950/20">
+                      <p className="text-[10px] text-gray-400">Health Improvement</p>
+                      <p className={`font-mono tabular-nums text-sm font-bold ${healthImprovement >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-red-500'}`}>{healthImprovement > 0 ? '+' : ''}{healthImprovement} points</p>
+                    </div>
+                  )}
+                  {wealthImprovement != null && focus !== 'health' && (
+                    <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20">
+                      <p className="text-[10px] text-gray-400">Wealth Improvement</p>
+                      <p className={`font-mono tabular-nums text-sm font-bold ${wealthImprovement >= 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>{wealthImprovement > 0 ? '+' : ''}{wealthImprovement} points</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <Link href="/history" className="block text-center text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline mt-3">Full history →</Link>
+            </div>
             <div className="lg:col-span-2"><AchievementsCard achievements={getAchievements(score, history ?? [], roadmapProgress, goals)} /></div>
           </div>
 

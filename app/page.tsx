@@ -5,7 +5,6 @@ import { ALL_POSTS } from '@/lib/posts';
 import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
-import { ScorePreviewCard } from '@/components/home/ScorePreviewCard';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -113,7 +112,16 @@ export default function HomePage() {
             </div>
 
             <div className="max-w-sm mx-auto w-full">
-              <ScorePreviewCard />
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-br from-teal-500/20 to-amber-400/20 rounded-[2rem] blur-2xl pointer-events-none" />
+                {/* Real photo goes here — drop your file at
+                    public/images/hero.jpg (portrait or square works best,
+                    ~1000px+ wide) and it appears automatically, no code
+                    changes needed. */}
+                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl bg-gray-200 dark:bg-gray-800">
+                  <img src="/images/hero.jpg" alt="A WellFiLab member reviewing their health and wealth score" className="w-full h-full object-cover" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -162,94 +170,41 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            3 · HEALTH SCORE EXAMPLE
+            3 · HOW IT WORKS — one simple 3-step flow, replacing what used
+            to be 7 separate "example" sections showing the same score/
+            roadmap/goal/dashboard mockups in different shapes. A first-time
+            visitor should be able to read this in 15 seconds.
         ══════════════════════════════════════════════ */}
         <section>
-          <div className="grid lg:grid-cols-5 gap-8 items-center">
-            <div className="lg:col-span-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Flow 1 — Health only</p>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Your Health Score, from real numbers</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-                Sleep hours, exercise days, stress level, diet quality — entered once, scored honestly. Not "how healthy do you feel," but what your actual habits add up to.
-              </p>
-              <Link href="/tools/health" className="text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline">Explore health tools →</Link>
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">How it works</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Three steps. That's it.</h2>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-5 mb-10">
+            <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white font-black flex items-center justify-center mb-4">1</div>
+              <p className="font-bold text-base text-gray-900 dark:text-white mb-2">Take your score</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">2 minutes. Real sleep, income, savings, and debt numbers — not self-ratings. You get one score out of 100, plus exactly why.</p>
             </div>
-            <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Example — illustrative, not a real user</p>
-                <span className="font-mono tabular-nums text-3xl font-black text-teal-600 dark:text-teal-400">62<span className="text-sm text-gray-300 dark:text-gray-600">/100</span></span>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { label: 'Sleep', value: 74, detail: '6.2 hrs/night — 1.3h below optimal' },
-                  { label: 'Movement', value: 30, detail: '2 days/week — below the 3-day minimum' },
-                  { label: 'Stress', value: 46, detail: '6/10 — moderately high' },
-                ].map(d => (
-                  <div key={d.label}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">{d.label}</span>
-                      <span className="font-mono tabular-nums font-bold text-gray-900 dark:text-white">{d.value}/100</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1">
-                      <div className="h-full bg-teal-500 rounded-full" style={{ width: `${d.value}%` }} />
-                    </div>
-                    <p className="text-[11px] text-gray-400">{d.detail}</p>
+            <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white font-black flex items-center justify-center mb-4">2</div>
+              <p className="font-bold text-base text-gray-900 dark:text-white mb-2">Get your roadmap</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Your weakest areas become a phased plan. Phase 2 only unlocks once you've acted on Phase 1 — never a 40-item list dumped on day one.</p>
+            </div>
+            <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white font-black flex items-center justify-center mb-4">3</div>
+              <p className="font-bold text-base text-gray-900 dark:text-white mb-3">Track your progress</p>
+              <div className="flex items-end justify-between gap-1.5 mb-2" style={{ height: 44 }}>
+                {[58, 64, 69, 75, 81].map((s, i) => (
+                  <div key={i} className="flex-1 bg-teal-100 dark:bg-teal-950/40 rounded-md overflow-hidden" style={{ height: '100%' }}>
+                    <div className="w-full bg-gradient-to-t from-teal-600 to-teal-400 rounded-md" style={{ height: `${(s/81)*100}%`, marginTop: `${100 - (s/81)*100}%` }} />
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/30 rounded-lg p-3 mt-4">
-                💡 Movement is the biggest opportunity here — going from 2 to 3 days/week is the single highest-leverage change on this roadmap.
-              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Retake monthly. Watch your score move on a real chart, not a guess.</p>
             </div>
           </div>
-        </section>
 
-        {/* ══════════════════════════════════════════════
-            4 · WEALTH SCORE EXAMPLE
-        ══════════════════════════════════════════════ */}
-        <section>
-          <div className="grid lg:grid-cols-5 gap-8 items-center">
-            <div className="lg:col-span-3 order-2 lg:order-1 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Example — illustrative, not a real user</p>
-                <span className="font-mono tabular-nums text-3xl font-black text-amber-600 dark:text-amber-400">54<span className="text-sm text-gray-300 dark:text-gray-600">/100</span></span>
-              </div>
-              <div className="space-y-2.5">
-                {[
-                  { label: 'Savings rate', value: '18% of income', pts: '+0' },
-                  { label: 'Emergency fund', value: 'None saved', pts: '-20' },
-                  { label: 'Investing', value: '₹0/month', pts: '-25' },
-                  { label: 'Debt-to-income', value: '0.8× annual income', pts: '0' },
-                  { label: 'Health insurance', value: 'Covered', pts: '0' },
-                ].map(f => (
-                  <div key={f.label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-800 last:border-0">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{f.label}</p>
-                      <p className="text-[11px] text-gray-400">{f.value}</p>
-                    </div>
-                    <span className={`font-mono tabular-nums text-xs font-bold ${f.pts.startsWith('-') ? 'text-red-500' : 'text-gray-400'}`}>{f.pts}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 mt-4">
-                💡 Not investing is the single biggest point loss here — a ₹8,000/month SIP started today grows to roughly ₹80L in 20 years at a 12% assumed return.
-              </p>
-            </div>
-            <div className="lg:col-span-2 order-1 lg:order-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-2">Flow 2 — Wealth only</p>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Your Wealth Score, factor by factor</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-                Savings rate, emergency fund, debt-to-income, investing consistency, insurance, and net worth benchmarked to your age — every point traced to a real number, never hidden.
-              </p>
-              <Link href="/tools/finance" className="text-sm font-bold text-amber-600 dark:text-amber-400 hover:underline">Explore finance tools →</Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════
-            5 · COMBINED SCORE EXAMPLE — dramatic feature card
-        ══════════════════════════════════════════════ */}
-        <section>
           <Link href="/score" className="group block">
             <div className="relative overflow-hidden rounded-3xl bg-gray-950 dark:bg-gray-900 p-8 md:p-12 hover:shadow-2xl transition-all duration-300">
               <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none"/>
@@ -257,7 +212,7 @@ export default function HomePage() {
 
               <div className="relative grid md:grid-cols-2 gap-10 items-center">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">Flow 3 — Health + Wealth combined</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">Health + Wealth, combined</p>
                   <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
                     Your health and money<br/>are more connected than you think.
                   </h2>
@@ -302,141 +257,12 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            6 · SAMPLE ROADMAP EXAMPLE
-        ══════════════════════════════════════════════ */}
-        <section>
-          <div className="text-center mb-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">What you get next</p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">A roadmap that unlocks as you go</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">Three phases, built from your weakest dimensions. Phase 2 only unlocks once you've acted on Phase 1 — never a 40-item list on day one.</p>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {[
-              { phase: 'Phase 1', label: 'Foundation', status: 'Active', action: 'Build a 3-month emergency fund', impact: '+8 score · Medium · 4 months', color: 'border-teal-400 bg-teal-50 dark:bg-teal-950/20' },
-              { phase: 'Phase 2', label: 'Building', status: 'Unlocks after Phase 1', action: 'Start a ₹8K/month SIP', impact: '+6 score · Easy · Ongoing', color: 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900' },
-              { phase: 'Phase 3', label: 'Growing', status: 'Unlocks after Phase 2', action: 'Optimise asset allocation for your age', impact: '+5 score · Medium · Ongoing', color: 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900' },
-            ].map(p => (
-              <div key={p.phase} className={`rounded-2xl border-2 p-5 ${p.color}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{p.phase} — {p.label}</p>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'Active' ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>{p.status}</span>
-                </div>
-                <p className="font-bold text-sm text-gray-900 dark:text-white mb-2">{p.action}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{p.impact}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════
-            7 · SAMPLE GOAL EXAMPLE
-        ══════════════════════════════════════════════ */}
-        <section>
-          <div className="grid lg:grid-cols-5 gap-8 items-center">
-            <div className="lg:col-span-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Turn any number into a target</p>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Goals with a real forecast, not a guess</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-                Set a target from any calculator result or your score. We track your actual rate of progress and forecast a real completion date — and say nothing until there's enough real movement to trust.
-              </p>
-              <Link href="/goals" className="text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline">See the Goals system →</Link>
-            </div>
-            <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Example — illustrative, not a real user</p>
-              <div className="space-y-5">
-                {[
-                  { icon: '🏦', label: 'Emergency fund', current: '₹1.4L', target: '₹96K target', pct: 100, note: 'Target already reached — separating into its own account is pending', badge: null },
-                  { icon: '📈', label: 'Monthly SIP target', current: '₹6K', target: '₹8K target', pct: 75, note: '~2 months at this pace', badge: { label: 'On track', color: 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400' } },
-                  { icon: '🎯', label: 'WellFiLab Score target', current: '61', target: '75 target', pct: 40, note: '~5 months at this pace', badge: { label: 'Behind schedule', color: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' } },
-                ].map(g => (
-                  <div key={g.label}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span>{g.icon}</span>{g.label}</span>
-                      <span className="font-mono tabular-nums text-[11px] text-gray-400">{g.current} <span className="text-gray-300 dark:text-gray-600">/</span> {g.target}</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1">
-                      <div className="h-full bg-teal-500 rounded-full" style={{ width: `${g.pct}%` }} />
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[11px] text-gray-400">{g.note}</p>
-                      {g.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${g.badge.color}`}>{g.badge.label}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════
-            8 · SAMPLE DASHBOARD EXAMPLE
-        ══════════════════════════════════════════════ */}
-        <section>
-          <div className="text-center mb-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Everything, in one place</p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">The dashboard you'll actually come back to</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">Your score, your top priority, your risks, your goals, your net worth trend, and your roadmap progress — cross-linked, so nothing is a dead end.</p>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 sm:p-8">
-            <div className="grid sm:grid-cols-3 gap-4 mb-4">
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 sm:col-span-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Score</p>
-                <p className="font-mono tabular-nums text-2xl font-black text-teal-600 dark:text-teal-400">61<span className="text-xs text-gray-300">/100</span></p>
-              </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 sm:col-span-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Today's top priority</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">Build a 3-month emergency fund</p>
-              </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Risk alert</p>
-                <p className="text-xs font-semibold text-red-600 dark:text-red-400">🛡️ No emergency fund</p>
-              </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Net worth</p>
-                <p className="font-mono tabular-nums text-sm font-black text-gray-900 dark:text-white">₹18.4L <span className="text-emerald-600 dark:text-emerald-400 text-xs">+₹2.1L</span></p>
-              </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Roadmap</p>
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Phase 1 · 29% complete</p>
-              </div>
-            </div>
-            <p className="text-center text-xs text-gray-400">+ Goal progress, score history, achievements, and monthly review — all cross-linked on one page.</p>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════
-            9 · IMPROVEMENT JOURNEY EXAMPLE
-        ══════════════════════════════════════════════ */}
-        <section>
-          <div className="text-center mb-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Why come back next month</p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Progress you can actually see</h2>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 sm:p-8">
-            <div className="flex items-end justify-between gap-2 mb-4">
-              {[58, 64, 69, 75, 81].map((s, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <span className="font-mono tabular-nums text-sm font-bold text-gray-900 dark:text-white">{s}</span>
-                  <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden" style={{ height: 90 }}>
-                    <div className="w-full bg-gradient-to-t from-teal-600 to-teal-400 rounded-lg" style={{ height: `${(s/81)*100}%`, marginTop: `${90 - (s/81)*90}px` }} />
-                  </div>
-                  <span className="text-[10px] text-gray-400">Month {i + 1}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-bold text-teal-600 dark:text-teal-400">+23 points in 5 months</span> — an emergency fund built, a SIP started, sleep debt closed. Every point traces back to a specific roadmap action completed, not a random fluctuation.
-            </p>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════
-            10 · CALCULATOR ECOSYSTEM
+            4 · CALCULATOR ECOSYSTEM
         ══════════════════════════════════════════════ */}
         <section>
           <div className="flex items-end justify-between mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Step 1 — Start Here</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Or start with one number</p>
               <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">{CALCULATORS.length}+ free tools. Use any. Your roadmap connects them.</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Each calculator result links to your score and roadmap automatically.</p>
             </div>
@@ -482,7 +308,7 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            11 · GUIDES ECOSYSTEM
+            5 · GUIDES ECOSYSTEM
         ══════════════════════════════════════════════ */}
         <section>
           <div className="flex items-end justify-between mb-6">
@@ -521,7 +347,7 @@ export default function HomePage() {
         <NewsletterSignup source="homepage" />
 
         {/* ══════════════════════════════════════════════
-            12 · "SUCCESS STORIES" — honestly: real archetypes, not fabricated testimonials
+            6 · "SUCCESS STORIES" — honestly: real archetypes, not fabricated testimonials
         ══════════════════════════════════════════════ */}
         <section>
           <div className="text-center mb-8">
@@ -549,7 +375,7 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            13 · FAQ
+            7 · FAQ
         ══════════════════════════════════════════════ */}
         <section>
           <div className="text-center mb-8">
@@ -609,7 +435,7 @@ export default function HomePage() {
         </section>}
 
         {/* ══════════════════════════════════════════════
-            14 · STRONG FINAL CTA
+            8 · STRONG FINAL CTA
         ══════════════════════════════════════════════ */}
         <section className="text-center py-6">
           <p className="text-3xl mb-4">🎯</p>

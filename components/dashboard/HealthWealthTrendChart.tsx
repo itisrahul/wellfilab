@@ -35,8 +35,8 @@ export function HealthWealthTrendChart({ history, limit = 10 }: { history: WellF
         <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} width={30} />
         <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="health" name="Health" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} />
-        <Line type="monotone" dataKey="wealth" name="Wealth" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="health" name="Health" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="wealth" name="Wealth" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );
