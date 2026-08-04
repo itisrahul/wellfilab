@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Heart, DollarSign, Map as MapIcon, TrendingUp } from 'lucide-react';
+import { Heart, DollarSign, Map as MapIcon, TrendingUp, Target, Flag, LayoutDashboard } from 'lucide-react';
 import { CALCULATORS, getByCategory } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { ARCHETYPES } from '@/lib/wellfilab-score';
@@ -11,6 +11,13 @@ import { CursorSpotlight } from '@/components/home/CursorSpotlight';
 import { Reveal } from '@/components/home/Reveal';
 import BMICalc from '@/components/tools/widgets/health/BMICalc';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
+
+const SYSTEM_PILLARS = [
+  { icon: Target, label: 'Score', href: '/score' },
+  { icon: MapIcon, label: 'Roadmap', href: '/roadmap' },
+  { icon: Flag, label: 'Goals', href: '/goals' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+];
 
 const FEATURES = [
   { icon: Heart, title: 'Your health, measured', body: 'Real sleep, exercise, and stress numbers — not a 1-5 self-rating.' },
@@ -104,12 +111,23 @@ export default function HomePage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> Real numbers. Real score. Live.
               </span>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6 text-balance">
-                Your health and wealth,<br/>
-                <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">in one score.</span>
+                Your personal<br/>
+                <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">health & wealth</span><br/>
+                operating system.
               </h1>
-              <p className="text-white/50 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
-                Real sleep, stress, savings, and debt numbers become one score out of 100 — and a roadmap for exactly what to fix first.
+              <p className="text-white/50 text-lg leading-relaxed mb-6 max-w-lg mx-auto lg:mx-0">
+                WellFiLab measures your real health and money numbers, builds a phased roadmap for what to fix first, tracks your goals with real progress, and brings all of it together on one dashboard.
               </p>
+
+              <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-8">
+                {SYSTEM_PILLARS.map(p => (
+                  <Link key={p.label} href={p.href}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-teal-400/30 rounded-full px-3.5 py-2 transition-colors">
+                    <p.icon size={13} className="text-teal-300" /> {p.label}
+                  </Link>
+                ))}
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
                 <Link href="/score"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-bold text-base shadow-[0_0_30px_-6px_rgba(45,212,191,0.7)] hover:shadow-[0_0_40px_-6px_rgba(45,212,191,0.9)] transition-all">
