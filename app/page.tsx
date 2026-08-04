@@ -13,10 +13,10 @@ import BMICalc from '@/components/tools/widgets/health/BMICalc';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 const SYSTEM_PILLARS = [
-  { icon: Target, label: 'Score', href: '/score' },
-  { icon: MapIcon, label: 'Roadmap', href: '/roadmap' },
-  { icon: Flag, label: 'Goals', href: '/goals' },
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Target, label: 'Score', body: 'One number, from real data', href: '/score' },
+  { icon: MapIcon, label: 'Roadmap', body: "What to fix first, and next", href: '/roadmap' },
+  { icon: Flag, label: 'Goals', body: 'Real progress, real pace', href: '/goals' },
+  { icon: LayoutDashboard, label: 'Dashboard', body: 'Everything, in one place', href: '/dashboard' },
 ];
 
 const FEATURES = [
@@ -103,7 +103,7 @@ export default function HomePage() {
         <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
         <CursorSpotlight />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-16">
           <div className="grid lg:grid-cols-2 gap-14 items-center">
 
             <div className="text-center lg:text-left">
@@ -111,19 +111,21 @@ export default function HomePage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> Real numbers. Real score. Live.
               </span>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6 text-balance">
-                Your personal<br/>
-                <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">health & wealth</span><br/>
-                operating system.
+                Measure what <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">matters.</span>
               </h1>
-              <p className="text-white/50 text-lg leading-relaxed mb-6 max-w-lg mx-auto lg:mx-0">
-                WellFiLab measures your real health and money numbers, builds a phased roadmap for what to fix first, tracks your goals with real progress, and brings all of it together on one dashboard.
+              <p className="text-white/50 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
+                One system for your health and wealth — a real score, a roadmap for what to fix first, goals you can actually track, and a dashboard that connects all of it.
               </p>
 
-              <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-8">
+              <div className="grid grid-cols-2 gap-2.5 mb-8 max-w-md mx-auto lg:mx-0">
                 {SYSTEM_PILLARS.map(p => (
                   <Link key={p.label} href={p.href}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-teal-400/30 rounded-full px-3.5 py-2 transition-colors">
-                    <p.icon size={13} className="text-teal-300" /> {p.label}
+                    className="flex items-start gap-2.5 text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-teal-400/30 rounded-xl px-3.5 py-3 transition-colors">
+                    <p.icon size={16} className="text-teal-300 flex-shrink-0 mt-0.5" />
+                    <span className="min-w-0">
+                      <span className="block text-xs font-bold text-white">{p.label}</span>
+                      <span className="block text-[11px] text-white/40 leading-snug">{p.body}</span>
+                    </span>
                   </Link>
                 ))}
               </div>
