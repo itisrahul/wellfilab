@@ -9,7 +9,7 @@ import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { LiveScoreDemo } from '@/components/home/LiveScoreDemo';
 import { CursorSpotlight } from '@/components/home/CursorSpotlight';
 import { Reveal } from '@/components/home/Reveal';
-import BMICalc from '@/components/tools/widgets/health/BMICalc';
+import SIPCalc from '@/components/tools/widgets/finance/SIPCalc';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 const SYSTEM_PILLARS = [
@@ -198,15 +198,20 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-16">
 
         {/* ══════════════════════════════════════════════
-            4 · TRY A REAL CALCULATOR
+            4 · TRY A REAL CALCULATOR — SIP, deliberately: it's the single
+            highest-demand financial tool in the Indian market (every
+            major finance app drives huge traffic through one), and it
+            demos the wealth side for real, which nothing above the fold
+            does — the hero's live demo and the score system both lean
+            health-first.
         ══════════════════════════════════════════════ */}
         <Reveal as="section">
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-2">This is a real calculator. Try it.</h2>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-2">This is a real SIP calculator. Try it.</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">No signup — one of {CALCULATORS.length}+ free tools on the site.</p>
           </div>
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden max-w-4xl mx-auto">
-            <BMICalc />
+            <SIPCalc />
           </div>
         </Reveal>
 
