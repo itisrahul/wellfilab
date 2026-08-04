@@ -1,8 +1,34 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { calculateBodyScore, scoreColor, scoreLabel, type BodyInputs, type QuickInputs } from '@/lib/wellfilab-score';
 import { ScoreRing } from '@/components/ui/ScoreRing';
+
+/** Smoothly eases the displayed number toward a new target whenever it
+ * changes, instead of snapping — so dragging a slider feels like it's
+ * actually driving a live calculation, not just swapping static text. */
+function useAnimatedNumber(target: number, duration = 400): number {
+  const [value, setValue] = useState(target);
+  const fromRef = useRef(target);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) return;
+    const start = performance.now();
+    let raf: number;
+    function tick(now: number) {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+
+  return value;
+}
 
 // Sensible medians for the fields this 3-question demo doesn't ask about —
 // same fallback pattern the real /score flow uses for its own live preview
@@ -49,6 +75,7 @@ export function LiveScoreDemo() {
     () => calculateBodyScore(DUMMY_QUICK, { ...DEFAULTS, sleepHours, exerciseDays, stressLevel }, []),
     [sleepHours, exerciseDays, stressLevel]
   );
+  const animatedOverall = useAnimatedNumber(score.overall);
   const color = scoreColor(score.overall);
   const insight = score.insights[0]?.headline ?? 'Adjust the sliders — every real habit here moves the score.';
 
@@ -71,9 +98,9 @@ export function LiveScoreDemo() {
 
         <div className="flex items-center gap-4 p-4 rounded-xl bg-black/20 border border-white/5">
           <div className="relative flex-shrink-0" style={{ width: 64, height: 64, filter: `drop-shadow(0 0 10px ${color}80)` }}>
-            <ScoreRing pct={score.overall} color={color} size={64} thick={6} />
+            <ScoreRing pct={animatedOverall} color={color} size={64} thick={6} />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-mono tabular-nums font-black text-xl" style={{ color }}>{score.overall}</span>
+              <span className="font-mono tabular-nums font-black text-xl" style={{ color }}>{animatedOverall}</span>
             </div>
           </div>
           <div className="min-w-0">

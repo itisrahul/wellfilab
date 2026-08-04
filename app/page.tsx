@@ -7,6 +7,8 @@ import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { LiveScoreDemo } from '@/components/home/LiveScoreDemo';
+import { CursorSpotlight } from '@/components/home/CursorSpotlight';
+import { Reveal } from '@/components/home/Reveal';
 import BMICalc from '@/components/tools/widgets/health/BMICalc';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
@@ -92,6 +94,7 @@ export default function HomePage() {
         <div className="absolute top-0 left-1/4 w-[36rem] h-[36rem] bg-teal-500/25 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] bg-cyan-500/15 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
+        <CursorSpotlight />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28">
           <div className="grid lg:grid-cols-2 gap-14 items-center">
@@ -135,14 +138,16 @@ export default function HomePage() {
       <section className="relative bg-gray-950 border-t border-white/5 py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {FEATURES.map(f => (
-              <div key={f.title} className="p-5 bg-white/[0.04] hover:bg-white/[0.07] backdrop-blur-sm rounded-xl border border-white/10 text-center sm:text-left transition-colors">
-                <div className="w-11 h-11 rounded-lg bg-teal-500/10 text-teal-300 flex items-center justify-center mb-4 mx-auto sm:mx-0 shadow-[0_0_20px_-4px_rgba(45,212,191,0.5)]">
-                  <f.icon size={20} />
+            {FEATURES.map((f, i) => (
+              <Reveal key={f.title} delayMs={i * 75}>
+                <div className="group p-5 bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-sm rounded-xl border border-white/10 hover:border-teal-400/30 text-center sm:text-left transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_-8px_rgba(45,212,191,0.35)]">
+                  <div className="w-11 h-11 rounded-lg bg-teal-500/10 text-teal-300 flex items-center justify-center mb-4 mx-auto sm:mx-0 shadow-[0_0_20px_-4px_rgba(45,212,191,0.5)] transition-transform group-hover:scale-110">
+                    <f.icon size={20} />
+                  </div>
+                  <p className="font-bold text-sm text-white mb-1.5">{f.title}</p>
+                  <p className="text-sm text-white/40 leading-relaxed">{f.body}</p>
                 </div>
-                <p className="font-bold text-sm text-white mb-1.5">{f.title}</p>
-                <p className="text-sm text-white/40 leading-relaxed">{f.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -159,12 +164,12 @@ export default function HomePage() {
           </div>
           <div className="relative grid sm:grid-cols-3 gap-10">
             <div className="hidden sm:block absolute top-6 left-[16.5%] right-[16.5%] h-px bg-gradient-to-r from-teal-500/40 via-teal-500/40 to-teal-500/40" />
-            {STEPS.map(s => (
-              <div key={s.n} className="relative text-center">
-                <div className="relative w-12 h-12 rounded-full bg-gray-950 border-2 border-teal-400 text-teal-300 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_-4px_rgba(45,212,191,0.8)]">{s.n}</div>
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delayMs={i * 100} className="relative text-center">
+                <div className="group relative w-12 h-12 rounded-full bg-gray-950 border-2 border-teal-400 text-teal-300 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_-4px_rgba(45,212,191,0.8)] cursor-default transition-transform hover:scale-110 hover:shadow-[0_0_36px_-2px_rgba(45,212,191,1)]">{s.n}</div>
                 <p className="font-bold text-base text-white mb-2">{s.title}</p>
                 <p className="text-sm text-white/40 leading-relaxed max-w-xs mx-auto">{s.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -175,7 +180,7 @@ export default function HomePage() {
         {/* ══════════════════════════════════════════════
             4 · TRY A REAL CALCULATOR
         ══════════════════════════════════════════════ */}
-        <section>
+        <Reveal as="section">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-2">This is a real calculator. Try it.</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">No signup — one of {CALCULATORS.length}+ free tools on the site.</p>
@@ -183,12 +188,12 @@ export default function HomePage() {
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden max-w-4xl mx-auto">
             <BMICalc />
           </div>
-        </section>
+        </Reveal>
 
         {/* ══════════════════════════════════════════════
             5 · CALCULATOR ECOSYSTEM
         ══════════════════════════════════════════════ */}
-        <section>
+        <Reveal as="section">
           <div className="flex items-end justify-between mb-8">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">{CALCULATORS.length}+ free tools</h2>
@@ -233,12 +238,12 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </section>
+        </Reveal>
 
         {/* ══════════════════════════════════════════════
             6 · GUIDES ECOSYSTEM
         ══════════════════════════════════════════════ */}
-        <section>
+        <Reveal as="section">
           <div className="flex items-end justify-between mb-6">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Guides</h2>
             <Link href="/guides" className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:underline">
@@ -264,17 +269,17 @@ export default function HomePage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {latest.map(p => <PostCard key={p.slug} post={p} />)}
           </div>
-        </section>
+        </Reveal>
 
         {/* ══════════════════════════════════════════════
             NEWSLETTER
         ══════════════════════════════════════════════ */}
-        <NewsletterSignup source="homepage" />
+        <Reveal><NewsletterSignup source="homepage" /></Reveal>
 
         {/* ══════════════════════════════════════════════
             7 · "SUCCESS STORIES" — honestly: real archetypes, not fabricated testimonials
         ══════════════════════════════════════════════ */}
-        <section>
+        <Reveal as="section">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Which starting point is yours?</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
@@ -296,12 +301,12 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </section>
+        </Reveal>
 
         {/* ══════════════════════════════════════════════
             8 · FAQ
         ══════════════════════════════════════════════ */}
-        <section>
+        <Reveal as="section">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Questions people actually ask</h2>
           </div>
@@ -316,7 +321,7 @@ export default function HomePage() {
               </details>
             ))}
           </div>
-        </section>
+        </Reveal>
 
         {/* ══════════════════════════════════════════════
             PLANS — kept as a secondary upsell, not the primary CTA
@@ -357,7 +362,7 @@ export default function HomePage() {
         {/* ══════════════════════════════════════════════
             9 · STRONG FINAL CTA
         ══════════════════════════════════════════════ */}
-        <section className="text-center py-6">
+        <Reveal as="section" className="text-center py-6">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Ready to see your number?</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl mx-auto mb-8">
             5 minutes, real numbers, a score you can trust, and a roadmap that tells you exactly what to fix first. Free — no signup required.
@@ -366,7 +371,7 @@ export default function HomePage() {
             className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-base shadow-sm transition-colors">
             Get my free score →
           </Link>
-        </section>
+        </Reveal>
 
       </div>
     </div>
