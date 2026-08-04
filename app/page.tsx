@@ -1,25 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Layers, TrendingUp, Map as MapIcon, ShieldCheck, CircleCheck, Fingerprint, LineChart } from 'lucide-react';
+import { ShieldCheck, CircleCheck, Fingerprint, LineChart } from 'lucide-react';
 import { CALCULATORS, getByCategory } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { ARCHETYPES } from '@/lib/wellfilab-score';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
-import { HeroShowcase } from '@/components/home/HeroShowcase';
+import { LiveScoreDemo } from '@/components/home/LiveScoreDemo';
+import BMICalc from '@/components/tools/widgets/health/BMICalc';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
-
-const HERO_FEATURES = [
-  { icon: Layers, label: 'Unify Health & Wealth' },
-  { icon: TrendingUp, label: 'Track. Score. Improve.' },
-  { icon: MapIcon, label: 'Personalized Roadmaps' },
-  { icon: ShieldCheck, label: 'Real Numbers, Real Score' },
-];
 
 const TRUST_STRIP = [
   { icon: ShieldCheck, label: 'Secure & Private', body: 'Your data is encrypted and protected' },
   { icon: CircleCheck, label: 'Data You Own', body: 'Local by default — sync it only if you want to' },
-  { icon: Fingerprint, label: 'Personalized for You', body: 'Insights and a roadmap built from your numbers' },
+  { icon: Fingerprint, label: 'Personalized for You', body: 'A roadmap built from your own numbers' },
   { icon: LineChart, label: 'Built for the Long Run', body: 'Retake monthly and watch your score move' },
 ];
 
@@ -33,18 +27,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-
-const POPULAR_SLUGS = ['bmi','calories','body-fat','sleep','sip','loan','retirement','income-tax','fire','compound'];
-const popular = POPULAR_SLUGS.map(s => CALCULATORS.find(c => c.slug === s)).filter(Boolean) as typeof CALCULATORS;
-
-// Same 4 core dimensions the algorithm actually returns (score.body/mind/wealth/life),
-// same colours as the dashboard's dimension bars — one visual language across the site.
-const SCORE_DIMS = [
-  { icon:'💪', label:'Body',   color:'bg-teal-500'   },
-  { icon:'🧠', label:'Mind',   color:'bg-indigo-500' },
-  { icon:'💰', label:'Wealth', color:'bg-amber-500'  },
-  { icon:'🌱', label:'Life',   color:'bg-green-500'  },
-];
 
 const FAQ = [
   {
@@ -91,64 +73,47 @@ export default function HomePage() {
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          1 · HERO — light, clean device-mockup composite (per the
-          reference the user shared) instead of a flat colour wash.
+          1 · HERO — restrained (no gradients, no glow blobs), built around
+          a real, working mini-score calculator instead of a screenshot or
+          mockup. The product explains itself by being used, not described.
       ══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-gray-50 dark:bg-gray-950">
-        <div className="absolute top-0 left-1/3 w-[32rem] h-[32rem] bg-teal-400/10 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-400/10 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
+      <section className="border-b border-gray-100 dark:border-gray-900">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+          <div className="grid lg:grid-cols-2 gap-14 lg:gap-16 items-center">
 
             <div className="text-center lg:text-left">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight mb-6 text-balance">
-                <span className="block text-gray-900 dark:text-white">Your Health.</span>
-                <span className="block text-gray-900 dark:text-white">Your Wealth.</span>
-                <span className="block text-teal-600 dark:text-teal-400">One Real Score.</span>
+                <span className="block text-gray-900 dark:text-white">Your health.</span>
+                <span className="block text-gray-900 dark:text-white">Your wealth.</span>
+                <span className="block text-teal-600 dark:text-teal-400">One real score.</span>
               </h1>
               <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
-                WellFiLab is your personal health and wealth operating system — turning your real sleep, stress, savings, and debt into one score, with a roadmap that tells you exactly what to fix first.
+                Move the sliders on the right — that's the actual scoring engine, not a demo. Your real sleep, stress, savings, and debt become one number, and a roadmap for what to fix first.
               </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-8 max-w-md mx-auto lg:mx-0">
-                {HERO_FEATURES.map(f => (
-                  <div key={f.label} className="flex items-center gap-2 text-left">
-                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center text-teal-600 dark:text-teal-400">
-                      <f.icon size={15} />
-                    </span>
-                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 leading-tight">{f.label}</span>
-                  </div>
-                ))}
-              </div>
-
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
                 <Link href="/score"
-                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gray-900 hover:bg-gray-800 dark:bg-teal-600 dark:hover:bg-teal-700 text-white font-bold text-base transition-colors">
                   Get my free score →
                 </Link>
-                <Link href="#how-it-works"
-                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-white font-bold text-base border-2 border-gray-200 dark:border-gray-800 transition-all">
-                  See how it works
+                <Link href="/tools"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-white font-bold text-base border border-gray-200 dark:border-gray-800 transition-colors">
+                  Browse {CALCULATORS.length}+ free tools
                 </Link>
               </div>
-
-              <p className="text-gray-400 dark:text-gray-500 text-sm">
-                Free · 5 minutes · No signup required to see your score
-              </p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">Free · No signup required to see your score</p>
             </div>
 
-            <div className="w-full pb-6 lg:pb-0">
-              <HeroShowcase />
+            <div className="max-w-sm mx-auto w-full">
+              <LiveScoreDemo />
             </div>
           </div>
 
           {/* ── Trust strip ── */}
-          <div className="mt-16 md:mt-20 pt-10 border-t border-gray-200 dark:border-gray-800">
+          <div className="mt-16 md:mt-20 pt-10 border-t border-gray-100 dark:border-gray-900">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {TRUST_STRIP.map(t => (
                 <div key={t.label} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-9 h-9 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400">
                     <t.icon size={16} />
                   </span>
                   <div>
@@ -159,43 +124,26 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-
-          <div className="mt-14">
-            <p className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest mb-4 text-center">Most popular</p>
-            <div className="flex flex-wrap justify-center gap-2.5">
-              {popular.map(c => (
-                <Link key={c.slug} href={`/tools/${c.category}/${c.slug}`}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold transition-all hover:scale-[1.03]">
-                  <span className="text-lg">{c.icon}</span>
-                  {c.short}
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-20">
 
         {/* ══════════════════════════════════════════════
-            2 · WHAT MAKES WELLFILAB DIFFERENT
+            2 · WHAT MAKES WELLFILAB DIFFERENT — trimmed to the 3 sharpest
+            points instead of 6, now that the hero demo already shows most
+            of this rather than just claiming it.
         ══════════════════════════════════════════════ */}
         <section>
           <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2 text-center">What makes WellFiLab different</p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3 text-center">A calculator gives you a number. We give you a system.</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-2xl mx-auto mb-10">
-            WellFiLab isn't a calculator website, a quiz, or a blog — it's the layer that connects all three into one loop: measure, improve, track, repeat.
-          </p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-10 text-center">A calculator gives you a number. We give you a system.</h2>
           <div className="grid sm:grid-cols-3 gap-5">
             {[
               { icon:'🔗', title:'Health and money, connected', body:'Most apps fix one or the other. WellFiLab shows how they connect — a 6-hour sleep habit has a real ₹ cost against your actual income, not a vague warning.' },
-              { icon:'📊', title:'Your actual numbers, not self-ratings', body:'Enter your real sleep hours, income, savings, weight. Every point in your score traces back to a number you entered — never a 1-5 self-rating dressed up as data.' },
-              { icon:'🗺️', title:'A roadmap that unlocks, not a checklist', body:"Most tools stop at a score and leave you guessing. Phase 2 of your roadmap only unlocks after you've acted on Phase 1 — never a 40-item list dumped on you at once." },
-              { icon:'🎯', title:'Goals with real pace, not guesses', body:"Set a target and we track it against your actual rate of progress — a real forecast date, not a placeholder, and it says nothing until there's enough real movement to trust." },
-              { icon:'📈', title:'A score you can watch move', body:"Retake monthly and see your trend, not just a snapshot — the same discipline behind every dimension, applied over time instead of once." },
+              { icon:'🗺️', title:'A roadmap that unlocks, not a checklist', body:"Phase 2 only unlocks after you've acted on Phase 1 — never a 40-item list dumped on you at once." },
               { icon:'🔍', title:'Every number explained', body:"Why did you lose 8 points on savings rate? We show you the exact factor and its exact weight — never a black-box score you have to just trust." },
             ].map(f => (
-              <div key={f.title} className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div key={f.title} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-2xl">
                 <div className="text-3xl mb-4">{f.icon}</div>
                 <p className="font-bold text-base text-gray-900 dark:text-white mb-2">{f.title}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.body}</p>
@@ -205,99 +153,56 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            3 · HOW IT WORKS — one simple 3-step flow, replacing what used
-            to be 7 separate "example" sections showing the same score/
-            roadmap/goal/dashboard mockups in different shapes. A first-time
-            visitor should be able to read this in 15 seconds.
+            3 · HOW IT WORKS — three steps, text only. No second mockup
+            card here — the hero already proved the concept for real.
         ══════════════════════════════════════════════ */}
         <section id="how-it-works" className="scroll-mt-24">
           <div className="text-center mb-10">
             <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">How it works</p>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Three steps. That's it.</h2>
           </div>
-          <div className="grid sm:grid-cols-3 gap-5 mb-10">
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white font-black flex items-center justify-center mb-4">1</div>
+          <div className="grid sm:grid-cols-3 gap-5">
+            <div className="p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div className="w-9 h-9 rounded-lg bg-gray-900 dark:bg-teal-600 text-white font-black flex items-center justify-center mb-4 text-sm">1</div>
               <p className="font-bold text-base text-gray-900 dark:text-white mb-2">Take your score</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">2 minutes. Real sleep, income, savings, and debt numbers — not self-ratings. You get one score out of 100, plus exactly why.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">2 minutes. Real sleep, income, savings, and debt numbers — not self-ratings. One score out of 100, plus exactly why.</p>
             </div>
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white font-black flex items-center justify-center mb-4">2</div>
+            <div className="p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div className="w-9 h-9 rounded-lg bg-gray-900 dark:bg-teal-600 text-white font-black flex items-center justify-center mb-4 text-sm">2</div>
               <p className="font-bold text-base text-gray-900 dark:text-white mb-2">Get your roadmap</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Your weakest areas become a phased plan. Phase 2 only unlocks once you've acted on Phase 1 — never a 40-item list dumped on day one.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Your weakest areas become a phased plan. Phase 2 only unlocks once you've acted on Phase 1.</p>
             </div>
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white font-black flex items-center justify-center mb-4">3</div>
-              <p className="font-bold text-base text-gray-900 dark:text-white mb-3">Track your progress</p>
-              <div className="flex items-end justify-between gap-1.5 mb-2" style={{ height: 44 }}>
-                {[58, 64, 69, 75, 81].map((s, i) => (
-                  <div key={i} className="flex-1 bg-teal-100 dark:bg-teal-950/40 rounded-md overflow-hidden" style={{ height: '100%' }}>
-                    <div className="w-full bg-gradient-to-t from-teal-600 to-teal-400 rounded-md" style={{ height: `${(s/81)*100}%`, marginTop: `${100 - (s/81)*100}%` }} />
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Retake monthly. Watch your score move on a real chart, not a guess.</p>
+            <div className="p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div className="w-9 h-9 rounded-lg bg-gray-900 dark:bg-teal-600 text-white font-black flex items-center justify-center mb-4 text-sm">3</div>
+              <p className="font-bold text-base text-gray-900 dark:text-white mb-2">Track your progress</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Retake monthly. Watch your score move on a real chart — not a guess, and not a one-time snapshot.</p>
             </div>
           </div>
-
-          <Link href="/score" className="group block">
-            <div className="relative overflow-hidden rounded-3xl bg-gray-950 dark:bg-gray-900 p-8 md:p-12 hover:shadow-2xl transition-all duration-300">
-              <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none"/>
-              <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none"/>
-
-              <div className="relative grid md:grid-cols-2 gap-10 items-center">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">Health + Wealth, combined</p>
-                  <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-                    Your health and money<br/>are more connected than you think.
-                  </h2>
-                  <p className="text-gray-400 leading-relaxed mb-8 text-base">
-                    Body, Mind, Wealth, and Life roll up into one WellFiLab Score — <span className="text-white font-bold font-mono tabular-nums">61/100</span> in this example — so you see the whole picture, not four disconnected numbers.
-                  </p>
-                  <div className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-teal-500 group-hover:bg-teal-400 text-white font-bold text-sm transition-all group-hover:shadow-lg group-hover:shadow-teal-500/30">
-                    Get my free score →
-                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { ...SCORE_DIMS[0], score: 68 }, { ...SCORE_DIMS[1], score: 60 },
-                      { ...SCORE_DIMS[2], score: 54 }, { ...SCORE_DIMS[3], score: 61 },
-                    ].map(d => (
-                      <div key={d.label} className="flex items-center gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors">
-                        <div className={`w-8 h-8 rounded-lg ${d.color} flex items-center justify-center text-base flex-shrink-0`}>{d.icon}</div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="text-white font-semibold text-xs">{d.label}</p>
-                            <p className="text-white/70 font-mono tabular-nums text-xs font-bold">{d.score}</p>
-                          </div>
-                          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-1.5">
-                            <div className={`h-full rounded-full ${d.color}`} style={{ width: `${d.score}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-white/10 text-center">
-                    <p className="text-xs text-gray-400">Real inputs · Based on your data · Free · Always · Roadmap included</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
         </section>
 
         {/* ══════════════════════════════════════════════
-            4 · CALCULATOR ECOSYSTEM
+            4 · TRY A REAL CALCULATOR — the second "use it, don't read
+            about it" moment. A real, fully working tool embedded directly,
+            no navigation required.
+        ══════════════════════════════════════════════ */}
+        <section>
+          <div className="text-center mb-8">
+            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Try it yourself — right here</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">This is a real calculator. Use it.</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl mx-auto mt-3">No signup, no click-through — the same BMI calculator that's one of {CALCULATORS.length}+ tools on the site.</p>
+          </div>
+          <div className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <BMICalc />
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════
+            5 · CALCULATOR ECOSYSTEM
         ══════════════════════════════════════════════ */}
         <section>
           <div className="flex items-end justify-between mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Or start with one number</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Every other tool</p>
               <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">{CALCULATORS.length}+ free tools. Use any. Your roadmap connects them.</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Each calculator result links to your score and roadmap automatically.</p>
             </div>
@@ -308,11 +213,11 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 gap-5">
             {([
-              { calcs:health,  cat:'health'  as const, label:'Health',  icon:'🌿', grad:'from-teal-600 to-cyan-500' },
-              { calcs:finance, cat:'finance' as const, label:'Finance', icon:'💰', grad:'from-amber-500 to-orange-500' },
-            ]).map(({ calcs, cat, label, icon, grad }) => (
+              { calcs:health,  cat:'health'  as const, label:'Health',  icon:'🌿', accent: 'bg-teal-600' },
+              { calcs:finance, cat:'finance' as const, label:'Finance', icon:'💰', accent: 'bg-amber-500' },
+            ]).map(({ calcs, cat, label, icon, accent }) => (
               <div key={cat} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-                <div className={`bg-gradient-to-r ${grad} px-5 py-4 flex items-center justify-between`}>
+                <div className={`${accent} px-5 py-4 flex items-center justify-between`}>
                   <div className="flex items-center gap-2.5 text-white">
                     <span className="text-xl">{icon}</span>
                     <div>
@@ -343,7 +248,7 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            5 · GUIDES ECOSYSTEM
+            6 · GUIDES ECOSYSTEM
         ══════════════════════════════════════════════ */}
         <section>
           <div className="flex items-end justify-between mb-6">
@@ -382,7 +287,7 @@ export default function HomePage() {
         <NewsletterSignup source="homepage" />
 
         {/* ══════════════════════════════════════════════
-            6 · "SUCCESS STORIES" — honestly: real archetypes, not fabricated testimonials
+            7 · "SUCCESS STORIES" — honestly: real archetypes, not fabricated testimonials
         ══════════════════════════════════════════════ */}
         <section>
           <div className="text-center mb-8">
@@ -394,7 +299,7 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             {featuredArchetypes.map(a => (
-              <div key={a.id} className="p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <div key={a.id} className="p-5 bg-gray-50 dark:bg-gray-900 rounded-2xl">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-3xl">{a.emoji}</span>
                   <div>
@@ -410,7 +315,7 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════
-            7 · FAQ
+            8 · FAQ
         ══════════════════════════════════════════════ */}
         <section>
           <div className="text-center mb-8">
@@ -418,12 +323,12 @@ export default function HomePage() {
           </div>
           <div className="max-w-3xl mx-auto space-y-2">
             {FAQ.map((item, i) => (
-              <details key={i} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 border-l-4 border-l-transparent open:border-l-teal-500 overflow-hidden transition-colors">
+              <details key={i} className="group bg-gray-50 dark:bg-gray-900 rounded-xl border-l-4 border-l-transparent open:border-l-teal-500 overflow-hidden transition-colors">
                 <summary className="flex items-center justify-between p-4 cursor-pointer font-semibold text-sm text-gray-900 dark:text-gray-100 list-none">
                   {item.q}
                   <span className="text-gray-400 group-open:rotate-180 transition-transform ml-3 flex-shrink-0">▾</span>
                 </summary>
-                <p className="px-4 pb-4 text-sm text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-50 dark:border-gray-800 pt-3">{item.a}</p>
+                <p className="px-4 pb-4 text-sm text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-800 pt-3">{item.a}</p>
               </details>
             ))}
           </div>
@@ -470,16 +375,15 @@ export default function HomePage() {
         </section>}
 
         {/* ══════════════════════════════════════════════
-            8 · STRONG FINAL CTA
+            9 · STRONG FINAL CTA
         ══════════════════════════════════════════════ */}
         <section className="text-center py-6">
-          <p className="text-3xl mb-4">🎯</p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">You know the problem now. Go see your number.</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">You just saw how it works. Go see your real number.</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl mx-auto mb-8">
             5 minutes, real numbers, a score you can trust, and a roadmap that tells you exactly what to fix first. Free — no signup required to see it.
           </p>
           <Link href="/score"
-            className="inline-flex items-center justify-center gap-3 px-10 py-4 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all">
+            className="inline-flex items-center justify-center gap-3 px-10 py-4 rounded-2xl bg-gray-900 hover:bg-gray-800 dark:bg-teal-600 dark:hover:bg-teal-700 text-white font-extrabold text-base transition-colors">
             Get my free score →
           </Link>
         </section>
