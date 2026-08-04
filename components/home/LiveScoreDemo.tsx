@@ -19,13 +19,13 @@ function Slider({ label, value, min, max, step, unit, onChange }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">{label}</label>
-        <span className="font-mono tabular-nums text-xs font-bold text-gray-900 dark:text-white">{value}{unit}</span>
+        <label className="text-xs font-semibold text-white/60">{label}</label>
+        <span className="font-mono tabular-nums text-xs font-bold text-teal-300">{value}{unit}</span>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 accent-teal-600 cursor-pointer"
+        className="w-full h-2 rounded-full bg-white/10 accent-teal-400 cursor-pointer"
       />
     </div>
   );
@@ -53,33 +53,41 @@ export function LiveScoreDemo() {
   const insight = score.insights[0]?.headline ?? 'Adjust the sliders — every real habit here moves the score.';
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-6 sm:p-7">
-      <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-5">✨ Try it now — this is really calculating</p>
+    <div className="relative">
+      {/* Glow behind the glass panel */}
+      <div className="absolute -inset-6 bg-gradient-to-br from-teal-500/30 via-cyan-500/10 to-transparent rounded-[2rem] blur-2xl pointer-events-none" />
 
-      <div className="space-y-4 mb-6">
-        <Slider label="Sleep, typical night" value={sleepHours} min={4} max={10} step={0.5} unit="h" onChange={setSleepHours} />
-        <Slider label="Exercise days per week" value={exerciseDays} min={0} max={7} step={1} unit="" onChange={setExerciseDays} />
-        <Slider label="Stress level" value={stressLevel} min={1} max={10} step={1} unit="/10" onChange={setStressLevel} />
-      </div>
+      <div className="relative bg-white/[0.06] backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6 sm:p-7">
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-teal-300 mb-5">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+          Live — this is really calculating
+        </p>
 
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60">
-        <div className="relative flex-shrink-0" style={{ width: 64, height: 64 }}>
-          <ScoreRing pct={score.overall} color={color} size={64} thick={6} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-mono tabular-nums font-black text-xl" style={{ color }}>{score.overall}</span>
+        <div className="space-y-4 mb-6">
+          <Slider label="Sleep, typical night" value={sleepHours} min={4} max={10} step={0.5} unit="h" onChange={setSleepHours} />
+          <Slider label="Exercise days per week" value={exerciseDays} min={0} max={7} step={1} unit="" onChange={setExerciseDays} />
+          <Slider label="Stress level" value={stressLevel} min={1} max={10} step={1} unit="/10" onChange={setStressLevel} />
+        </div>
+
+        <div className="flex items-center gap-4 p-4 rounded-xl bg-black/20 border border-white/5">
+          <div className="relative flex-shrink-0" style={{ width: 64, height: 64, filter: `drop-shadow(0 0 10px ${color}80)` }}>
+            <ScoreRing pct={score.overall} color={color} size={64} thick={6} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-mono tabular-nums font-black text-xl" style={{ color }}>{score.overall}</span>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-white">{scoreLabel(score.overall)} · Health Score</p>
+            <p className="text-xs text-white/50 leading-snug mt-0.5">{insight}</p>
           </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-gray-900 dark:text-white">{scoreLabel(score.overall)} · Health Score</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">{insight}</p>
-        </div>
+
+        <p className="text-[11px] text-white/40 mt-3">Using typical defaults for diet, weight & hydration — the full score uses your real numbers for everything.</p>
+
+        <Link href="/score" className="mt-4 flex items-center justify-center gap-2 w-full px-5 py-3 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-bold text-sm shadow-[0_0_24px_-4px_rgba(45,212,191,0.6)] hover:shadow-[0_0_32px_-4px_rgba(45,212,191,0.8)] transition-all">
+          Get my full health + wealth score →
+        </Link>
       </div>
-
-      <p className="text-[11px] text-gray-400 mt-3">Using typical defaults for diet, weight & hydration — the full score uses your real numbers for everything.</p>
-
-      <Link href="/score" className="mt-4 flex items-center justify-center gap-2 w-full px-5 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-colors">
-        Get my full health + wealth score →
-      </Link>
     </div>
   );
 }

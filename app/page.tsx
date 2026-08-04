@@ -79,31 +79,45 @@ export default function HomePage() {
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          1 · HERO — the standard, proven pattern: headline + subtext + one
-          button on the left, a clear product demo card on the right.
+          1 · HERO — always-dark, glowing, glassmorphic. Grid pattern +
+          teal/cyan glow blobs behind a glass panel, not the light
+          conventional split hero this page had before.
       ══════════════════════════════════════════════ */}
-      <section className="bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden bg-gray-950">
+        <div className="absolute inset-0 opacity-40" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          backgroundSize: '44px 44px',
+          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
+        }} />
+        <div className="absolute top-0 left-1/4 w-[36rem] h-[36rem] bg-teal-500/25 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] bg-cyan-500/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28">
+          <div className="grid lg:grid-cols-2 gap-14 items-center">
 
             <div className="text-center lg:text-left">
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white leading-tight mb-5 text-balance">
-                Your health and wealth,<br className="hidden sm:block"/> in <span className="text-teal-600 dark:text-teal-400">one simple score.</span>
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-teal-300 bg-teal-500/10 border border-teal-500/20 rounded-full px-4 py-1.5 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> Real numbers. Real score. Live.
+              </span>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6 text-balance">
+                Your health and wealth,<br/>
+                <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">in one score.</span>
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
-                Answer a few real questions about your sleep, stress, savings, and debt. Get one score out of 100 and a clear roadmap for what to fix first.
+              <p className="text-white/50 text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
+                Real sleep, stress, savings, and debt numbers become one score out of 100 — and a roadmap for exactly what to fix first.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
                 <Link href="/score"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-base shadow-sm transition-colors">
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-bold text-base shadow-[0_0_30px_-6px_rgba(45,212,191,0.7)] hover:shadow-[0_0_40px_-6px_rgba(45,212,191,0.9)] transition-all">
                   Get my free score →
                 </Link>
                 <Link href="/tools"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-base border border-gray-300 dark:border-gray-700 transition-colors">
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold text-base border border-white/10 hover:border-white/20 backdrop-blur-sm transition-all">
                   Browse {CALCULATORS.length}+ free tools
                 </Link>
               </div>
-              <p className="text-gray-400 text-sm">Free · No signup required · Takes 2 minutes</p>
+              <p className="text-white/30 text-sm">Free · No signup required · Takes 2 minutes</p>
             </div>
 
             <div className="max-w-md mx-auto w-full">
@@ -113,42 +127,50 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-16">
-
-        {/* ══════════════════════════════════════════════
-            2 · FEATURES — simple icon + title + one line, 4 up.
-        ══════════════════════════════════════════════ */}
-        <section>
+      {/* ══════════════════════════════════════════════
+          2 · FEATURES — glass panels on the same dark field as the hero,
+          so the futuristic feel carries past the fold instead of
+          stopping dead at the hero's bottom edge.
+      ══════════════════════════════════════════════ */}
+      <section className="relative bg-gray-950 border-t border-white/5 py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {FEATURES.map(f => (
-              <div key={f.title} className="p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 text-center sm:text-left">
-                <div className="w-11 h-11 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-4 mx-auto sm:mx-0">
+              <div key={f.title} className="p-5 bg-white/[0.04] hover:bg-white/[0.07] backdrop-blur-sm rounded-xl border border-white/10 text-center sm:text-left transition-colors">
+                <div className="w-11 h-11 rounded-lg bg-teal-500/10 text-teal-300 flex items-center justify-center mb-4 mx-auto sm:mx-0 shadow-[0_0_20px_-4px_rgba(45,212,191,0.5)]">
                   <f.icon size={20} />
                 </div>
-                <p className="font-bold text-sm text-gray-900 dark:text-white mb-1.5">{f.title}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.body}</p>
+                <p className="font-bold text-sm text-white mb-1.5">{f.title}</p>
+                <p className="text-sm text-white/40 leading-relaxed">{f.body}</p>
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ══════════════════════════════════════════════
-            3 · HOW IT WORKS — 3 numbered cards, the classic pattern.
-        ══════════════════════════════════════════════ */}
-        <section id="how-it-works" className="scroll-mt-24">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">How it works</h2>
+      {/* ══════════════════════════════════════════════
+          3 · HOW IT WORKS — glowing numbered nodes on a connecting line,
+          still on the dark field.
+      ══════════════════════════════════════════════ */}
+      <section id="how-it-works" className="relative bg-gray-950 border-t border-white/5 py-16 scroll-mt-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">How it works</h2>
           </div>
-          <div className="grid sm:grid-cols-3 gap-6">
+          <div className="relative grid sm:grid-cols-3 gap-10">
+            <div className="hidden sm:block absolute top-6 left-[16.5%] right-[16.5%] h-px bg-gradient-to-r from-teal-500/40 via-teal-500/40 to-teal-500/40" />
             {STEPS.map(s => (
-              <div key={s.n} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-teal-600 text-white font-extrabold text-lg flex items-center justify-center mx-auto mb-4">{s.n}</div>
-                <p className="font-bold text-base text-gray-900 dark:text-white mb-2">{s.title}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">{s.body}</p>
+              <div key={s.n} className="relative text-center">
+                <div className="relative w-12 h-12 rounded-full bg-gray-950 border-2 border-teal-400 text-teal-300 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_-4px_rgba(45,212,191,0.8)]">{s.n}</div>
+                <p className="font-bold text-base text-white mb-2">{s.title}</p>
+                <p className="text-sm text-white/40 leading-relaxed max-w-xs mx-auto">{s.body}</p>
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-16">
 
         {/* ══════════════════════════════════════════════
             4 · TRY A REAL CALCULATOR
