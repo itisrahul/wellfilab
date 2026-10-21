@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { CALCULATORS, getByCategory, getBySlug } from '@/config/tools';
+import { CALCULATORS, getBySlug } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
@@ -13,6 +14,8 @@ import { AnimatedRing } from '@/components/home/AnimatedRing';
 import { AnimatedBar } from '@/components/home/AnimatedBar';
 import { AnimatedTrendChart } from '@/components/home/AnimatedTrendChart';
 import { ProductTour } from '@/components/home/ProductTour';
+import { Aurora } from '@/components/home/Aurora';
+import { Marquee } from '@/components/home/Marquee';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -35,19 +38,19 @@ const FAQ = [
 ];
 
 const REASONS = [
-  { title: 'Your numbers, not averages', body: 'You enter your own height, income and sleep. Results are calculated from them, and the formula is shown so you can check the work.' },
-  { title: 'Every result says what to do next', body: 'A number alone does not help. Each calculator explains what yours means and links to the next sensible step.' },
-  { title: 'A bigger picture, only if you want it', body: 'The WellFiLab Score looks at your health and money together and shows which to work on first. You can ignore it and just use the tools.' },
-  { title: 'Private by default', body: 'Calculators run in your browser and your inputs stay there. Sign in only if you want your history saved across devices.' },
+  { icon: '🧮', title: 'Your numbers, not averages', body: 'You enter your own height, income and sleep. Results are calculated from them, and the formula is shown so you can check the work.', featured: true },
+  { icon: '🧭', title: 'Every result says what to do next', body: 'A number alone does not help. Each calculator explains what yours means and links to the next sensible step.' },
+  { icon: '⭐', title: 'A bigger picture, if you want it', body: 'The WellFiLab Score looks at health and money together and shows what to work on first. Skip it and just use the tools.' },
+  { icon: '🔒', title: 'Private by default', body: 'Calculators run in your browser. Sign in only if you want history saved across devices.' },
 ];
-
 
 const HEALTH_PICKS = ['bmi', 'calories', 'sleep', 'body-fat'].map(s => getBySlug(s)).filter(Boolean) as typeof CALCULATORS;
 const FINANCE_PICKS = ['sip', 'loan', 'fire', 'retirement'].map(s => getBySlug(s)).filter(Boolean) as typeof CALCULATORS;
+const MARQUEE_CALCS = CALCULATORS.filter(c => c.popular).slice(0, 16);
 
-// Sample outputs for the two-path section's preview tiles — the real
-// formulas (lib/calc.ts) run against one representative set of inputs, the
-// same way LiveCalcHero does. Illustrative, not a claim about the visitor.
+// Sample outputs for the two-path section's preview tiles — real formulas
+// (lib/calc.ts) run against one representative set of inputs, the same way
+// LiveCalcHero does. Illustrative, not a claim about the visitor.
 const bmiEx = calcBMI(68, 170);
 const caloriesEx = calcCalories(68, 170, 30, 'male', 'moderate', 'maintain');
 const sleepEx = calcBedtime('06:30')[0];
@@ -70,200 +73,253 @@ const FINANCE_PREVIEW = [
   { icon: '🧓', label: 'Retirement corpus', value: fmtINR(retirementEx.corpus) },
 ];
 const MOCK_RINGS = [
-  { label: 'Body', score: 82, color: '#0D9488', delta: '+6' },
-  { label: 'Mind', score: 53, color: '#6D64D8', delta: '−2' },
-  { label: 'Wealth', score: 60, color: '#D98A12', delta: '+4' },
-  { label: 'Life', score: 71, color: '#2E9E5B', delta: '+3' },
+  { label: 'Body', score: 82, color: '#2DD4BF', delta: '+6' },
+  { label: 'Mind', score: 53, color: '#818CF8', delta: '−2' },
+  { label: 'Wealth', score: 60, color: '#F59E0B', delta: '+4' },
+  { label: 'Life', score: 71, color: '#4ADE80', delta: '+3' },
 ];
+
+const STATS = [
+  { icon: '🧮', value: CALCULATORS.length, suffix: '+', label: 'free calculators' },
+  { icon: '📚', value: ALL_POSTS.length, suffix: '', label: 'step-by-step guides' },
+  { icon: '🔒', value: 0, suffix: '', label: 'accounts needed to calculate' },
+  { icon: '⚡', value: 0, suffix: '', label: 'loading, instant results', isWord: true },
+];
+
+/** Small glass pill for the hero marquee. */
+function CalcChip({ c }: { c: (typeof CALCULATORS)[number] }) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/10 text-sm text-slate-300 whitespace-nowrap">
+      <span className="text-base leading-none">{c.icon}</span>{c.short}
+    </div>
+  );
+}
+
+/** Glass card shared by the bento grid and FAQ — consistent glow-on-hover
+ * treatment across the always-dark marketing sections of this page. */
+function Glass({ children, className = '', glow = 'teal' }: { children: ReactNode; className?: string; glow?: 'teal' | 'amber' | 'indigo' }) {
+  const ring = glow === 'amber' ? 'hover:border-amber-400/30' : glow === 'indigo' ? 'hover:border-indigo-400/30' : 'hover:border-teal-400/30';
+  return (
+    <div className={`bg-white/[0.035] border border-white/10 rounded-2xl backdrop-blur-sm transition-colors ${ring} ${className}`}>
+      {children}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const latest = [...ALL_POSTS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
 
   return (
-    <div className="bg-[#FAFAF7] dark:bg-[#0B1413]">
+    <div className="bg-[#050B0A]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org', '@type': 'FAQPage',
         mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          HERO — a fixed dark band (not theme-dependent, same family of
-          dark as the dashboard-preview section below) with headline + lead
-          + CTAs on the left, a real 4-tab live calculator (BMI/SIP/FIRE/
-          Sleep, same formulas as every tool page) on the right.
+          HERO — centered, product-led: badge → kinetic headline → sub →
+          CTAs → trust row → a floating glowing glass card holding the
+          real interactive calculator. Aurora drifts behind everything.
       ══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-[#071411]">
-        <div aria-hidden className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(rgba(45,212,191,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(45,212,191,0.07) 1px, transparent 1px)',
-          backgroundSize: '44px 44px',
-        }} />
-        <div aria-hidden className="absolute -top-28 left-1/4 w-[440px] h-[440px] rounded-full bg-teal-500/10 blur-[100px]" />
-        <div aria-hidden className="absolute top-1/3 -right-16 w-72 h-72 rounded-full bg-indigo-500/10 blur-[100px]" />
+      <section className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32">
+        <Aurora />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-16 md:pt-20 md:pb-20">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-14 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/25 text-teal-300 text-xs font-semibold mb-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
-                {CALCULATORS.length}+ free tools · No signup needed
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-[1.12] text-balance">
-                Free calculators for health and finance.
-                <span className="block text-2xl sm:text-3xl font-medium text-slate-400 mt-2.5">Real answers, instantly.</span>
-              </h1>
-              <p className="text-slate-400 text-lg leading-relaxed mt-6 mb-7 max-w-xl">
-                BMI, calories, sleep, SIP, EMI, FIRE and {CALCULATORS.length}+ more. Type your numbers, watch the result update, and get a clear next step.
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <Reveal variant="fade">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/25 text-teal-300 text-xs font-semibold mb-7">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+              {CALCULATORS.length}+ free tools · No signup needed
+            </div>
+          </Reveal>
+
+          <Reveal variant="fade" delayMs={80}>
+            <h1 className="text-5xl sm:text-6xl md:text-[68px] font-extrabold tracking-tight text-white leading-[1.05] text-balance">
+              Free calculators<br className="hidden sm:block" />
+              <span className="bg-gradient-to-r from-teal-300 via-teal-200 to-amber-200 bg-clip-text text-transparent"> for health and finance.</span>
+            </h1>
+          </Reveal>
+
+          <Reveal variant="fade" delayMs={160}>
+            <p className="text-slate-400 text-lg sm:text-xl leading-relaxed mt-6 mb-9 max-w-2xl mx-auto">
+              BMI, calories, sleep, SIP, EMI, FIRE and {CALCULATORS.length}+ more. Type your numbers, watch the result update, and get a clear next step.
+            </p>
+          </Reveal>
+
+          <Reveal variant="fade" delayMs={240}>
+            <div className="flex flex-wrap gap-3 justify-center mb-7">
+              <Link href="/tools/health" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-[#04211E] font-bold text-[15px] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-6px_rgba(45,212,191,0.5)]">
+                Browse health tools
+              </Link>
+              <Link href="/tools/finance" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border-[1.5px] border-white/15 hover:border-white/30 text-slate-200 font-semibold text-[15px] transition-all hover:-translate-y-0.5">
+                Browse finance tools
+              </Link>
+            </div>
+          </Reveal>
+
+          <Reveal variant="fade" delayMs={300}>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center text-sm text-slate-500 mb-16">
+              {['No signup', 'Free to use', 'Runs in your browser'].map(a => (
+                <span key={a} className="flex items-center gap-1.5"><span className="text-teal-400 font-bold">✓</span>{a}</span>
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal variant="fade" delayMs={380} className="relative max-w-xl mx-auto">
+            <div aria-hidden className="absolute -inset-2 rounded-[32px] bg-gradient-to-r from-teal-500/25 via-indigo-500/15 to-amber-500/20 blur-2xl opacity-70" />
+            <div className="relative dark animate-float" style={{ animationDuration: '7s' }}>
+              <LiveCalcHero />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          MARQUEE — every tool, in motion, before anyone has to click.
+      ══════════════════════════════════════════════ */}
+      <div className="relative border-y border-white/5 py-5">
+        <Marquee items={MARQUEE_CALCS.map(c => <CalcChip key={c.slug} c={c} />)} />
+      </div>
+
+      {/* ══════════════════════════════════════════════
+          STATS BENTO
+      ══════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
+        <Reveal className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {STATS.map((s, i) => (
+            <Glass key={s.label} className="p-5 text-center hover:-translate-y-1 transition-transform duration-300">
+              <span className="text-2xl block mb-2">{s.icon}</span>
+              <p className="text-[26px] font-extrabold tracking-tight text-white leading-none">
+                {s.isWord ? 'Instant' : <><CountUp value={s.value} />{s.suffix}</>}
               </p>
-              <div className="flex flex-wrap gap-3 mb-6">
-                <Link href="/tools/health" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-500 hover:brightness-110 text-[#04211E] font-bold text-[15px] transition-all">
-                  Browse health tools
-                </Link>
-                <Link href="/tools/finance" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border-[1.5px] border-white/15 hover:border-white/30 text-slate-200 font-semibold text-[15px] transition-colors">
-                  Browse finance tools
-                </Link>
-              </div>
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400">
-                {['No signup', 'Free to use', 'Runs in your browser'].map(a => (
-                  <span key={a} className="flex items-center gap-1.5"><span className="text-teal-400 font-bold">✓</span>{a}</span>
+              <p className="text-sm text-slate-500 mt-1.5">{s.label}</p>
+            </Glass>
+          ))}
+        </Reveal>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          TWO PATHS — glass cards, teal (health) / amber (finance), real
+          sample calculator output tiles.
+      ══════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
+        <Reveal className="grid md:grid-cols-2 gap-4">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-500/[0.08] to-transparent border border-teal-400/15 p-8 sm:p-10">
+            <span aria-hidden className="pointer-events-none select-none absolute -bottom-8 -right-2 text-[120px] font-black leading-none tracking-tighter text-teal-300/[0.05]">Health</span>
+            <div className="relative">
+              <p className="text-xs font-bold uppercase tracking-widest text-teal-400/80 mb-3">Track your body</p>
+              <h3 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white mb-3">Health calculators</h3>
+              <p className="text-slate-400 text-[15px] leading-relaxed mb-5 max-w-md">BMI, calories, sleep cycles, body fat, heart rate zones, hydration — understand your body with real numbers, not guesswork.</p>
+              <div className="flex flex-wrap gap-1.5 mb-6">
+                {[...HEALTH_PICKS.map(c => c.short), `+${Math.max(0, CALCULATORS.filter(c => c.category === 'health').length - HEALTH_PICKS.length)} more`].map(c => (
+                  <span key={c} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-400/10 text-teal-300">{c}</span>
                 ))}
               </div>
+              <div className="grid grid-cols-2 gap-2 mb-7 max-w-sm">
+                {HEALTH_PREVIEW.map(p => (
+                  <div key={p.label} className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2">
+                    <span className="text-base leading-none">{p.icon}</span>
+                    <span className="text-xs font-semibold text-slate-300 flex-1 truncate">{p.label}</span>
+                    <span className="text-xs font-bold text-teal-300 tabular-nums">{p.value}</span>
+                  </div>
+                ))}
+              </div>
+              <Link href="/tools/health" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-[#04211E] font-bold text-sm transition-all hover:-translate-y-0.5">
+                Browse health tools →
+              </Link>
             </div>
-
-            <div className="dark"><LiveCalcHero /></div>
           </div>
+
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/[0.08] to-transparent border border-amber-400/15 p-8 sm:p-10">
+            <span aria-hidden className="pointer-events-none select-none absolute -bottom-8 -right-2 text-[120px] font-black leading-none tracking-tighter text-amber-300/[0.05]">Finance</span>
+            <div className="relative">
+              <p className="text-xs font-bold uppercase tracking-widest text-amber-400/80 mb-3">Grow your wealth</p>
+              <h3 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white mb-3">Finance calculators</h3>
+              <p className="text-slate-400 text-[15px] leading-relaxed mb-5 max-w-md">SIP, EMI, FIRE, retirement, income tax, compound interest — make smarter money decisions with tools built for real numbers.</p>
+              <div className="flex flex-wrap gap-1.5 mb-6">
+                {[...FINANCE_PICKS.map(c => c.short), `+${Math.max(0, CALCULATORS.filter(c => c.category === 'finance').length - FINANCE_PICKS.length)} more`].map(c => (
+                  <span key={c} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-400/10 text-amber-300">{c}</span>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mb-7 max-w-sm">
+                {FINANCE_PREVIEW.map(p => (
+                  <div key={p.label} className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2">
+                    <span className="text-base leading-none">{p.icon}</span>
+                    <span className="text-xs font-semibold text-slate-300 flex-1 truncate">{p.label}</span>
+                    <span className="text-xs font-bold text-amber-300 tabular-nums">{p.value}</span>
+                  </div>
+                ))}
+              </div>
+              <Link href="/tools/finance" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-[#2B1600] font-bold text-sm transition-all hover:-translate-y-0.5">
+                Browse finance tools →
+              </Link>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          HOW IT WORKS — the self-playing 4-step product tour.
+      ══════════════════════════════════════════════ */}
+      <section className="relative border-y border-white/5 py-20 overflow-hidden">
+        <Aurora variant="soft" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <Reveal className="max-w-xl mb-10">
+            <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white">See the whole loop in 15 seconds</h2>
+            <p className="text-slate-400 mt-3">Watch it play, or tap a step below to jump straight to it.</p>
+          </Reveal>
+          <Reveal delayMs={100} className="max-w-3xl mx-auto dark">
+            <ProductTour />
+          </Reveal>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════
-          FACTS — real counts only, animated count-up on scroll.
+          WHY WELLFILAB — asymmetric bento grid.
       ══════════════════════════════════════════════ */}
-      <section className="border-y border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111D1B]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4">
-          {[
-            { big: <><CountUp value={CALCULATORS.length} />+</>, label: 'calculators' },
-            { big: <CountUp value={ALL_POSTS.length} />, label: 'step-by-step guides' },
-            { big: <CountUp value={0} />, label: 'accounts needed to calculate' },
-            { big: 'Free', label: 'to use, always' },
-          ].map((f, i) => {
-            const rightCol = i % 2 === 1;
-            const bottomRow = i >= 2;
-            return (
-            <div key={f.label} className={[
-              'py-6',
-              rightCol ? 'pl-6 sm:pl-6' : 'sm:pl-0',
-              bottomRow ? 'border-t sm:border-t-0 border-gray-100 dark:border-gray-800' : '',
-              i > 0 ? 'sm:border-l sm:border-gray-100 sm:dark:border-gray-800' : '',
-            ].join(' ')}>
-              <p className="text-[26px] font-extrabold tracking-tight text-gray-900 dark:text-white leading-none">{f.big}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{f.label}</p>
-            </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          TWO PATHS — full-bleed split: health tools (teal) vs. finance
-          tools (amber), each with real chips, real sample calculator
-          output tiles, and its own CTA. Replaces the old plain card grid.
-      ══════════════════════════════════════════════ */}
-      <Reveal as="section" className="border-b border-gray-200 dark:border-gray-800 grid md:grid-cols-2">
-        <div className="relative overflow-hidden bg-teal-50 dark:bg-teal-950/20 p-8 sm:p-12 border-b md:border-b-0 md:border-r border-black/5 dark:border-white/5">
-          <span aria-hidden className="pointer-events-none select-none absolute -bottom-8 -right-2 text-[110px] sm:text-[150px] font-black leading-none tracking-tighter text-teal-900/[0.06] dark:text-teal-300/[0.05]">Health</span>
-          <div className="relative max-w-md">
-            <p className="text-xs font-bold uppercase tracking-widest text-teal-700/70 dark:text-teal-400/70 mb-3">Track your body</p>
-            <h3 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-teal-900 dark:text-teal-300 mb-3">Health calculators</h3>
-            <p className="text-teal-900/60 dark:text-teal-200/60 text-[15px] leading-relaxed mb-5">BMI, calories, sleep cycles, body fat, heart rate zones, hydration — understand your body with real numbers, not guesswork.</p>
-            <div className="flex flex-wrap gap-1.5 mb-6">
-              {[...HEALTH_PICKS.map(c => c.short), `+${Math.max(0, CALCULATORS.filter(c => c.category === 'health').length - HEALTH_PICKS.length)} more`].map(c => (
-                <span key={c} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-700/10 dark:bg-teal-400/10 text-teal-800 dark:text-teal-300">{c}</span>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              {HEALTH_PREVIEW.map(p => (
-                <div key={p.label} className="flex items-center gap-2 bg-white/70 dark:bg-white/5 border border-teal-900/10 dark:border-teal-300/10 rounded-lg px-3 py-2">
-                  <span className="text-base leading-none">{p.icon}</span>
-                  <span className="text-xs font-semibold text-teal-900 dark:text-teal-200 flex-1 truncate">{p.label}</span>
-                  <span className="text-xs font-bold text-teal-700 dark:text-teal-400 tabular-nums">{p.value}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/tools/health" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-700 dark:bg-teal-500 text-white font-bold text-sm hover:brightness-110 transition-all">
-              Browse health tools →
-            </Link>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden bg-amber-50 dark:bg-amber-950/10 p-8 sm:p-12">
-          <span aria-hidden className="pointer-events-none select-none absolute -bottom-8 -right-2 text-[110px] sm:text-[150px] font-black leading-none tracking-tighter text-amber-900/[0.06] dark:text-amber-300/[0.05]">Finance</span>
-          <div className="relative max-w-md">
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-700/70 dark:text-amber-400/70 mb-3">Grow your wealth</p>
-            <h3 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-amber-900 dark:text-amber-400 mb-3">Finance calculators</h3>
-            <p className="text-amber-900/60 dark:text-amber-200/60 text-[15px] leading-relaxed mb-5">SIP, EMI, FIRE, retirement, income tax, compound interest — make smarter money decisions with tools built for real numbers.</p>
-            <div className="flex flex-wrap gap-1.5 mb-6">
-              {[...FINANCE_PICKS.map(c => c.short), `+${Math.max(0, CALCULATORS.filter(c => c.category === 'finance').length - FINANCE_PICKS.length)} more`].map(c => (
-                <span key={c} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-700/10 dark:bg-amber-400/10 text-amber-800 dark:text-amber-300">{c}</span>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              {FINANCE_PREVIEW.map(p => (
-                <div key={p.label} className="flex items-center gap-2 bg-white/70 dark:bg-white/5 border border-amber-900/10 dark:border-amber-300/10 rounded-lg px-3 py-2">
-                  <span className="text-base leading-none">{p.icon}</span>
-                  <span className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex-1 truncate">{p.label}</span>
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 tabular-nums">{p.value}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/tools/finance" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-700 dark:bg-amber-500 dark:text-amber-950 text-white font-bold text-sm hover:brightness-110 transition-all">
-              Browse finance tools →
-            </Link>
-          </div>
-        </div>
-      </Reveal>
-
-      {/* ══════════════════════════════════════════════
-          HOW IT WORKS — a self-playing 4-step product tour instead of
-          static numbered cards. Explains the whole loop (Score → Roadmap
-          → Goals → Dashboard) by animating it, not describing it.
-      ══════════════════════════════════════════════ */}
-      <section className="bg-[#F1F3EE] dark:bg-[#101C1A] py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="max-w-xl mb-10">
-            <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-gray-900 dark:text-white">See the whole loop in 15 seconds</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-3">Watch it play, or tap a step below to jump straight to it.</p>
-          </div>
-          <Reveal className="max-w-3xl mx-auto"><ProductTour /></Reveal>
-        </div>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+        <Reveal className="mb-9">
+          <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white">Built different from day one</h2>
+        </Reveal>
+        <Reveal delayMs={80} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {REASONS.map(r => (
+            <Glass key={r.title} className={`p-7 ${r.featured ? 'sm:col-span-2 lg:col-span-1 lg:row-span-2 flex flex-col justify-center' : ''}`}>
+              <span className="text-3xl block mb-4">{r.icon}</span>
+              <h3 className={`font-extrabold text-white mb-2 ${r.featured ? 'text-xl' : 'text-lg'}`}>{r.title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{r.body}</p>
+            </Glass>
+          ))}
+        </Reveal>
       </section>
 
       {/* ══════════════════════════════════════════════
           DASHBOARD PREVIEW — real score rings/visual language, clearly
           marked as sample data since no visitor has a real score yet.
       ══════════════════════════════════════════════ */}
-      <section className="bg-[#0F2A27] py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative bg-[#0A1513] border-y border-white/5 py-20 overflow-hidden">
+        <div aria-hidden className="absolute top-0 right-0 w-96 h-96 rounded-full bg-teal-500/[0.06] blur-[120px]" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
           <Reveal>
             <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white">A dashboard you will actually open every day</h2>
-            <p className="text-[#93ADA8] mt-3.5 mb-6 text-[17px]">Log sleep, water, movement and spending in under a minute. See your trends, tick off today's actions, and keep your goals in one place.</p>
+            <p className="text-slate-400 mt-3.5 mb-6 text-[17px]">Log sleep, water, movement and spending in under a minute. See your trends, tick off today's actions, and keep your goals in one place.</p>
             <ul className="grid gap-3 mb-7">
               {['Daily check-in with weekly trend charts', 'Roadmap actions with estimated impact', 'Goals for weight, savings, score and more', 'Net worth tracker, ready for broker connections'].map(li => (
-                <li key={li} className="flex items-start gap-2.5 text-[#C5D6D2] text-[15px]">
+                <li key={li} className="flex items-start gap-2.5 text-slate-300 text-[15px]">
                   <span className="text-teal-400 font-bold flex-shrink-0">✓</span>{li}
                 </li>
               ))}
             </ul>
-            <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-400 text-[#04211E] font-bold text-[15px] hover:brightness-110 transition-all">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-400 text-[#04211E] font-bold text-[15px] hover:bg-teal-300 transition-all hover:-translate-y-0.5">
               Explore the dashboard
             </Link>
           </Reveal>
 
-          <Reveal delayMs={150} className="bg-[#0A1B19] border border-[#1F3A36] rounded-2xl p-5 grid gap-4" aria-label="Sample dashboard preview">
-            <div className="flex items-center justify-between text-xs text-[#93ADA8]">
+          <Reveal delayMs={150} className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 grid gap-4 backdrop-blur-sm" aria-label="Sample dashboard preview">
+            <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Good morning, Rahul</span><span>Sample data</span>
             </div>
             <div className="grid grid-cols-4 gap-2.5">
               {MOCK_RINGS.map((r, i) => (
-                <div key={r.label} className="bg-[#0F2623] rounded-xl p-2.5 text-center">
+                <div key={r.label} className="bg-white/[0.03] border border-white/5 rounded-xl p-2.5 text-center">
                   <div className="relative mx-auto">
                     <AnimatedRing pct={r.score} color={r.color} size={52} thick={5} delayMs={i * 180} />
                     <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">{r.score}</div>
@@ -274,35 +330,35 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="bg-[#0F2623] rounded-xl p-3.5">
+            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3.5">
               <div className="flex items-baseline justify-between mb-1">
-                <h4 className="text-xs font-semibold text-[#C5D6D2]">Score over time</h4>
+                <h4 className="text-xs font-semibold text-slate-300">Score over time</h4>
                 <span className="text-xs font-bold text-teal-400">+23 in 6 months</span>
               </div>
               <AnimatedTrendChart />
             </div>
 
             <div className="grid sm:grid-cols-2 gap-2.5">
-              <div className="bg-[#0F2623] rounded-xl p-3.5 grid gap-2.5 content-start">
-                <h4 className="text-xs font-semibold text-[#C5D6D2]">Today</h4>
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3.5 grid gap-2.5 content-start">
+                <h4 className="text-xs font-semibold text-slate-300">Today</h4>
                 {[
                   { label: 'Bedtime alarm set for 10:30 pm', done: true },
                   { label: 'No phone 30 minutes before bed', done: false },
                   { label: 'Raise SIP from ₹3,000 to ₹6,500', done: false },
                 ].map((item, i) => (
-                  <Reveal key={item.label} delayMs={300 + i * 200} className="flex gap-2 text-xs text-[#C5D6D2]">
-                    <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 mt-0.5 ${item.done ? 'border-teal-400 bg-teal-400' : 'border-[#3C5D58]'}`} />
-                    <span className={item.done ? 'line-through text-[#6F8984]' : ''}>{item.label}</span>
+                  <Reveal key={item.label} delayMs={300 + i * 200} className="flex gap-2 text-xs text-slate-300">
+                    <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 mt-0.5 ${item.done ? 'border-teal-400 bg-teal-400' : 'border-white/20'}`} />
+                    <span className={item.done ? 'line-through text-slate-500' : ''}>{item.label}</span>
                   </Reveal>
                 ))}
               </div>
-              <div className="bg-[#0F2623] rounded-xl p-3.5 grid gap-2.5 content-start">
-                <h4 className="text-xs font-semibold text-[#C5D6D2]">Goals</h4>
-                <div className="text-xs text-[#C5D6D2]">Emergency fund
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3.5 grid gap-2.5 content-start">
+                <h4 className="text-xs font-semibold text-slate-300">Goals</h4>
+                <div className="text-xs text-slate-300">Emergency fund
                   <AnimatedBar pct={47} delayMs={400} />
                   47% of ₹1.5 lakh
                 </div>
-                <div className="text-xs text-[#C5D6D2]">Weight 84 → 75 kg
+                <div className="text-xs text-slate-300">Weight 84 → 75 kg
                   <AnimatedBar pct={31} delayMs={700} />
                   31% there
                 </div>
@@ -312,53 +368,37 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ══════════════════════════════════════════════
+          GUIDES
+      ══════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+        <Reveal className="max-w-xl mb-9">
+          <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white">Learn while you calculate</h2>
+          <p className="text-slate-400 mt-3">Each calculator has matching guides that explain the math and what to do with your result.</p>
+        </Reveal>
+        <Reveal delayMs={80} className="grid sm:grid-cols-2 gap-3.5 dark">
+          {latest.map(p => <PostCard key={p.slug} post={p} />)}
+        </Reveal>
+        <Link href="/guides" className="inline-flex items-center gap-2 px-5 py-2.5 mt-6 rounded-lg border-[1.5px] border-white/15 hover:border-white/30 text-slate-200 font-semibold text-sm transition-colors">
+          Read all {ALL_POSTS.length} guides
+        </Link>
+      </section>
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-
-        {/* ══════════════════════════════════════════════
-            WHAT MAKES IT DIFFERENT
-        ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20 border-t border-gray-200 dark:border-gray-800">
-          <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-gray-900 dark:text-white mb-8">What makes it different</h2>
-          <div className="divide-y divide-gray-200 dark:divide-gray-800 border-t border-gray-200 dark:border-gray-800">
-            {REASONS.map(r => (
-              <div key={r.title} className="grid md:grid-cols-[1fr_1.6fr] gap-2 md:gap-8 py-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{r.title}</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-[15px]">{r.body}</p>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-
-        {/* ══════════════════════════════════════════════
-            GUIDES
-        ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20">
-          <div className="max-w-xl mb-9">
-            <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-gray-900 dark:text-white">Learn while you calculate</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-3">Each calculator has matching guides that explain the math and what to do with your result.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3.5">
-            {latest.map(p => <PostCard key={p.slug} post={p} />)}
-          </div>
-          <Link href="/guides" className="inline-flex items-center gap-2 px-5 py-2.5 mt-6 rounded-lg border-[1.5px] border-gray-300 dark:border-gray-700 hover:border-gray-900 dark:hover:border-gray-400 text-gray-900 dark:text-white font-semibold text-sm transition-colors">
-            Read all {ALL_POSTS.length} guides
-          </Link>
-        </Reveal>
-
         {/* ══════════════════════════════════════════════
             PLANS BAND
         ══════════════════════════════════════════════ */}
         {PLANS_ENABLED && (
           <Reveal as="section" className="pb-14">
-            <div className="rounded-2xl bg-[#F1F3EE] dark:bg-gray-900 p-8 flex flex-wrap justify-between items-center gap-6">
+            <Glass className="p-8 flex flex-wrap justify-between items-center gap-6">
               <div className="max-w-xl">
-                <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-1.5">Want a person to look at your numbers?</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-[15px]">Personal diet and finance plans start at ₹149 a month. Everything else on this site stays free.</p>
+                <h2 className="text-xl font-extrabold text-white mb-1.5">Want a person to look at your numbers?</h2>
+                <p className="text-slate-400 text-[15px]">Personal diet and finance plans start at ₹149 a month. Everything else on this site stays free.</p>
               </div>
-              <Link href="/plan" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border-[1.5px] border-gray-300 dark:border-gray-700 hover:border-gray-900 dark:hover:border-gray-400 text-gray-900 dark:text-white font-semibold text-sm transition-colors">
+              <Link href="/plan" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border-[1.5px] border-white/15 hover:border-white/30 text-slate-200 font-semibold text-sm transition-colors">
                 See plans
               </Link>
-            </div>
+            </Glass>
           </Reveal>
         )}
 
@@ -366,16 +406,18 @@ export default function HomePage() {
             FAQ
         ══════════════════════════════════════════════ */}
         <Reveal as="section" className="py-20">
-          <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-gray-900 dark:text-white mb-8">Questions people ask</h2>
-          <div className="max-w-2xl">
+          <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-white mb-8">Questions people ask</h2>
+          <div className="max-w-2xl grid gap-2.5">
             {FAQ.map((item, i) => (
-              <details key={i} className="group border-b border-gray-200 dark:border-gray-800 py-4">
-                <summary className="flex items-center justify-between gap-4 font-semibold text-[17px] text-gray-900 dark:text-white cursor-pointer list-none">
-                  {item.q}
-                  <span className="text-gray-400 text-xl font-light group-open:rotate-45 transition-transform flex-shrink-0">+</span>
-                </summary>
-                <p className="text-gray-500 dark:text-gray-400 mt-2.5 text-[15px] leading-relaxed">{item.a}</p>
-              </details>
+              <Glass key={i} className="px-5 py-1">
+                <details className="group py-3">
+                  <summary className="flex items-center justify-between gap-4 font-semibold text-[16px] text-white cursor-pointer list-none">
+                    {item.q}
+                    <span className="text-slate-500 text-xl font-light group-open:rotate-45 transition-transform flex-shrink-0">+</span>
+                  </summary>
+                  <p className="text-slate-400 mt-2.5 text-[15px] leading-relaxed">{item.a}</p>
+                </details>
+              </Glass>
             ))}
           </div>
         </Reveal>
