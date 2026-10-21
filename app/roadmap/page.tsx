@@ -324,24 +324,6 @@ export default function RoadmapPage() {
           </PhaseBlock>
         </div>
 
-        {/* SECTION 5: Financial impact */}
-        {score.level === 'full' && totalAnnualImpact > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">If you complete this roadmap</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mb-1">~{fmtINR(totalAnnualImpact)}<span className="text-sm font-normal text-gray-400"> saved per year</span></p>
-            <p className="text-xs text-gray-400">Real, recurring savings from the actions above — expense and subscription cuts, based on your actual spending, not a converted health estimate. Long-term investing impact is shown separately below, since that's a different kind of number entirely.</p>
-          </div>
-        )}
-        {score.level === 'full' && trajectories && current && improved && optimal && (
-          <FinancialImpact current={current} improved={improved} optimal={optimal} score={score} />
-        )}
-
-        {/* SECTION 6: Score history */}
-        {history.length > 1 && <ScoreHistorySection history={history} />}
-
-        {/* SECTION 7: 90-day timeline */}
-        <NinetyDayTimeline daysSinceStart={daysSinceStart} lowestLabel={lowestDim.label} />
-
         {/* SECTION 7B: Turn this into a tracked goal */}
         <Link href="/goals" className="print:hidden flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
           <span className="text-3xl flex-shrink-0">🎯</span>
@@ -352,8 +334,38 @@ export default function RoadmapPage() {
           <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
         </Link>
 
-        {/* SECTION 8: Tools for your roadmap */}
-        <div className="print:hidden"><ToolsSection lowestDim={lowestDim} secondDim={secondDim} /></div>
+        {/* Everything below is real detail — financial projections, score
+            history, a 90-day timeline, and more tools — collapsed by
+            default so the page reads as "here's your plan," not a wall of
+            sections after the 3 phases above. */}
+        <details className="print:hidden group">
+          <summary className="list-none cursor-pointer flex items-center justify-center gap-2 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline py-2">
+            See more — financial impact, score history, 90-day timeline, tools
+            <span className="text-gray-400 group-open:rotate-180 transition-transform">▾</span>
+          </summary>
+          <div className="space-y-8 mt-6">
+            {/* SECTION 5: Financial impact */}
+            {score.level === 'full' && totalAnnualImpact > 0 && (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">If you complete this roadmap</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white mb-1">~{fmtINR(totalAnnualImpact)}<span className="text-sm font-normal text-gray-400"> saved per year</span></p>
+                <p className="text-xs text-gray-400">Real, recurring savings from the actions above — expense and subscription cuts, based on your actual spending, not a converted health estimate. Long-term investing impact is shown separately below, since that's a different kind of number entirely.</p>
+              </div>
+            )}
+            {score.level === 'full' && trajectories && current && improved && optimal && (
+              <FinancialImpact current={current} improved={improved} optimal={optimal} score={score} />
+            )}
+
+            {/* SECTION 6: Score history */}
+            {history.length > 1 && <ScoreHistorySection history={history} />}
+
+            {/* SECTION 7: 90-day timeline */}
+            <NinetyDayTimeline daysSinceStart={daysSinceStart} lowestLabel={lowestDim.label} />
+
+            {/* SECTION 8: Tools for your roadmap */}
+            <ToolsSection lowestDim={lowestDim} secondDim={secondDim} />
+          </div>
+        </details>
 
         {/* SECTION 9: Upgrade (subtle) — hidden while PLANS_ENABLED is false */}
         {PLANS_ENABLED && (

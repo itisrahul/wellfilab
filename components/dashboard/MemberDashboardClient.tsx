@@ -163,6 +163,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
     ? Math.round(((rawInputs.finance.monthlyIncome - rawInputs.finance.monthlyExpenses) / rawInputs.finance.monthlyIncome) * 100) : null;
   const sipGoal = goals.find(g => g.type === 'sip-target');
   const emergencyGoal = goals.find(g => g.type === 'emergency-fund');
+  const weightGoal = goals.find(g => g.type === 'weight');
 
   // A real, grounded coach line — the dimension with the largest real drop
   // since the last check-in, named plainly. No invented causal narrative
@@ -314,7 +315,10 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
                   <Metric label="Stress" value={rawInputs?.body?.stressLevel != null ? `${rawInputs.body.stressLevel} / 10` : '—'}
                     pct={rawInputs?.body?.stressLevel != null ? rawInputs.body.stressLevel * 10 : 0} color={rawInputs?.body?.stressLevel != null && rawInputs.body.stressLevel >= 7 ? '#ef4444' : '#f59e0b'}
                     note={rawInputs?.body?.stressLevel != null && rawInputs.body.stressLevel >= 7 ? 'High. Fix this first' : 'Manageable'} />
-                  <Metric label="Weight" value={weight != null ? `${weight} kg` : '—'} pct={50} color="#f59e0b" note={weight != null ? 'From your score' : 'Add on the score'} />
+                  <Metric label="Weight" value={weight != null ? `${weight} kg` : '—'}
+                    pct={weightGoal && weight != null ? Math.min(100, Math.max(0, ((weightGoal.startValue - weight) / (weightGoal.startValue - weightGoal.target || 1)) * 100)) : 0}
+                    color="#f59e0b"
+                    note={weightGoal ? `Goal: ${weightGoal.target} kg` : weight != null ? 'No weight goal set' : 'Add on the score'} />
                 </div>
               </div>
 

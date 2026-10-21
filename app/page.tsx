@@ -10,6 +10,7 @@ import { Reveal } from '@/components/home/Reveal';
 import { AnimatedRing } from '@/components/home/AnimatedRing';
 import { AnimatedBar } from '@/components/home/AnimatedBar';
 import { AnimatedTrendChart } from '@/components/home/AnimatedTrendChart';
+import { ProductTour } from '@/components/home/ProductTour';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -38,12 +39,6 @@ const REASONS = [
   { title: 'Private by default', body: 'Calculators run in your browser and your inputs stay there. Sign in only if you want your history saved across devices.' },
 ];
 
-const STEPS = [
-  { title: 'Use a calculator', body: 'Pick any tool and get an answer in seconds. Nothing to install or sign up for.' },
-  { title: 'Take the score', body: 'Enter real numbers for sleep, weight, income and savings. See exactly how your score was worked out.', opt: 'Optional, about 5 minutes' },
-  { title: 'Follow your roadmap', body: 'Specific actions in a sensible order, each with an estimated impact on your health or money.' },
-  { title: 'Track your progress', body: 'Check in daily, update goals, and watch your score move in your dashboard.' },
-];
 
 const HEALTH_PICKS = ['bmi', 'calories', 'sleep', 'body-fat'].map(s => getBySlug(s)).filter(Boolean) as typeof CALCULATORS;
 const FINANCE_PICKS = ['sip', 'loan', 'fire', 'retirement'].map(s => getBySlug(s)).filter(Boolean) as typeof CALCULATORS;
@@ -180,27 +175,17 @@ export default function HomePage() {
       </div>
 
       {/* ══════════════════════════════════════════════
-          HOW IT WORKS — numbered steps with a connecting line that draws
-          in as each step reveals.
+          HOW IT WORKS — a self-playing 4-step product tour instead of
+          static numbered cards. Explains the whole loop (Score → Roadmap
+          → Goals → Dashboard) by animating it, not describing it.
       ══════════════════════════════════════════════ */}
       <section className="bg-[#F1F3EE] dark:bg-[#101C1A] py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="max-w-xl mb-12">
-            <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-gray-900 dark:text-white">Start with a tool. Go further when you want to.</h2>
+          <div className="max-w-xl mb-10">
+            <h2 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-gray-900 dark:text-white">See the whole loop in 15 seconds</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-3">Watch it play, or tap a step below to jump straight to it.</p>
           </div>
-          <div className="relative grid sm:grid-cols-4 gap-10 sm:gap-6">
-            <div className="hidden sm:block absolute top-[17px] left-[12.5%] right-[12.5%] h-px bg-gray-200 dark:bg-gray-800 overflow-hidden">
-              <Reveal variant="scaleX" delayMs={300} className="h-full w-full bg-teal-600 dark:bg-teal-400 origin-left" />
-            </div>
-            {STEPS.map((s, i) => (
-              <Reveal key={s.title} delayMs={i * 120} className="relative">
-                <div className="relative z-10 w-9 h-9 rounded-full bg-teal-700 dark:bg-teal-500 text-white font-bold text-sm flex items-center justify-center mb-4">{i + 1}</div>
-                <h3 className="font-bold text-base text-gray-900 dark:text-white mb-1.5">{s.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{s.body}</p>
-                {s.opt && <p className="text-xs font-semibold text-teal-700 dark:text-teal-400 mt-1.5">{s.opt}</p>}
-              </Reveal>
-            ))}
-          </div>
+          <Reveal className="max-w-3xl mx-auto"><ProductTour /></Reveal>
         </div>
       </section>
 

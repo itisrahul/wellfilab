@@ -2,7 +2,6 @@ import Link from 'next/link';
 import type { Dimension, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
 import { getDimActions } from '@/lib/roadmapActions';
 import { getBySlug } from '@/config/tools';
-import { LinkChip, LinkBar } from './LinkChip';
 
 interface StepCard { kicker: string; title: string; why: string; href: string; cta: string }
 
@@ -69,9 +68,6 @@ export function NextStepsCard({ dimensions, body, finance }: {
           </Link>
         ))}
       </div>
-      <LinkBar>
-        <LinkChip targetId="top-priorities">Back to Top Priorities</LinkChip>
-      </LinkBar>
     </div>
   );
 }

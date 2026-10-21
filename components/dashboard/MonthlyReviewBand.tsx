@@ -71,7 +71,7 @@ export function MonthlyReviewBand({ score }: { score: WellFiScore }) {
         </div>
       </div>
       <LinkBar variant="dark">
-        <LinkChip targetId="score-band" variant="dark">See your current score</LinkChip>
+        <LinkChip targetId="top" variant="dark">See your current score</LinkChip>
         <LinkChip targetId="goal-progress" variant="dark">See your goals</LinkChip>
       </LinkBar>
     </div>

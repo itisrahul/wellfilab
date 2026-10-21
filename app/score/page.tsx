@@ -830,28 +830,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
 
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
-        {/* SECTION 2: Calculation breakdown — self-gates on real scoreFactors existing */}
-        <CalculationBreakdown score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
-
-        {/* SECTION 2B: What your score means for your life */}
-        <ScoreImpactSection score={score} />
-
-        {/* SECTION 2B-ii: How you compare */}
-        <BenchmarkSection score={score} history={history} />
-
-        {/* SECTION 2B-iii: Risk management plan — only needs age + finance, so it's
-            real for a Wealth-only score too, not just a combined one */}
-        {b.age != null && hasFinanceData && (
-          <RiskManagementSection
-            age={b.age} netWorth={netWorth} monthlyIncome={f.monthlyIncome} monthlyExpenses={f.monthlyExpenses}
-            equityAllocationPct={f.equityAllocationPct} riskTolerance={f.riskTolerance}
-            hasEmergencyFund={f.hasEmergencyFund} hasInsurance={f.hasInsurance} hasLifeInsurance={f.hasLifeInsurance}
-          />
-        )}
-
-        {/* SECTION 2C: What-if simulator — needs real body AND finance data to simulate;
-            interactive only, not meaningful in a printed report */}
-        {hasBodyData && hasFinanceData && <div className="print:hidden"><WhatIfSimulator body={b} finance={f} baseline={score} /></div>}
+        {/* The simple default path: who you are, what's weak, what to do,
+            where to go next. Everything deeper is one click away below,
+            not forced on a first-time view. */}
 
         {/* SECTION 3: Archetype */}
         <ArchetypeCard score={score} />
@@ -895,8 +876,29 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
           </Link>
         </div>
 
-        {/* SECTION 8: Trajectories + Save & share */}
-        {score.trajectories && <TrajectoriesSection trajectories={score.trajectories} />}
+        {/* Everything below is real detail — just not forced on every
+            visit. Collapsed by default so the page reads as "here's your
+            score and what to do," not a wall of sections. */}
+        <details className="print:hidden group">
+          <summary className="list-none cursor-pointer flex items-center justify-center gap-2 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline py-2">
+            See the full breakdown — why you scored this, how you compare, risk check, what-if
+            <span className="text-gray-400 group-open:rotate-180 transition-transform">▾</span>
+          </summary>
+          <div className="space-y-8 mt-6 print:block">
+            <CalculationBreakdown score={score} whyOpen={whyOpen} setWhyOpen={setWhyOpen} />
+            <ScoreImpactSection score={score} />
+            <BenchmarkSection score={score} history={history} />
+            {b.age != null && hasFinanceData && (
+              <RiskManagementSection
+                age={b.age} netWorth={netWorth} monthlyIncome={f.monthlyIncome} monthlyExpenses={f.monthlyExpenses}
+                equityAllocationPct={f.equityAllocationPct} riskTolerance={f.riskTolerance}
+                hasEmergencyFund={f.hasEmergencyFund} hasInsurance={f.hasInsurance} hasLifeInsurance={f.hasLifeInsurance}
+              />
+            )}
+            {hasBodyData && hasFinanceData && <div className="print:hidden"><WhatIfSimulator body={b} finance={f} baseline={score} /></div>}
+            {score.trajectories && <TrajectoriesSection trajectories={score.trajectories} />}
+          </div>
+        </details>
 
         <div className="print:hidden grid sm:grid-cols-2 gap-4">
           <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">

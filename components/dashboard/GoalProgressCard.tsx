@@ -76,8 +76,8 @@ export function GoalProgressCard({ goals, focus = 'both' }: { goals: Goal[]; foc
         })}
       </div>
       <LinkBar>
-        <LinkChip targetId="net-worth">Backed by your Net Worth snapshots</LinkChip>
-        <LinkChip targetId="roadmap-progress">Next lever — see Roadmap Progress</LinkChip>
+        <LinkChip targetId="money">Backed by your Net Worth snapshots</LinkChip>
+        <Link href="/roadmap" className="inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2.5 py-1 transition-colors text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 hover:text-teal-600 dark:hover:text-teal-400 hover:border-teal-300 dark:hover:border-teal-700">🔗 Next lever — see your Roadmap</Link>
       </LinkBar>
     </div>
   );
