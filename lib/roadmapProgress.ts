@@ -25,8 +25,11 @@ export interface RoadmapProgressSummary {
   pctComplete: number;
   /** The real, currently-active phase's actions with their real checked
    * state — same titles the roadmap page itself generates (getDimActions),
-   * not a second copy. Powers the dashboard's Action Plan timeline. */
-  activePhaseActions: { title: string; checked: boolean }[];
+   * not a second copy. `id` is the real key into RoadmapChecks (same ids
+   * app/roadmap/page.tsx uses), so a caller can call
+   * toggleRoadmapCheck(checks, id) directly instead of just displaying
+   * read-only state. Powers the dashboard's Action Plan timeline. */
+  activePhaseActions: { id: string; title: string; checked: boolean }[];
   /** Per-phase status for the dashboard's 3-phase overview row — computed
    * from the same phase1/2/3 totals already derived above, just surfaced
    * instead of only exposing the currently-active phase. */
@@ -79,15 +82,15 @@ export function computeRoadmapProgress(
   const inProgressCount = Math.max(0, activePhaseTotal - activePhaseChecked);
   const pendingCount = Math.max(0, totalActions - doneCount - inProgressCount);
 
-  const activePhaseActions: { title: string; checked: boolean }[] =
+  const activePhaseActions: RoadmapProgressSummary['activePhaseActions'] =
     activePhaseNum === 1
       ? [
-          ...phase1AlgoActions.map((a, i) => ({ title: a.title, checked: !!checks[`p1-alg-${i}`] })),
-          ...phase1Extras.map((a, i) => ({ title: a.title, checked: !!checks[`p1-extra-${i}`] })),
+          ...phase1AlgoActions.map((a, i) => ({ id: `p1-alg-${i}`, title: a.title, checked: !!checks[`p1-alg-${i}`] })),
+          ...phase1Extras.map((a, i) => ({ id: `p1-extra-${i}`, title: a.title, checked: !!checks[`p1-extra-${i}`] })),
         ]
       : activePhaseNum === 2
-      ? phase2Actions.map((a, i) => ({ title: a.title, checked: !!checks[`p2-${i}`] }))
-      : phase3Actions.map((a, i) => ({ title: a.title, checked: !!checks[`p3-${i}`] }));
+      ? phase2Actions.map((a, i) => ({ id: `p2-${i}`, title: a.title, checked: !!checks[`p2-${i}`] }))
+      : phase3Actions.map((a, i) => ({ id: `p3-${i}`, title: a.title, checked: !!checks[`p3-${i}`] }));
 
   const phasePct = (checked: number, total: number) => total > 0 ? Math.round((checked / total) * 100) : 0;
   const phaseStatus = (num: 1 | 2 | 3, checked: number, total: number, unlocked: boolean): 'completed' | 'active' | 'locked' =>

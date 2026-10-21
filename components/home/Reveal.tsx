@@ -1,13 +1,19 @@
 'use client';
-import { useEffect, useRef, useState, type ElementType, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ElementType, type ReactNode } from 'react';
 
-/** Fades + slides a section in the first time it scrolls into view.
- * Renders visible immediately under prefers-reduced-motion, and if
- * JS hasn't hydrated yet content still shows (no FOUC of empty space).
- * `as` lets it render a real <section>/<div>/etc. instead of always
- * wrapping in an extra div. */
-export function Reveal({ children, className = '', delayMs = 0, as: Tag = 'div' }: {
-  children: ReactNode; className?: string; delayMs?: number; as?: ElementType;
+const VARIANTS = {
+  fade: { hidden: 'opacity-0 translate-y-6', visible: 'opacity-100 translate-y-0' },
+  scaleX: { hidden: 'scale-x-0', visible: 'scale-x-100' },
+};
+
+/** Fades (or, with variant="scaleX", draws left-to-right) a section in the
+ * first time it scrolls into view. Renders visible immediately under
+ * prefers-reduced-motion, and if JS hasn't hydrated yet content still
+ * shows (no FOUC of empty space). `as` lets it render a real
+ * <section>/<div>/etc. instead of always wrapping in an extra div. */
+export function Reveal({ children, className = '', delayMs = 0, as: Tag = 'div', variant = 'fade', style, ...rest }: {
+  children?: ReactNode; className?: string; delayMs?: number; as?: ElementType; variant?: keyof typeof VARIANTS; style?: CSSProperties;
+  [key: string]: unknown;
 }) {
   const ref = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
@@ -24,11 +30,13 @@ export function Reveal({ children, className = '', delayMs = 0, as: Tag = 'div' 
     return () => observer.disconnect();
   }, []);
 
+  const v = VARIANTS[variant];
   return (
     <Tag
       ref={ref}
-      className={`${className} transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
-      style={delayMs ? { transitionDelay: `${delayMs}ms` } : undefined}
+      className={`${className} transition-all duration-700 ease-out ${visible ? v.visible : v.hidden}`}
+      style={{ ...style, ...(delayMs ? { transitionDelay: `${delayMs}ms` } : null) }}
+      {...rest}
     >
       {children}
     </Tag>

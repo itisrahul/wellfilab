@@ -400,6 +400,20 @@ export function calcSleep(bedtime: string) {
   });
 }
 
+/** Inverse of calcSleep — given a wake-up time, what bedtime hits a whole
+ * number of 90-minute sleep cycles plus the ~15min it typically takes to
+ * fall asleep. Same cycle-length assumption as calcSleep, just solved in
+ * the other direction. */
+export function calcBedtime(wakeTime: string) {
+  const [h, m] = wakeTime.split(':').map(Number);
+  const wake = h * 60 + m;
+  return [6, 5, 4].map(cycles => {
+    const mins = ((wake - cycles * 90 - 15) % 1440 + 1440) % 1440;
+    const wh = Math.floor(mins / 60), wm = mins % 60;
+    return { cycles, time: `${String(wh).padStart(2,'0')}:${String(wm).padStart(2,'0')}`, hours: +(cycles * 1.5).toFixed(1) };
+  });
+}
+
 export function calcAge(dob: Date) {
   const now = new Date();
   let y = now.getFullYear()-dob.getFullYear(), mo = now.getMonth()-dob.getMonth(), d = now.getDate()-dob.getDate();
