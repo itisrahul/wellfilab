@@ -7,7 +7,9 @@ import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { LiveCalcHero } from '@/components/home/LiveCalcHero';
 import { CountUp } from '@/components/home/CountUp';
 import { Reveal } from '@/components/home/Reveal';
-import { ScoreRing } from '@/components/ui/ScoreRing';
+import { AnimatedRing } from '@/components/home/AnimatedRing';
+import { AnimatedBar } from '@/components/home/AnimatedBar';
+import { AnimatedTrendChart } from '@/components/home/AnimatedTrendChart';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -228,10 +230,10 @@ export default function HomePage() {
               <span>Good morning, Rahul</span><span>Sample data</span>
             </div>
             <div className="grid grid-cols-4 gap-2.5">
-              {MOCK_RINGS.map(r => (
+              {MOCK_RINGS.map((r, i) => (
                 <div key={r.label} className="bg-[#0F2623] rounded-xl p-2.5 text-center">
-                  <div className="relative mx-auto" style={{ width: 52, height: 52 }}>
-                    <ScoreRing pct={r.score} color={r.color} size={52} thick={5} />
+                  <div className="relative mx-auto">
+                    <AnimatedRing pct={r.score} color={r.color} size={52} thick={5} delayMs={i * 180} />
                     <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">{r.score}</div>
                   </div>
                   <p className="text-xs font-semibold text-white mt-1">{r.label}</p>
@@ -239,21 +241,37 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+
+            <div className="bg-[#0F2623] rounded-xl p-3.5">
+              <div className="flex items-baseline justify-between mb-1">
+                <h4 className="text-xs font-semibold text-[#C5D6D2]">Score over time</h4>
+                <span className="text-xs font-bold text-teal-400">+23 in 6 months</span>
+              </div>
+              <AnimatedTrendChart />
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-2.5">
               <div className="bg-[#0F2623] rounded-xl p-3.5 grid gap-2.5 content-start">
                 <h4 className="text-xs font-semibold text-[#C5D6D2]">Today</h4>
-                <div className="flex gap-2 text-xs text-[#6F8984]"><span className="w-3.5 h-3.5 rounded border border-teal-400 bg-teal-400 flex-shrink-0 mt-0.5" /><span className="line-through">Bedtime alarm set for 10:30 pm</span></div>
-                <div className="flex gap-2 text-xs text-[#C5D6D2]"><span className="w-3.5 h-3.5 rounded border border-[#3C5D58] flex-shrink-0 mt-0.5" />No phone 30 minutes before bed</div>
-                <div className="flex gap-2 text-xs text-[#C5D6D2]"><span className="w-3.5 h-3.5 rounded border border-[#3C5D58] flex-shrink-0 mt-0.5" />Raise SIP from ₹3,000 to ₹6,500</div>
+                {[
+                  { label: 'Bedtime alarm set for 10:30 pm', done: true },
+                  { label: 'No phone 30 minutes before bed', done: false },
+                  { label: 'Raise SIP from ₹3,000 to ₹6,500', done: false },
+                ].map((item, i) => (
+                  <Reveal key={item.label} delayMs={300 + i * 200} className="flex gap-2 text-xs text-[#C5D6D2]">
+                    <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 mt-0.5 ${item.done ? 'border-teal-400 bg-teal-400' : 'border-[#3C5D58]'}`} />
+                    <span className={item.done ? 'line-through text-[#6F8984]' : ''}>{item.label}</span>
+                  </Reveal>
+                ))}
               </div>
               <div className="bg-[#0F2623] rounded-xl p-3.5 grid gap-2.5 content-start">
                 <h4 className="text-xs font-semibold text-[#C5D6D2]">Goals</h4>
                 <div className="text-xs text-[#C5D6D2]">Emergency fund
-                  <div className="h-1 bg-[#1F3A36] rounded-full my-1"><div className="h-full w-[47%] bg-teal-400 rounded-full" /></div>
+                  <AnimatedBar pct={47} delayMs={400} />
                   47% of ₹1.5 lakh
                 </div>
                 <div className="text-xs text-[#C5D6D2]">Weight 84 → 75 kg
-                  <div className="h-1 bg-[#1F3A36] rounded-full my-1"><div className="h-full w-[31%] bg-teal-400 rounded-full" /></div>
+                  <AnimatedBar pct={31} delayMs={700} />
                   31% there
                 </div>
               </div>
