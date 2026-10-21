@@ -13,6 +13,7 @@ import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus'
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { SWR_KEYS } from '@/lib/swrKeys';
+import { FlowNav } from '@/components/ui/FlowNav';
 
 interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
 
@@ -147,8 +148,9 @@ export default function GoalsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="bg-gradient-to-br from-teal-800 to-gray-950">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <div className="bg-[#0F2A27]">
+        <FlowNav current="goals" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 border-t border-white/5">
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Goal Tracking</p>
@@ -164,6 +166,12 @@ export default function GoalsPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+
+        <div className="flex items-center gap-3 flex-wrap text-xs">
+          <Link href="/roadmap" className="font-bold text-teal-600 dark:text-teal-400 hover:underline">← Back to your roadmap</Link>
+          <span className="text-gray-300 dark:text-gray-700">·</span>
+          <Link href="/dashboard" className="font-bold text-teal-600 dark:text-teal-400 hover:underline">See progress on your dashboard →</Link>
+        </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-xs text-gray-400">Show goals and suggestions for:</p>

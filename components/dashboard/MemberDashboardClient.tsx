@@ -45,8 +45,9 @@ const TABS = [
   { label: 'Today', href: '#top' },
   { label: 'Health', href: '#health' },
   { label: 'Money', href: '#money' },
-  { label: 'Goals', href: '/goals' },
+  { label: 'Score', href: '/score' },
   { label: 'Roadmap', href: '/roadmap' },
+  { label: 'Goals', href: '/goals' },
 ];
 
 /** Refetches every account data source — used after the one-time import

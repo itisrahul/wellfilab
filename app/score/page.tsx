@@ -15,6 +15,7 @@ import { buildRiskManagementPlan } from '@/lib/riskManagement';
 import { setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { SITE_URL } from '@/config/site';
 import { SWR_KEYS } from '@/lib/swrKeys';
+import { FlowNav } from '@/components/ui/FlowNav';
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
 const PREVIEW_FALLBACK: BodyInputs = {
@@ -787,6 +788,9 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
 
       {/* SECTION 1: Score reveal */}
+      <div className="relative overflow-hidden bg-[#0F2A27] print:hidden">
+        <FlowNav current="score" />
+      </div>
       <div className="relative overflow-hidden bg-gray-950">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-3xl mx-auto px-4 py-16 text-center">
@@ -804,13 +808,21 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
           {recalculatedUnderNewModel && (
             <p className="text-white/40 text-xs mb-2">Recalculated under an improved scoring model — no trend shown against your last score to avoid comparing different formulas.</p>
           )}
-          <p className="text-white/40 text-xs">Based on {dataPointCount} real data points</p>
-          <div className="print:hidden flex items-center justify-center gap-2 mt-5 flex-wrap">
-            <button onClick={onRetake} className="inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
+          <p className="text-white/40 text-xs mb-7">Based on {dataPointCount} real data points</p>
+
+          {/* The one clear next step — everything else on this page is detail
+              a user can explore, but this is where the flow continues. */}
+          <Link href="/roadmap" className="print:hidden inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-white font-bold text-base shadow-lg transition-all">
+            Continue to your roadmap →
+          </Link>
+
+          <div className="print:hidden flex items-center justify-center gap-2 mt-4 flex-wrap">
+            <button onClick={onRetake} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white transition-colors">
               🔄 Retake with new numbers
             </button>
-            <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded-full px-4 py-2 transition-colors">
-              🖨️ Download / print report
+            <span className="text-white/20">·</span>
+            <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white transition-colors">
+              🖨️ Download / print
             </button>
           </div>
         </div>
@@ -886,14 +898,24 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         {/* SECTION 8: Trajectories + Save & share */}
         {score.trajectories && <TrajectoriesSection trajectories={score.trajectories} />}
 
-        <Link href="/goals" className="print:hidden flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
-          <span className="text-3xl flex-shrink-0">🎯</span>
-          <div className="min-w-0 flex-1">
-            <p className="font-bold text-gray-900 dark:text-white text-sm">Turn this score into a tracked goal</p>
-            <p className="text-xs text-gray-400 mt-0.5">Set a target — {score.overall + 10}/100, a net worth number, a sleep target — and check progress monthly.</p>
-          </div>
-          <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">Set a goal →</span>
-        </Link>
+        <div className="print:hidden grid sm:grid-cols-2 gap-4">
+          <Link href="/goals" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+            <span className="text-3xl flex-shrink-0">🎯</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-gray-900 dark:text-white text-sm">Turn this into a goal</p>
+              <p className="text-xs text-gray-400 mt-0.5">Set a target and check progress monthly.</p>
+            </div>
+            <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">→</span>
+          </Link>
+          <Link href="/dashboard" className="flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 p-5 transition-all group">
+            <span className="text-3xl flex-shrink-0">📊</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-gray-900 dark:text-white text-sm">See it all on your dashboard</p>
+              <p className="text-xs text-gray-400 mt-0.5">Score, roadmap and goals in one place.</p>
+            </div>
+            <span className="flex-shrink-0 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">→</span>
+          </Link>
+        </div>
 
         <div className="print:hidden"><ShareCard score={score} /></div>
 

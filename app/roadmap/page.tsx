@@ -16,6 +16,7 @@ import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { syncRoadmapChecksFromAccount, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { PLANS_ENABLED } from '@/config/site';
+import { FlowNav } from '@/components/ui/FlowNav';
 
 const START_KEY = 'wfl_roadmap_start';
 
@@ -164,8 +165,9 @@ export default function RoadmapPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
 
       {/* SECTION 1: Header */}
-      <div className="bg-gradient-to-br from-teal-800 to-gray-950">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <div className="bg-[#0F2A27]">
+        <FlowNav current="roadmap" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 border-t border-white/5">
           <div className="flex items-start justify-between flex-wrap gap-6">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Personalised Roadmap</p>
@@ -213,6 +215,14 @@ export default function RoadmapPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+
+        {/* Keep the flow moving before the detail below — this is a plan,
+            not a dead end, so the next steps are visible immediately. */}
+        <div className="print:hidden flex items-center gap-3 flex-wrap text-xs">
+          <Link href="/goals" className="font-bold text-teal-600 dark:text-teal-400 hover:underline">Turn an action into a goal →</Link>
+          <span className="text-gray-300 dark:text-gray-700">·</span>
+          <Link href="/dashboard" className="font-bold text-teal-600 dark:text-teal-400 hover:underline">Track it on your dashboard →</Link>
+        </div>
 
         {/* Focus — Health only / Wealth only / Both, same 3 flows as the dashboard */}
         <div className="print:hidden flex items-center justify-between gap-3 flex-wrap -mb-4">
