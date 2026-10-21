@@ -11,23 +11,33 @@ import {
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 // ── Monthly breakdown helper ──────────────────────────────────────────────────
+// Previously hardcoded a monthly rate (rate/100/12) and ignored the
+// selected compounding frequency entirely, so the Monthly breakdown's
+// year-end balance disagreed with the headline Future Value (from
+// calcCompound, which does respect freq) whenever Annual/Quarterly/Daily
+// compounding was selected. Now anchors on calcCompound's own real
+// year-end balances — guaranteed consistent with the headline figure —
+// and interpolates smoothly for the intermediate months.
 function calcMonthlyRows(
   p: number, ratePercent: number, yrs: number, freq: number,
   monthly: number, topup: number, stepup: number
 ) {
-  const r = ratePercent / 100 / 12;
-  let bal = p, invested = p, mc = monthly;
+  const { rows: yearRows } = calcCompound(p, ratePercent, yrs, freq, monthly, topup, stepup);
   const rows: { month: number; interest: number; accrued: number; invested: number; balance: number }[] = [];
+  let prevBalance = p, prevInvested = p;
   for (let y = 1; y <= yrs; y++) {
+    const yearEnd = yearRows[y - 1];
+    const monthlyGrowth = Math.pow(yearEnd.balance / Math.max(1e-9, prevBalance), 1 / 12);
+    const investedStep = (yearEnd.invested - prevInvested) / 12;
+    let bal = prevBalance, invested = prevInvested;
     for (let m = 1; m <= 12; m++) {
-      const int = bal * r;
-      bal = bal + int + mc;
-      invested += mc;
-      rows.push({ month: (y - 1) * 12 + m, interest: Math.round(int * 100) / 100, accrued: Math.round((bal - p) * 100) / 100, invested: Math.round(invested), balance: Math.round(bal * 100) / 100 });
+      const prevBal = bal;
+      bal = m === 12 ? yearEnd.balance : bal * monthlyGrowth;
+      invested = m === 12 ? yearEnd.invested : invested + investedStep;
+      rows.push({ month: (y - 1) * 12 + m, interest: Math.round((bal - prevBal) * 100) / 100, accrued: Math.round((bal - p) * 100) / 100, invested: Math.round(invested), balance: Math.round(bal * 100) / 100 });
     }
-    bal += topup;
-    invested += topup;
-    mc *= 1 + stepup / 100;
+    prevBalance = yearEnd.balance;
+    prevInvested = yearEnd.invested;
   }
   return rows;
 }

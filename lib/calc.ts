@@ -12,7 +12,11 @@ export function calcCompound(
   const rows: { year: number; yearInterest: number; accrued: number; invested: number; balance: number }[] = [];
   for (let y = 1; y <= years; y++) {
     const startBal = bal;
-    for (let i = 0; i < compPerYear; i++) bal = bal * (1 + r) + mc * (12 / compPerYear);
+    // Annuity-due: each contribution is added at the start of its period,
+    // then grows for that period — the convention every standard SIP/
+    // recurring-deposit calculator (Groww, ET Money, AMFI) uses, not
+    // end-of-period ordinary annuity.
+    for (let i = 0; i < compPerYear; i++) bal = (bal + mc * (12 / compPerYear)) * (1 + r);
     bal += annualTopUp;
     invested += mc * 12 + annualTopUp;
     rows.push({ year: y, yearInterest: Math.round(bal - startBal - mc * 12 - annualTopUp), accrued: Math.round(bal - principal), invested: Math.round(invested), balance: Math.round(bal) });
@@ -26,7 +30,10 @@ export function calcSIP(monthly: number, ratePercent: number, years: number, ste
   let bal = lumpSum, invested = lumpSum, mc = monthly;
   const rows: { year: number; invested: number; value: number; gain: number }[] = [];
   for (let y = 1; y <= years; y++) {
-    for (let m = 0; m < 12; m++) bal = bal * (1 + r) + mc;
+    // Annuity-due (contribution at the start of each month, then grows) —
+    // matches the real-world SIP convention, not an ordinary end-of-month
+    // annuity.
+    for (let m = 0; m < 12; m++) bal = (bal + mc) * (1 + r);
     invested += mc * 12;
     rows.push({ year: y, invested: Math.round(invested), value: Math.round(bal), gain: Math.round(bal - invested) });
     mc *= 1 + stepUpPct / 100;
@@ -37,14 +44,17 @@ export function calcSIP(monthly: number, ratePercent: number, years: number, ste
 export function calcSavingsGoal(goal: number, current: number, monthly: number, ratePercent: number) {
   const r = ratePercent / 100 / 12;
   let bal = current, mo = 0;
-  while (bal < goal && mo < 1200) { bal = bal * (1 + r) + monthly; mo++; }
+  // Annuity-due, same convention fix as calcSIP/calcCompound.
+  while (bal < goal && mo < 1200) { bal = (bal + monthly) * (1 + r); mo++; }
   return { months: mo, years: Math.floor(mo / 12), remMonths: mo % 12, totalDeposited: Math.round(current + monthly * mo), interest: Math.round(bal - current - monthly * mo), neverReaches: mo >= 1200 && bal < goal };
 }
 
 export function calcMonthlyNeeded(goal: number, current: number, months: number, ratePercent: number) {
   const r = ratePercent / 100 / 12;
   if (r === 0) return Math.max(0, (goal - current) / months);
-  return Math.max(0, (goal - current * Math.pow(1 + r, months)) * r / (Math.pow(1 + r, months) - 1));
+  // Annuity-due PMT (solved for the same convention calcSavingsGoal now
+  // uses) — divides by the extra (1+r) that the end-of-period formula omits.
+  return Math.max(0, (goal - current * Math.pow(1 + r, months)) * r / ((Math.pow(1 + r, months) - 1) * (1 + r)));
 }
 
 export function calcLoan(principal: number, ratePercent: number, months: number, extraMonthly = 0) {
@@ -78,8 +88,12 @@ export function calcDebtPayoff(debts: { name: string; balance: number; rate: num
       data.forEach(d => { if (d.balance <= 0) return; const int = d.balance * d.rate / 100 / 12; d.balance = Math.max(0, d.balance + int - d.minPayment); totalInt += int; });
       const active = data.filter(d => d.balance > 0);
       if (active.length) {
+        // Real avalanche/snowball method: once a debt is paid off, its
+        // minimum payment rolls into the extra paid toward the next
+        // target debt — not just the fixed extraMonthly amount forever.
+        const freedUp = data.filter(d => d.balance <= 0).reduce((sum, d) => sum + d.minPayment, 0);
         const t = method === 'avalanche' ? active.reduce((a, b) => a.rate > b.rate ? a : b) : active.reduce((a, b) => a.balance < b.balance ? a : b);
-        t.balance = Math.max(0, t.balance - extraMonthly);
+        t.balance = Math.max(0, t.balance - extraMonthly - freedUp);
       }
     }
     return { months, years: Math.floor(months / 12), remMonths: months % 12, totalInterest: Math.round(totalInt) };
@@ -118,10 +132,13 @@ export function calcRetirement(age: number, retAge: number, monthlyExpense: numb
  */
 export function calcRetirementStepUp(corpus: number, yrs: number, roi: number, stepUpPct: number) {
   const r = roi / 100 / 12;
+  // Annuity-due (contribution at the start of each month, then grows) —
+  // matches the real-world SIP/recurring-deposit convention, same fix as
+  // calcSIP/calcCompound.
   const fvFor = (startMonthly: number) => {
     let bal = 0, mc = startMonthly;
     for (let y = 1; y <= yrs; y++) {
-      for (let m = 0; m < 12; m++) bal = bal * (1 + r) + mc;
+      for (let m = 0; m < 12; m++) bal = (bal + mc) * (1 + r);
       mc *= 1 + stepUpPct / 100;
     }
     return bal;
@@ -136,7 +153,7 @@ export function calcRetirementStepUp(corpus: number, yrs: number, roi: number, s
   let bal = 0, invested = 0, mc = startMonthly;
   const rows: { year: number; invested: number; value: number }[] = [];
   for (let y = 1; y <= yrs; y++) {
-    for (let m = 0; m < 12; m++) bal = bal * (1 + r) + mc;
+    for (let m = 0; m < 12; m++) bal = (bal + mc) * (1 + r);
     invested += mc * 12;
     rows.push({ year: y, invested: Math.round(invested), value: Math.round(bal) });
     mc *= 1 + stepUpPct / 100;
@@ -148,7 +165,8 @@ export function calcFIRE(annualExp: number, portfolio: number, monthlyInvest: nu
   const fireNum = Math.round(annualExp * 25);
   const r = roi / 100 / 12;
   let bal = portfolio, months = 0;
-  while (bal < fireNum && months < 600) { bal = bal * (1 + r) + monthlyInvest; months++; }
+  // Annuity-due, same convention fix as calcSIP/calcCompound.
+  while (bal < fireNum && months < 600) { bal = (bal + monthlyInvest) * (1 + r); months++; }
   return { fireNum, months, years: Math.floor(months / 12), remMonths: months % 12, deficit: Math.max(0, fireNum - portfolio), leanFire: Math.round(annualExp * 0.7 * 25), fatFire: Math.round(annualExp * 1.5 * 25), neverReaches: months >= 600 && bal < fireNum };
 }
 
@@ -158,7 +176,8 @@ export function calcFIREStepUp(fireNum: number, portfolio: number, startMonthly:
   let bal = portfolio, invested = 0, mc = startMonthly, months = 0;
   const rows: { year: number; invested: number; value: number }[] = [];
   while (bal < fireNum && months < 600) {
-    bal = bal * (1 + r) + mc;
+    // Annuity-due, same convention fix as calcSIP/calcCompound.
+    bal = (bal + mc) * (1 + r);
     invested += mc;
     months++;
     if (months % 12 === 0) {
@@ -267,12 +286,19 @@ export function calcBMI(weightKg: number, heightCm: number) {
 }
 
 export function calcIdealWeight(heightCm: number, gender: 'male' | 'female') {
-  const over = Math.max(0, (heightCm / 2.54) - 60);
+  // Not clamped to 0 — these formulas are a linear extrapolation from 5ft,
+  // and flattening every height under 152.4cm to the same output silently
+  // overstates "ideal weight" for shorter adults.
+  const over = (heightCm / 2.54) - 60;
+  // Sanity floor only (not a flattening clamp on `over` itself) — guards
+  // against a negative/nonsensical result for extreme or mistyped inputs
+  // the formulas were never designed to extrapolate to.
+  const floor = (n: number) => Math.max(20, n);
   return {
-    robinson: +(gender === 'male' ? 52 + 1.9 * over : 49 + 1.7 * over).toFixed(1),
-    miller:   +(gender === 'male' ? 56.2 + 1.41 * over : 53.1 + 1.36 * over).toFixed(1),
-    devine:   +(gender === 'male' ? 50 + 2.3 * over : 45.5 + 2.3 * over).toFixed(1),
-    hamwi:    +(gender === 'male' ? 48 + 2.7 * over : 45.4 + 2.27 * over).toFixed(1),
+    robinson: +floor(gender === 'male' ? 52 + 1.9 * over : 49 + 1.7 * over).toFixed(1),
+    miller:   +floor(gender === 'male' ? 56.2 + 1.41 * over : 53.1 + 1.36 * over).toFixed(1),
+    devine:   +floor(gender === 'male' ? 50 + 2.3 * over : 45.5 + 2.3 * over).toFixed(1),
+    hamwi:    +floor(gender === 'male' ? 48 + 2.7 * over : 45.4 + 2.27 * over).toFixed(1),
     bmiMin:   Math.round(18.5 * Math.pow(heightCm / 100, 2) * 10) / 10,
     bmiMax:   Math.round(24.9 * Math.pow(heightCm / 100, 2) * 10) / 10,
   };
@@ -280,11 +306,14 @@ export function calcIdealWeight(heightCm: number, gender: 'male' | 'female') {
 
 export function calcBodyFat(weightKg: number, heightCm: number, waistCm: number, neckCm: number, gender: 'male' | 'female', hipCm = 90) {
   const w = Math.max(1, weightKg);
-  const h = Math.max(1, heightCm);
+  // The US Navy formula's coefficients (86.01, 70.041, 163.205, 97.684) are
+  // calibrated to inches, not centimeters — every caller passes metric
+  // (cm), so convert here rather than require every call site to remember to.
+  const h = Math.max(1, heightCm) / 2.54;
   // Math.log10 of zero/negative is -Infinity/NaN — guard the log arguments to
   // stay positive even if waist <= neck (an easy real-world input mistake).
-  const waistMinusNeck = Math.max(1, waistCm - neckCm);
-  const waistHipMinusNeck = Math.max(1, waistCm + hipCm - neckCm);
+  const waistMinusNeck = Math.max(1, (waistCm - neckCm) / 2.54);
+  const waistHipMinusNeck = Math.max(1, (waistCm + hipCm - neckCm) / 2.54);
   let pct = gender === 'male'
     ? 86.01 * Math.log10(waistMinusNeck) - 70.041 * Math.log10(h) + 36.76
     : 163.205 * Math.log10(waistHipMinusNeck) - 97.684 * Math.log10(h) - 78.387;
@@ -374,7 +403,17 @@ export function calcSleep(bedtime: string) {
 export function calcAge(dob: Date) {
   const now = new Date();
   let y = now.getFullYear()-dob.getFullYear(), mo = now.getMonth()-dob.getMonth(), d = now.getDate()-dob.getDate();
-  if (d < 0) { mo--; d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+  // A single borrow isn't always enough — e.g. dob on the 31st evaluated
+  // just after a short month (Jan 31 -> Mar 1 borrows from Feb, which may
+  // only have 28/29 days). Keep borrowing from progressively earlier
+  // months until the day count is non-negative, instead of leaving `d`
+  // negative after one attempt.
+  const borrowCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (d < 0) {
+    mo--;
+    borrowCursor.setMonth(borrowCursor.getMonth() - 1);
+    d += new Date(borrowCursor.getFullYear(), borrowCursor.getMonth() + 1, 0).getDate();
+  }
   if (mo < 0) { y--; mo += 12; }
   const totalDays = Math.floor((now.getTime()-dob.getTime())/86400000);
   const next = new Date(now.getFullYear(), dob.getMonth(), dob.getDate());
@@ -530,6 +569,11 @@ function indiaNewRegimeTax(annualTaxable: number): number {
     if (t <= lo) break;
     tax += Math.min(t - lo, hi - lo) * rate / 100;
   }
+  // Sec 87A marginal relief: just above ₹7L, real law caps tax at
+  // (taxable - 700000) so crossing the rebate threshold by a small amount
+  // never costs more in tax than the income that crossed it. Without this,
+  // a ₹100 raise above ₹7L jumps tax from ₹0 to ~₹20,800.
+  tax = Math.min(tax, t - 700000);
   return Math.round(tax * 1.04);
 }
 
@@ -946,7 +990,12 @@ export function calcOvertime(hourlyRate: number, regularHours: number, overtimeH
     overtimePay: Math.round(overtimePay * multiplier),
     totalPay: Math.round(totalPay * multiplier),
     effectiveHourlyRate: (regularHours + overtimeHours) === 0 ? 0 : +((totalPay / (regularHours + overtimeHours))).toFixed(2),
-    annualEquivalent: Math.round(totalPay * (period === 'weekly' ? 52 : 12)),
+    // regularHours/overtimeHours are always weekly figures regardless of
+    // the period toggle (that toggle only scales the displayed pay), so
+    // the annual figure is always totalPay * 52 — multiplying the
+    // unscaled weekly totalPay by 12 for 'monthly' undercounted the year
+    // by a factor of ~4.33.
+    annualEquivalent: Math.round(totalPay * 52),
   };
 }
 

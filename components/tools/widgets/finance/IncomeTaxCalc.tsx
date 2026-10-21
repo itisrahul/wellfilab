@@ -1,13 +1,16 @@
 'use client';
 import { useState } from 'react';
 import { calcIncomeTax } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, Stat, Box, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, Stat, Box, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+// calcIncomeTax always applies fixed US federal bracket thresholds — a
+// currency picker here previously let a user select e.g. INR and get US
+// tax math displayed with a ₹ symbol. Locked to USD since this widget has
+// no non-US bracket logic (see TaxRegimeCompareCalc for the India one).
 export default function IncomeTaxCalc() {
-  const [curr,setCurr]=useState('USD'),[gross,setGross]=useState(75000),[ded,setDed]=useState(13850);
-  const C=useCurr(curr); const r=calcIncomeTax(gross,ded);
+  const [gross,setGross]=useState(75000),[ded,setDed]=useState(13850);
+  const C=useCurr('USD'); const r=calcIncomeTax(gross,ded);
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Annual gross income" value={gross} onChange={setGross} sym={C.sym} step={5000}/>
       <MoneyIn label="Total deductions" value={ded} onChange={setDed} sym={C.sym} step={500} hint="Standard, retirement, mortgage interest, etc."/>
       <div className="flex flex-wrap gap-1.5">{[{l:'US Standard (Single)',v:13850},{l:'US Standard (Married)',v:27700},{l:'None',v:0}].map(b=><button key={b.v} onClick={()=>setDed(b.v)} className="px-2.5 py-1.5 rounded-lg text-xs border-2 border-gray-200 dark:border-gray-600 text-gray-500 hover:border-orange-400 transition-all">{b.l}</button>)}</div>

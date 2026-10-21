@@ -42,7 +42,7 @@ export default function BMICalc() {
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400 mb-1">Healthy weight for your height</p>
-            <p className="text-xl font-bold text-gray-700 dark:text-gray-200">{r.hMin}–{r.hMax} {imp ? 'lbs' : 'kg'}</p>
+            <p className="text-xl font-bold text-gray-700 dark:text-gray-200">{imp ? +(r.hMin * 2.20462).toFixed(1) : r.hMin}–{imp ? +(r.hMax * 2.20462).toFixed(1) : r.hMax} {imp ? 'lbs' : 'kg'}</p>
             {r.tolose && <p className="text-sm text-amber-600 mt-1">Lose {imp ? +(r.tolose * 2.20462).toFixed(1) : r.tolose} {imp ? 'lbs' : 'kg'} to reach healthy range</p>}
           </div>
         </div>
