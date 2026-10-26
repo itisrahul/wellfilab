@@ -19,7 +19,6 @@ import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { getTodayCheckin } from '@/lib/dashboardCheckins';
 import { fmtINR } from '@/lib/roadmapActions';
 import { SWR_KEYS } from '@/lib/swrKeys';
-import { Aurora } from '@/components/home/Aurora';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { CheckinCard } from './CheckinCard';
 import { RiskAlertsCard } from './RiskAlertsCard';
@@ -63,7 +62,7 @@ function refreshAllAccountData() {
 function RingCard({ label, score, delta, note }: { label: string; score: number; delta?: number; note: string }) {
   const color = scoreColor(score);
   return (
-    <div className="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 rounded-2xl p-3.5 text-center backdrop-blur-sm transition-colors">
+    <div className="bg-[#111412] border border-white/10 rounded-xl p-3.5 text-center">
       <div className="relative mx-auto" style={{ width: 68, height: 68 }}>
         <ScoreRing pct={score} color={color} size={68} thick={7} />
         <div className="absolute inset-0 flex items-center justify-center font-mono tabular-nums font-black text-base text-white">{score}</div>
@@ -79,7 +78,7 @@ function RingCard({ label, score, delta, note }: { label: string; score: number;
 
 function Metric({ label, value, pct, color, note }: { label: string; value: string; pct: number; color: string; note: string }) {
   return (
-    <div className="border border-white/10 rounded-xl p-3.5 bg-white/[0.03] backdrop-blur-sm">
+    <div className="border border-white/10 rounded-lg p-3.5 bg-[#111412]">
       <p className="text-xs text-slate-500">{label}</p>
       <p className="text-xl font-black text-white tracking-tight my-0.5">{value}</p>
       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden my-2"><div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(2, pct))}%`, backgroundColor: color }} /></div>
@@ -184,7 +183,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
   const weight = rawInputs?.body?.weight;
 
   return (
-    <div id="top" className="dark min-h-screen bg-[#050B0A] scroll-smooth">
+    <div id="top" className="dark min-h-screen bg-[#0A0D0C] scroll-smooth">
 
       {!loading && showImportBanner && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
@@ -201,15 +200,15 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
           <p className="text-sm text-slate-400 mb-6 max-w-md mx-auto">
             Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
           </p>
-          <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-[#04211E] font-bold text-sm transition-all hover:-translate-y-0.5">
-            Get my free score →
+          <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-teal-500 hover:bg-teal-400 text-[#04211E] font-semibold text-sm transition-colors">
+            Get my score →
           </Link>
         </div>
       ) : (
         <>
         {/* ── Sub-nav — Today stays on this page; Health/Money scroll to
              their section below; Goals/Roadmap are the real dedicated pages. ── */}
-        <div className="border-b border-white/10 bg-[#050B0A]/90 backdrop-blur-md sticky top-0 z-10">
+        <div className="border-b border-white/10 bg-[#0A0D0C] sticky top-0 z-10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto">
             {TABS.map(t => (
               <a key={t.label} href={t.href}
@@ -225,9 +224,8 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
           {/* ── Welcome band ── */}
-          <div className="relative overflow-hidden bg-[#0F2A27] rounded-2xl p-6 flex flex-wrap justify-between items-center gap-5">
-            <Aurora variant="soft" />
-            <div className="relative flex items-center gap-3">
+          <div className="bg-[#0F2A27] rounded-xl p-6 flex flex-wrap justify-between items-center gap-5">
+            <div className="flex items-center gap-3">
               {userImageUrl ? (
                 <img src={userImageUrl} alt="" className="w-11 h-11 rounded-xl object-cover border border-white/20 flex-shrink-0" />
               ) : (
@@ -238,17 +236,17 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
                 <p className="text-sm text-[#93ADA8]">{dateLabel} · {actionsLeftToday} action{actionsLeftToday === 1 ? '' : 's'} left today</p>
               </div>
             </div>
-            <div className="relative flex gap-2.5">
-              <div className="bg-white/5 rounded-xl px-4 py-2.5 text-center min-w-[88px]">
+            <div className="flex gap-2.5">
+              <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
                 <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score.overall}</p>
                 <p className="text-[11px] text-[#93ADA8] mt-1">Overall score</p>
               </div>
-              <div className="bg-white/5 rounded-xl px-4 py-2.5 text-center min-w-[88px]">
+              <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
                 <p className="text-xl font-black text-teal-300 flex items-center justify-center gap-1 leading-none">{score.streakDays > 0 && <Flame size={15} />}{score.streakDays}</p>
                 <p className="text-[11px] text-[#93ADA8] mt-1">{score.streakDays === 1 ? 'Day' : 'Days'} streak</p>
               </div>
               {deltaOf(score.overall, prevEntry?.overall) != null && (
-                <div className="bg-white/5 rounded-xl px-4 py-2.5 text-center min-w-[88px]">
+                <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
                   <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{deltaOf(score.overall, prevEntry?.overall)! > 0 ? '+' : ''}{deltaOf(score.overall, prevEntry?.overall)}</p>
                   <p className="text-[11px] text-[#93ADA8] mt-1">Since last check-in</p>
                 </div>
@@ -270,7 +268,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
               <CheckinCard initial={todayCheckin} />
 
               {/* ── Today's actions — real roadmap checklist ── */}
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+              <div className="bg-[#111412] border border-white/10 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Today's actions</p>
                   <Link href="/roadmap" className="text-xs font-bold text-teal-400 hover:underline">Full roadmap →</Link>
@@ -303,7 +301,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
               </div>
 
               {/* ── Health ── */}
-              <div id="health" className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 backdrop-blur-sm scroll-mt-16">
+              <div id="health" className="bg-[#111412] border border-white/10 rounded-xl p-5 scroll-mt-16">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Health</p>
                 </div>
@@ -325,22 +323,22 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
               </div>
 
               {/* ── Money ── */}
-              <div id="money" className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 backdrop-blur-sm scroll-mt-16">
+              <div id="money" className="bg-[#111412] border border-white/10 rounded-xl p-5 scroll-mt-16">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Money</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-                  <div className="border border-white/10 rounded-xl p-3.5 bg-white/[0.03]">
+                  <div className="border border-white/10 rounded-lg p-3.5 bg-[#111412]">
                     <p className="text-xs text-slate-500">Net worth</p>
                     <p className="text-xl font-black text-white my-0.5">{latestNetWorth ? fmtINR(latestNetWorth.netWorth) : '—'}</p>
                     <p className="text-xs text-emerald-400">{netWorthDelta != null ? `${netWorthDelta >= 0 ? '+' : ''}${fmtINR(netWorthDelta)} this period` : 'Add a snapshot'}</p>
                   </div>
-                  <div className="border border-white/10 rounded-xl p-3.5 bg-white/[0.03]">
+                  <div className="border border-white/10 rounded-lg p-3.5 bg-[#111412]">
                     <p className="text-xs text-slate-500">Saved each month</p>
                     <p className="text-xl font-black text-white my-0.5">{savedPerMonth != null ? fmtINR(savedPerMonth) : '—'}</p>
                     <p className="text-xs text-teal-400">{savingsRatePct != null ? `${savingsRatePct}% of income` : 'Add on the score'}</p>
                   </div>
-                  <div className="border border-white/10 rounded-xl p-3.5 bg-white/[0.03]">
+                  <div className="border border-white/10 rounded-lg p-3.5 bg-[#111412]">
                     <p className="text-xs text-slate-500">Monthly SIP</p>
                     <p className="text-xl font-black text-white my-0.5">{rawInputs?.finance?.monthlyInvestments != null ? fmtINR(rawInputs.finance.monthlyInvestments) : '—'}</p>
                     <p className="text-xs text-amber-400">{sipGoal ? `Target ${fmtINR(sipGoal.target)}` : 'No SIP goal set'}</p>
@@ -393,7 +391,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
             {/* ── Sidebar — Coach + real detail, no fabricated AI reasoning
                  or integrations (Connect Accounts intentionally deferred). ── */}
             <div className="grid gap-5 content-start">
-              <div className="bg-[#0F2A27] rounded-2xl p-5">
+              <div className="bg-[#0F2A27] rounded-xl p-5">
                 <p className="text-sm font-bold text-white mb-2.5">Coach</p>
                 {coachLine ? (
                   <p className="text-sm text-[#C5D6D2] leading-relaxed">{coachLine}</p>
@@ -412,7 +410,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
 
           {/* ── Secondary detail — trend chart, next steps, monthly review ── */}
           <div className="pt-2 border-t border-white/10 space-y-5">
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+            <div className="bg-[#111412] border border-white/10 rounded-xl p-5">
               <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Health vs. Wealth trend</p>
               <HealthWealthTrendChart history={history ?? []} limit={10} />
               <Link href="/history" className="block text-center text-[11px] font-bold text-teal-400 hover:underline mt-3">Full history →</Link>
