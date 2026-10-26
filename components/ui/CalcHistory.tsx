@@ -22,15 +22,25 @@ export function saveHistory(entry: Omit<HistoryEntry, 'id' | 'timestamp'>) {
   } catch {}
 }
 
+/** Reads the same cross-tool history `saveHistory` writes — one entry per
+ * calculator, most recent first. Used outside this file (RecentToolsBanner)
+ * to make the Score/Dashboard entry points acknowledge real prior tool
+ * usage instead of treating every visitor as brand new. */
+export function getHistory(): HistoryEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem(KEY) ?? '[]') as HistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
 export function CalcHistory({ currentSlug }: { currentSlug: string }) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(KEY) ?? '[]') as HistoryEntry[];
-      setHistory(stored.filter(e => e.calcSlug === currentSlug));
-    } catch {}
+    setHistory(getHistory().filter(e => e.calcSlug === currentSlug));
   }, [currentSlug]);
 
   if (history.length === 0) return null;

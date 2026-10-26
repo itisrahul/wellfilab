@@ -16,6 +16,7 @@ import { setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { SITE_URL } from '@/config/site';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
+import { RecentToolsBanner } from '@/components/ui/RecentToolsBanner';
 
 // ── Fallbacks used only to compute a live PREVIEW before a field is filled ──
 const PREVIEW_FALLBACK: BodyInputs = {
@@ -343,6 +344,7 @@ function FocusChooser({ onChoose }: { onChoose: (f: ScoreFocus) => void }) {
             </button>
           ))}
         </div>
+        <RecentToolsBanner className="mt-10 text-center" />
       </div>
     </div>
   );

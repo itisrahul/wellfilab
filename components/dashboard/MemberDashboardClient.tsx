@@ -19,6 +19,7 @@ import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { getTodayCheckin } from '@/lib/dashboardCheckins';
 import { fmtINR } from '@/lib/roadmapActions';
 import { SWR_KEYS } from '@/lib/swrKeys';
+import { RecentToolsBanner } from '@/components/ui/RecentToolsBanner';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { CheckinCard } from './CheckinCard';
 import { RiskAlertsCard } from './RiskAlertsCard';
@@ -203,6 +204,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
           <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-sm transition-colors">
             Get my score →
           </Link>
+          <RecentToolsBanner className="mt-10" />
         </div>
       ) : (
         <>
