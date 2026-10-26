@@ -17,7 +17,7 @@ import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
   title: `${SITE_NAME}: health and finance calculators`,
-  description: `${CALCULATORS.length}+ calculators for health and finance, no signup needed. Type your numbers, see results instantly, and get a clear next step.`,
+  description: `${CALCULATORS.length}+ calculators for health and finance, plus one score that tracks both. No signup needed — type your numbers and see results instantly.`,
   alternates: { canonical: SITE_URL },
   openGraph: {
     title: `${SITE_NAME}: health and finance calculators`,
@@ -69,10 +69,10 @@ const FINANCE_PREVIEW = [
   { label: 'Retirement corpus', value: fmtINR(retirementEx.corpus) },
 ];
 const MOCK_RINGS = [
-  { label: 'Body', score: 82, color: '#2DD4BF', delta: '+6' },
-  { label: 'Mind', score: 53, color: '#A78BFA', delta: '−2' },
-  { label: 'Wealth', score: 60, color: '#F59E0B', delta: '+4' },
-  { label: 'Life', score: 71, color: '#4ADE80', delta: '+3' },
+  { label: 'Body', score: 82, color: '#0D9488', delta: '+6' },
+  { label: 'Mind', score: 53, color: '#8B5CF6', delta: '−2' },
+  { label: 'Wealth', score: 60, color: '#D97706', delta: '+4' },
+  { label: 'Life', score: 71, color: '#16A34A', delta: '+3' },
 ];
 const STATS = [
   { value: CALCULATORS.length, suffix: '+', label: 'calculators' },
@@ -85,54 +85,61 @@ export default function HomePage() {
   const latest = [...ALL_POSTS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
 
   return (
-    <div className="bg-[#0A0D0C]">
+    <div className="bg-white dark:bg-gray-950">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org', '@type': 'FAQPage',
         mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          HERO — flat, centered, no glow/blur/gradient. One real
-          interactive calculator below the fold line, in a plain
-          thin-bordered card.
+          HERO — says plainly what the product is: calculators for health
+          and money, plus one score that ties them together. Text left,
+          the real interactive calculator right, in an elevated card.
       ══════════════════════════════════════════════ */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-20 text-center">
-        <Reveal>
-          <p className="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-6">
-            {CALCULATORS.length}+ tools · No signup needed
-          </p>
-          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white leading-[1.08] text-balance">
-            Calculators for health and finance.
-          </h1>
-          <p className="text-slate-400 text-lg leading-relaxed mt-5 mb-9 max-w-xl mx-auto">
-            BMI, calories, sleep, SIP, EMI, FIRE and {CALCULATORS.length}+ more. Type your numbers, watch the result update, and get a clear next step.
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center mb-16">
-            <Link href="/tools/health" className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-teal-500 hover:bg-teal-400 text-[#04211E] font-semibold text-sm transition-colors">
-              Browse health tools
-            </Link>
-            <Link href="/tools/finance" className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-white/15 hover:border-white/30 text-slate-200 font-semibold text-sm transition-colors">
-              Browse finance tools
-            </Link>
-          </div>
-        </Reveal>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-24">
+        <div className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-16 items-center">
+          <Reveal>
+            <p className="text-xs font-bold tracking-[0.15em] uppercase text-teal-700 dark:text-teal-400 mb-5">
+              Health + finance calculators
+            </p>
+            <h1 className="text-[2.75rem] sm:text-5xl font-bold tracking-tight text-gray-900 dark:text-white leading-[1.1] text-balance">
+              Real numbers for your health and your money.
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mt-6 mb-8 max-w-lg">
+              {CALCULATORS.length}+ calculators — BMI, sleep, SIP, EMI, FIRE and more — plus one score that tracks both together. Type your numbers, get an answer, and know what to do next.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-7 gap-y-3 mb-9">
+              <Link href="/tools/health" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-[15px] transition-colors">
+                Browse health tools
+              </Link>
+              <Link href="/tools/finance" className="text-[15px] font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                Browse finance tools →
+              </Link>
+            </div>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              No signup · Runs in your browser · Private by default
+            </p>
+          </Reveal>
 
-        <Reveal delayMs={120} className="max-w-xl mx-auto">
-          <LiveCalcHero />
-        </Reveal>
+          <Reveal delayMs={120}>
+            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] dark:shadow-none">
+              <LiveCalcHero />
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════
-          STATS — a plain divided row, no cards.
+          STATS — a plain divided row.
       ══════════════════════════════════════════════ */}
-      <section className="border-y border-white/10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/10">
+      <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800">
           {STATS.map(s => (
             <div key={s.label} className="py-7 px-4 sm:px-6 text-center sm:text-left">
-              <p className="text-2xl font-bold tracking-tight text-white leading-none">
+              <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">
                 {'word' in s ? s.word : <><CountUp value={s.value} />{s.suffix}</>}
               </p>
-              <p className="text-sm text-slate-500 mt-1.5">{s.label}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">{s.label}</p>
             </div>
           ))}
         </div>
@@ -141,37 +148,37 @@ export default function HomePage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
         {/* ══════════════════════════════════════════════
-            TWO PATHS — flat, a left accent rule, no watermark text, no glow.
+            TWO PATHS
         ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20 grid md:grid-cols-2 gap-10">
-          <div className="border-l-2 border-teal-500 pl-6">
-            <h3 className="text-xl font-bold text-white mb-2">Health calculators</h3>
-            <p className="text-slate-400 text-[15px] leading-relaxed mb-5">BMI, calories, sleep cycles, body fat, heart rate zones, hydration — understand your body with real numbers, not guesswork.</p>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mb-6 text-sm">
+        <Reveal as="section" className="py-20 grid md:grid-cols-2 gap-5">
+          <div className="rounded-2xl bg-teal-50/70 dark:bg-teal-950/20 p-8">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Health calculators</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-[15px] leading-relaxed mb-6">BMI, calories, sleep cycles, body fat, heart rate zones, hydration — understand your body with real numbers, not guesswork.</p>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mb-7 text-sm">
               {HEALTH_PREVIEW.map(p => (
-                <div key={p.label} className="flex justify-between gap-2 border-b border-white/5 py-1.5">
-                  <dt className="text-slate-500">{p.label}</dt>
-                  <dd className="font-semibold text-slate-200 tabular-nums">{p.value}</dd>
+                <div key={p.label} className="flex justify-between gap-2 border-b border-teal-900/10 dark:border-teal-100/10 py-1.5">
+                  <dt className="text-gray-500 dark:text-gray-400">{p.label}</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-white tabular-nums">{p.value}</dd>
                 </div>
               ))}
             </dl>
-            <Link href="/tools/health" className="text-sm font-semibold text-teal-400 hover:underline">
+            <Link href="/tools/health" className="text-sm font-semibold text-teal-700 dark:text-teal-400 hover:underline">
               Browse health tools →
             </Link>
           </div>
 
-          <div className="border-l-2 border-amber-500 pl-6">
-            <h3 className="text-xl font-bold text-white mb-2">Finance calculators</h3>
-            <p className="text-slate-400 text-[15px] leading-relaxed mb-5">SIP, EMI, FIRE, retirement, income tax, compound interest — make smarter money decisions with tools built for real numbers.</p>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mb-6 text-sm">
+          <div className="rounded-2xl bg-amber-50/70 dark:bg-amber-950/10 p-8">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Finance calculators</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-[15px] leading-relaxed mb-6">SIP, EMI, FIRE, retirement, income tax, compound interest — make smarter money decisions with tools built for real numbers.</p>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mb-7 text-sm">
               {FINANCE_PREVIEW.map(p => (
-                <div key={p.label} className="flex justify-between gap-2 border-b border-white/5 py-1.5">
-                  <dt className="text-slate-500">{p.label}</dt>
-                  <dd className="font-semibold text-slate-200 tabular-nums">{p.value}</dd>
+                <div key={p.label} className="flex justify-between gap-2 border-b border-amber-900/10 dark:border-amber-100/10 py-1.5">
+                  <dt className="text-gray-500 dark:text-gray-400">{p.label}</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-white tabular-nums">{p.value}</dd>
                 </div>
               ))}
             </dl>
-            <Link href="/tools/finance" className="text-sm font-semibold text-amber-400 hover:underline">
+            <Link href="/tools/finance" className="text-sm font-semibold text-amber-700 dark:text-amber-400 hover:underline">
               Browse finance tools →
             </Link>
           </div>
@@ -181,29 +188,29 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════
           HOW IT WORKS
       ══════════════════════════════════════════════ */}
-      <section className="border-t border-white/10 py-20">
+      <section className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <Reveal className="max-w-xl mb-10">
-            <h2 className="text-2xl font-bold tracking-tight text-white">See the whole loop in 15 seconds</h2>
-            <p className="text-slate-400 mt-2.5">Watch it play, or tap a step below to jump straight to it.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">See the whole loop in 15 seconds</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2.5">Watch it play, or tap a step below to jump straight to it.</p>
           </Reveal>
-          <Reveal delayMs={100} className="max-w-3xl mx-auto dark">
+          <Reveal delayMs={100} className="max-w-3xl mx-auto">
             <ProductTour />
           </Reveal>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════
-          WHY WELLFILAB — a plain divided list, same pattern as FAQ below.
+          WHY WELLFILAB
       ══════════════════════════════════════════════ */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <Reveal as="section" className="py-20 border-t border-white/10">
-          <h2 className="text-2xl font-bold tracking-tight text-white mb-8">Built different from day one</h2>
-          <div className="divide-y divide-white/10 border-t border-white/10">
+        <Reveal as="section" className="py-20">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-8">Built different from day one</h2>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
             {REASONS.map(r => (
               <div key={r.title} className="grid md:grid-cols-[1fr_1.6fr] gap-2 md:gap-8 py-6">
-                <h3 className="text-base font-semibold text-white">{r.title}</h3>
-                <p className="text-slate-400 text-[15px]">{r.body}</p>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{r.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-[15px]">{r.body}</p>
               </div>
             ))}
           </div>
@@ -211,27 +218,27 @@ export default function HomePage() {
       </div>
 
       {/* ══════════════════════════════════════════════
-          DASHBOARD PREVIEW — flat card, clearly sample data.
+          DASHBOARD PREVIEW — elevated card, clearly sample data.
       ══════════════════════════════════════════════ */}
-      <section className="border-y border-white/10 py-20">
+      <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
           <Reveal>
-            <h2 className="text-2xl font-bold tracking-tight text-white">A dashboard you will actually open every day</h2>
-            <p className="text-slate-400 mt-3 mb-6 text-[15px] leading-relaxed">Log sleep, water, movement and spending in under a minute. See your trends, tick off today's actions, and keep your goals in one place.</p>
-            <ul className="grid gap-2.5 mb-7 text-[15px] text-slate-300">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">A dashboard you will actually open every day</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-3 mb-6 text-[15px] leading-relaxed">Log sleep, water, movement and spending in under a minute. See your trends, tick off today's actions, and keep your goals in one place.</p>
+            <ul className="grid gap-2.5 mb-7 text-[15px] text-gray-700 dark:text-gray-300">
               {['Daily check-in with weekly trend charts', 'Roadmap actions with estimated impact', 'Goals for weight, savings, score and more', 'Net worth tracker, ready for broker connections'].map(li => (
                 <li key={li} className="flex items-start gap-2.5">
-                  <span className="text-teal-400 flex-shrink-0">—</span>{li}
+                  <span className="text-teal-600 dark:text-teal-400 flex-shrink-0">—</span>{li}
                 </li>
               ))}
             </ul>
-            <Link href="/dashboard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-teal-500 hover:bg-teal-400 text-[#04211E] font-semibold text-sm transition-colors">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-sm transition-colors">
               Explore the dashboard
             </Link>
           </Reveal>
 
-          <Reveal delayMs={150} className="bg-[#111412] border border-white/10 rounded-xl p-5 grid gap-4" aria-label="Sample dashboard preview">
-            <div className="flex items-center justify-between text-xs text-slate-500">
+          <Reveal delayMs={150} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.1)] dark:shadow-none p-5 grid gap-4" aria-label="Sample dashboard preview">
+            <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
               <span>Good morning, Rahul</span><span>Sample data</span>
             </div>
             <div className="grid grid-cols-4 gap-2.5">
@@ -239,43 +246,43 @@ export default function HomePage() {
                 <div key={r.label} className="text-center">
                   <div className="relative mx-auto">
                     <AnimatedRing pct={r.score} color={r.color} size={48} thick={4} delayMs={i * 180} />
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">{r.score}</div>
+                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-900 dark:text-white">{r.score}</div>
                   </div>
-                  <p className="text-xs font-semibold text-white mt-1">{r.label}</p>
-                  <p className={`text-xs ${r.delta.startsWith('−') ? 'text-red-400' : 'text-emerald-400'}`}>{r.delta}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white mt-1">{r.label}</p>
+                  <p className={`text-xs ${r.delta.startsWith('−') ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>{r.delta}</p>
                 </div>
               ))}
             </div>
 
-            <div className="border-t border-white/10 pt-3.5">
+            <div className="border-t border-gray-100 dark:border-gray-800 pt-3.5">
               <div className="flex items-baseline justify-between mb-1">
-                <h4 className="text-xs font-semibold text-slate-300">Score over time</h4>
-                <span className="text-xs font-bold text-teal-400">+23 in 6 months</span>
+                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300">Score over time</h4>
+                <span className="text-xs font-bold text-teal-600 dark:text-teal-400">+23 in 6 months</span>
               </div>
               <AnimatedTrendChart />
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-5 border-t border-white/10 pt-3.5">
+            <div className="grid sm:grid-cols-2 gap-5 border-t border-gray-100 dark:border-gray-800 pt-3.5">
               <div className="grid gap-2.5 content-start">
-                <h4 className="text-xs font-semibold text-slate-300">Today</h4>
+                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300">Today</h4>
                 {[
                   { label: 'Bedtime alarm set for 10:30 pm', done: true },
                   { label: 'No phone 30 minutes before bed', done: false },
                   { label: 'Raise SIP from ₹3,000 to ₹6,500', done: false },
                 ].map((item, i) => (
-                  <Reveal key={item.label} delayMs={300 + i * 200} className="flex gap-2 text-xs text-slate-300">
-                    <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 mt-0.5 ${item.done ? 'border-teal-400 bg-teal-400' : 'border-white/20'}`} />
-                    <span className={item.done ? 'line-through text-slate-500' : ''}>{item.label}</span>
+                  <Reveal key={item.label} delayMs={300 + i * 200} className="flex gap-2 text-xs text-gray-700 dark:text-gray-300">
+                    <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 mt-0.5 ${item.done ? 'border-teal-500 bg-teal-500' : 'border-gray-300 dark:border-gray-700'}`} />
+                    <span className={item.done ? 'line-through text-gray-400 dark:text-gray-500' : ''}>{item.label}</span>
                   </Reveal>
                 ))}
               </div>
               <div className="grid gap-2.5 content-start">
-                <h4 className="text-xs font-semibold text-slate-300">Goals</h4>
-                <div className="text-xs text-slate-300">Emergency fund
+                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300">Goals</h4>
+                <div className="text-xs text-gray-700 dark:text-gray-300">Emergency fund
                   <AnimatedBar pct={47} delayMs={400} />
                   47% of ₹1.5 lakh
                 </div>
-                <div className="text-xs text-slate-300">Weight 84 → 75 kg
+                <div className="text-xs text-gray-700 dark:text-gray-300">Weight 84 → 75 kg
                   <AnimatedBar pct={31} delayMs={700} />
                   31% there
                 </div>
@@ -292,13 +299,13 @@ export default function HomePage() {
         ══════════════════════════════════════════════ */}
         <Reveal as="section" className="py-20">
           <div className="max-w-xl mb-9">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Learn while you calculate</h2>
-            <p className="text-slate-400 mt-2.5">Each calculator has matching guides that explain the math and what to do with your result.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Learn while you calculate</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2.5">Each calculator has matching guides that explain the math and what to do with your result.</p>
           </div>
-          <div className="grid sm:grid-cols-2 gap-3.5 dark">
+          <div className="grid sm:grid-cols-2 gap-3.5">
             {latest.map(p => <PostCard key={p.slug} post={p} />)}
           </div>
-          <Link href="/guides" className="inline-flex items-center gap-2 px-5 py-2.5 mt-6 rounded-md border border-white/15 hover:border-white/30 text-slate-200 font-semibold text-sm transition-colors">
+          <Link href="/guides" className="inline-flex items-center gap-2 px-5 py-2.5 mt-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500 text-gray-800 dark:text-gray-200 font-semibold text-sm transition-colors">
             Read all {ALL_POSTS.length} guides
           </Link>
         </Reveal>
@@ -308,12 +315,12 @@ export default function HomePage() {
         ══════════════════════════════════════════════ */}
         {PLANS_ENABLED && (
           <Reveal as="section" className="pb-14">
-            <div className="rounded-xl border border-white/10 p-8 flex flex-wrap justify-between items-center gap-6">
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 p-8 flex flex-wrap justify-between items-center gap-6">
               <div className="max-w-xl">
-                <h2 className="text-lg font-bold text-white mb-1.5">Want a person to look at your numbers?</h2>
-                <p className="text-slate-400 text-[15px]">Personal diet and finance plans start at ₹149 a month. Everything else on this site stays open to use.</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5">Want a person to look at your numbers?</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-[15px]">Personal diet and finance plans start at ₹149 a month. Everything else on this site stays open to use.</p>
               </div>
-              <Link href="/plan" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-white/15 hover:border-white/30 text-slate-200 font-semibold text-sm transition-colors">
+              <Link href="/plan" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500 text-gray-800 dark:text-gray-200 font-semibold text-sm transition-colors">
                 See plans
               </Link>
             </div>
@@ -323,16 +330,16 @@ export default function HomePage() {
         {/* ══════════════════════════════════════════════
             FAQ
         ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20 border-t border-white/10">
-          <h2 className="text-2xl font-bold tracking-tight text-white mb-8">Questions people ask</h2>
+        <Reveal as="section" className="py-20 border-t border-gray-100 dark:border-gray-800">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-8">Questions people ask</h2>
           <div className="max-w-2xl">
             {FAQ.map((item, i) => (
-              <details key={i} className="group border-b border-white/10 py-4">
-                <summary className="flex items-center justify-between gap-4 font-semibold text-[16px] text-white cursor-pointer list-none">
+              <details key={i} className="group border-b border-gray-100 dark:border-gray-800 py-4">
+                <summary className="flex items-center justify-between gap-4 font-semibold text-[16px] text-gray-900 dark:text-white cursor-pointer list-none">
                   {item.q}
-                  <span className="text-slate-500 text-xl font-light group-open:rotate-45 transition-transform flex-shrink-0">+</span>
+                  <span className="text-gray-400 text-xl font-light group-open:rotate-45 transition-transform flex-shrink-0">+</span>
                 </summary>
-                <p className="text-slate-400 mt-2.5 text-[15px] leading-relaxed">{item.a}</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-2.5 text-[15px] leading-relaxed">{item.a}</p>
               </details>
             ))}
           </div>

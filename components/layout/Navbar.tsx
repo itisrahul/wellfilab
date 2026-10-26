@@ -248,14 +248,7 @@ export function Navbar() {
   const closeSearch = useCallback(() => setShowSrch(false), []);
   const closeMega   = useCallback(() => setShowTools(false), []);
 
-  // The homepage is now a fixed-dark marketing page regardless of the
-  // site's light/dark toggle (see app/page.tsx) — force every dark:
-  // variant in this header on so it doesn't hard-cut from white into the
-  // dark hero. Every other route keeps the normal theme-aware header.
-  const forceDark = pathname === '/';
-
   return (
-    <div className={forceDark ? 'dark' : undefined}>
     <header ref={headerRef} className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center h-16 gap-5">
@@ -407,6 +400,5 @@ export function Navbar() {
         </div>
       )}
     </header>
-    </div>
   );
 }
