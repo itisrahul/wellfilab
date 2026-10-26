@@ -14,7 +14,7 @@ export function Aurora({ variant = 'hero' }: { variant?: 'hero' | 'soft' }) {
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none motion-reduce:[&_*]:animate-none">
       <div className="absolute -top-32 left-[6%] w-[520px] h-[520px] rounded-full bg-teal-500/20 blur-[120px] animate-aurora-a" />
-      <div className="absolute top-4 right-[2%] w-[420px] h-[420px] rounded-full bg-indigo-500/15 blur-[110px] animate-aurora-b" />
+      <div className="absolute top-4 right-[2%] w-[420px] h-[420px] rounded-full bg-violet-500/10 blur-[110px] animate-aurora-b" />
       <div className="absolute -bottom-24 left-[28%] w-[460px] h-[460px] rounded-full bg-amber-500/10 blur-[130px] animate-aurora-a" style={{ animationDelay: '-7s' }} />
       <div aria-hidden className="absolute inset-0" style={{
         backgroundImage: 'linear-gradient(rgba(45,212,191,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(45,212,191,0.05) 1px, transparent 1px)',

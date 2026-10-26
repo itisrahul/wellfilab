@@ -74,7 +74,7 @@ const FINANCE_PREVIEW = [
 ];
 const MOCK_RINGS = [
   { label: 'Body', score: 82, color: '#2DD4BF', delta: '+6' },
-  { label: 'Mind', score: 53, color: '#818CF8', delta: '−2' },
+  { label: 'Mind', score: 53, color: '#C084FC', delta: '−2' },
   { label: 'Wealth', score: 60, color: '#F59E0B', delta: '+4' },
   { label: 'Life', score: 71, color: '#4ADE80', delta: '+3' },
 ];
@@ -97,8 +97,8 @@ function CalcChip({ c }: { c: (typeof CALCULATORS)[number] }) {
 
 /** Glass card shared by the bento grid and FAQ — consistent glow-on-hover
  * treatment across the always-dark marketing sections of this page. */
-function Glass({ children, className = '', glow = 'teal' }: { children: ReactNode; className?: string; glow?: 'teal' | 'amber' | 'indigo' }) {
-  const ring = glow === 'amber' ? 'hover:border-amber-400/30' : glow === 'indigo' ? 'hover:border-indigo-400/30' : 'hover:border-teal-400/30';
+function Glass({ children, className = '', glow = 'teal' }: { children: ReactNode; className?: string; glow?: 'teal' | 'amber' | 'violet' }) {
+  const ring = glow === 'amber' ? 'hover:border-amber-400/30' : glow === 'violet' ? 'hover:border-violet-400/30' : 'hover:border-teal-400/30';
   return (
     <div className={`bg-white/[0.035] border border-white/10 rounded-2xl backdrop-blur-sm transition-colors ${ring} ${className}`}>
       {children}
@@ -165,7 +165,7 @@ export default function HomePage() {
           </Reveal>
 
           <Reveal variant="fade" delayMs={380} className="relative max-w-xl mx-auto">
-            <div aria-hidden className="absolute -inset-2 rounded-[32px] bg-gradient-to-r from-teal-500/25 via-indigo-500/15 to-amber-500/20 blur-2xl opacity-70" />
+            <div aria-hidden className="absolute -inset-2 rounded-[32px] bg-gradient-to-r from-teal-500/25 to-amber-500/25 blur-2xl opacity-70" />
             <div className="relative dark animate-float" style={{ animationDuration: '7s' }}>
               <LiveCalcHero />
             </div>
