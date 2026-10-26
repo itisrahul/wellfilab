@@ -102,7 +102,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
           className="print:hidden flex items-center gap-3 mb-3 px-4 py-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 hover:border-teal-300 dark:hover:border-teal-700 transition-colors group">
           <span className="text-lg flex-shrink-0">📊</span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">See how this fits your bigger picture → Get your free score</p>
+            <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">See how this fits your bigger picture → Get your score</p>
           </div>
           <span className="flex-shrink-0 text-xs font-bold text-teal-700 dark:text-teal-400 group-hover:translate-x-0.5 transition-transform">60 seconds →</span>
         </Link>

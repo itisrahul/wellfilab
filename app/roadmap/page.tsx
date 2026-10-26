@@ -240,7 +240,13 @@ export default function RoadmapPage() {
             <div className="flex items-center gap-4 flex-wrap">
               <div>
                 <p className="text-4xl font-black">{score.overall} → {projectedScore.overall}</p>
-                <p className="text-sm text-white/80 mt-1">+{scoreGain} points — from sleeping 7.5h, moving 4 days/week, lower stress, an emergency fund, insurance, and a SIP at 15% of income.</p>
+                <p className="text-sm text-white/80 mt-1">
+                  +{scoreGain} points — from {score.focus === 'wealth'
+                    ? 'an emergency fund, insurance, and a SIP at 15% of income.'
+                    : score.focus === 'health'
+                    ? 'sleeping 7.5h, moving 4 days/week, and lower stress.'
+                    : 'sleeping 7.5h, moving 4 days/week, lower stress, an emergency fund, insurance, and a SIP at 15% of income.'}
+                </p>
               </div>
             </div>
             <p className="text-[11px] text-white/60 mt-3">Computed with the exact same scoring formula as your real score — not a promise, a projection from these specific target values.</p>

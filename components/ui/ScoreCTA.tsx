@@ -13,7 +13,7 @@ export function ScoreCTA({ variant = 'default' }: { variant?: 'default' | 'compa
         <span className="text-2xl flex-shrink-0">🎯</span>
         <div className="min-w-0 flex-1">
           <p className="font-bold text-sm">Get your WellFiLab Score</p>
-          <p className="text-xs text-white/80">One number for your health + money. 60 seconds, free.</p>
+          <p className="text-xs text-white/80">One number for your health + money. Takes about 60 seconds.</p>
         </div>
         <span className="text-lg group-hover:translate-x-0.5 transition-transform flex-shrink-0">→</span>
       </Link>

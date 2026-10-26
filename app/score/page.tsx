@@ -417,7 +417,7 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
                 body.sleepHours < 7.5 ? (
                   <div className={`mt-3 p-3 rounded-lg text-xs ${body.sleepHours < 6 ? 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400' : 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'}`}>
                     <p className="font-bold mb-1">Deficit: {(7.5 - body.sleepHours).toFixed(1)} hours/night = {Math.round((7.5 - body.sleepHours) * 365)} hours/year</p>
-                    <p>At your income (Step 2 will calculate): this costs approx {((7.5 - body.sleepHours) * 2.4).toFixed(1)}% of your annual productivity. Exact ₹ shown next step.</p>
+                    <p>That's roughly {((7.5 - body.sleepHours) * 2.4).toFixed(1)}% of your annual productivity{focus === 'health' ? '' : ' — exact ₹ shown next step, once we have your income'}.</p>
                   </div>
                 ) : (
                   <div className="mt-3 p-3 rounded-lg text-xs bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 font-semibold">
@@ -458,7 +458,7 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
               <p className="text-[11px] text-gray-400 mt-1">1-3 Low · 4-6 Moderate · 7-8 High · 9-10 Severe</p>
               {body.stressLevel != null && body.stressLevel > 6 && (
                 <div className="mt-3 p-3 rounded-lg text-xs bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400">
-                  High stress reduces cognitive output by 15–18% — direct financial impact calculated with your income in Step 2.
+                  High stress reduces cognitive output by 15–18%{focus === 'health' ? '.' : ' — exact ₹ impact calculated once we have your income, next step.'}
                 </div>
               )}
             </FieldSection>
@@ -1057,8 +1057,23 @@ const SCORE_BANDS = [
   { label: 'Excellent',   lo: 80, hi: 100, color: '#10b981' },
 ];
 
+/**
+ * A health-only score has body/mind set from real data but wealth is a
+ * literal, documented 0 (lib/wellfilab-score.ts calculateBodyScore: "honest
+ * zero instead" of a guessed placeholder) — never a real "your finances are
+ * bad" signal. The mirror is true for a wealth-only score (body/mind are 0).
+ * This section used to read score.wealth/score.body directly regardless of
+ * what was actually measured, so a Health-only user saw fabricated
+ * financial commentary generated from an unmeasured 0. Gate each card —
+ * and the cross-dimension "connection" card, which needs both — on
+ * score.focus, the field set at calculation time for exactly this check.
+ */
 function ScoreImpactSection({ score }: { score: WellFiScore }) {
   const body = score.body, wealth = score.wealth;
+  const showHealth = score.focus !== 'wealth';
+  const showFinancial = score.focus !== 'health';
+  const showConnection = score.focus === 'both';
+  const cols = [showHealth, showFinancial, showConnection].filter(Boolean).length;
 
   const healthText = body < 50
     ? "Your physical habits are costing you energy and focus daily. People with scores above 70 report significantly higher productivity."
@@ -1090,19 +1105,25 @@ function ScoreImpactSection({ score }: { score: WellFiScore }) {
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">What your score means for your life</p>
-      <div className="grid sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1.5">💪 Health</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{healthText}</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5">💰 Financial</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{financialText}</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-teal-50 dark:from-purple-950/20 dark:to-teal-950/20 border border-purple-100 dark:border-purple-900">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-1.5">🔗 The connection</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{connectionText}</p>
-        </div>
+      <div className={`grid gap-3 ${cols === 3 ? 'sm:grid-cols-3' : cols === 2 ? 'sm:grid-cols-2' : ''}`}>
+        {showHealth && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1.5">💪 Health</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{healthText}</p>
+          </div>
+        )}
+        {showFinancial && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5">💰 Financial</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{financialText}</p>
+          </div>
+        )}
+        {showConnection && (
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-teal-50 dark:from-purple-950/20 dark:to-teal-950/20 border border-purple-100 dark:border-purple-900">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-1.5">🔗 The connection</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{connectionText}</p>
+          </div>
+        )}
       </div>
     </div>
   );

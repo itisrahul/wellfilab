@@ -135,10 +135,7 @@ export default function CompoundCalc() {
         <CurrPills val={curr} onChange={setCurr} />
         <MoneyIn label="Initial investment" value={p} onChange={setP} sym={C.sym} step={10000}
           hint={`${C.sym} ${fmtFull(p, 2)}`} />
-        <div className="grid grid-cols-2 gap-3">
-          <PctIn label="Interest rate" value={rate} onChange={setRate} step={0.1} />
-          <SelectIn label="Per" value="annual" onChange={() => {}} options={[{ value: 'annual', label: 'Annual' }]} />
-        </div>
+        <PctIn label="Interest rate (per year)" value={rate} onChange={setRate} step={0.1} />
         <SelectIn label="Compound frequency" value={freq} onChange={v => setFreq(+v)}
           options={[
             { value: 1, label: 'Annually (1/yr)' },
@@ -146,10 +143,7 @@ export default function CompoundCalc() {
             { value: 12, label: 'Monthly (12/yr)' },
             { value: 365, label: 'Daily (365/yr)' },
           ]} />
-        <div className="grid grid-cols-2 gap-3">
-          <NumIn label="Years" value={yrs} onChange={setYrs} min={1} max={50} />
-          <NumIn label="Months" value={0} onChange={() => {}} min={0} max={11} />
-        </div>
+        <NumIn label="Years" value={yrs} onChange={setYrs} min={1} max={50} />
         <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
             Regular Contributions <span className="font-normal text-gray-400">(optional)</span>
