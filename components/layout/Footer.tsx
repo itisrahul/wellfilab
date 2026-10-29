@@ -1,4 +1,6 @@
+'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { SITE_NAME, PLANS_ENABLED } from '@/config/site';
 
 const EXPLORE_LINKS = [
@@ -18,6 +20,12 @@ const COMPANY_LINKS = [
 ];
 
 export function Footer() {
+  const pathname = usePathname();
+  // Same reasoning as Navbar — /sign-in and /sign-up are focused,
+  // self-contained pages via AuthLayout; the footer's own logo/nav links
+  // just add duplication and distraction below the auth form.
+  if (pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up')) return null;
+
   return (
     <footer className="bg-gray-950 mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-8">
@@ -37,7 +45,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
-              Free health and finance calculators, evidence-based guides, and a personalised WellFiLab Score — for everyone, everywhere.
+              Health and finance calculators, evidence-based guides, and a personalised WellFiLab Score — for everyone, everywhere.
             </p>
           </div>
 
