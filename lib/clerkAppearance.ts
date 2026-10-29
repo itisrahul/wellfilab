@@ -37,7 +37,7 @@ export function useClerkAppearance(): Appearance {
       socialButtons: 'hidden',
       socialButtonsBlockButton: 'hidden',
       dividerRow: 'hidden',
-      card: 'shadow-lg border border-gray-200 dark:border-gray-800',
+      card: 'shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] dark:shadow-none border border-gray-100 dark:border-gray-800',
       footer: 'bg-white dark:bg-gray-900',
       footerAction: 'bg-white dark:bg-gray-900',
       footerActionLink: 'text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300',
