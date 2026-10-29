@@ -167,7 +167,7 @@ export default function RoadmapPage() {
       {/* SECTION 1: Header */}
       <div className="bg-[#0F2A27]">
         <FlowNav current="roadmap" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 border-t border-white/5">
           <div className="flex items-start justify-between flex-wrap gap-6">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Personalised Roadmap</p>
@@ -214,7 +214,7 @@ export default function RoadmapPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
         {/* Keep the flow moving before the detail below — this is a plan,
             not a dead end, so the next steps are visible immediately. */}

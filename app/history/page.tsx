@@ -90,14 +90,14 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="bg-gradient-to-br from-teal-800 to-gray-950">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
           <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Your Full History</p>
           <h1 className="text-3xl font-extrabold text-white mb-2">Every real update, in one place</h1>
           <p className="text-sm text-white/50">Score, net worth, goals, and roadmap — nothing here is reconstructed after the fact, only what was actually recorded.</p>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
         {!hasAnyHistory ? (
           <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">

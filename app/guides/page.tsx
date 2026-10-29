@@ -62,7 +62,7 @@ export default function GuidesPage() {
 
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-6">
           <div className="mb-6">
             <p className="text-xs font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-2">Evidence-Based Guides</p>
             <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Guides</h1>
@@ -124,7 +124,7 @@ export default function GuidesPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {!isSearching && (
           <div className="mb-8">

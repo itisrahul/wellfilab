@@ -86,7 +86,7 @@ export default async function PlanPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-16">
 
         {/* ── Haven't taken score yet ── */}
         <div className="flex items-center justify-between gap-4 flex-wrap bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800 rounded-2xl px-5 py-4">

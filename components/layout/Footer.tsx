@@ -20,7 +20,7 @@ const COMPANY_LINKS = [
 export function Footer() {
   return (
     <footer className="bg-gray-950 mt-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-8">
 
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-10 mb-10">
 

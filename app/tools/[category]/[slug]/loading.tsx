@@ -2,7 +2,7 @@ export default function Loading() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 animate-pulse">
       <div className="h-1 w-full bg-teal-200 dark:bg-teal-900"/>
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex gap-1.5 mb-5">
           {[3,2,3,2].map((w,i)=><div key={i} className={`h-3 w-${w*8} bg-gray-200 dark:bg-gray-700 rounded`}/>)}
         </div>

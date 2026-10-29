@@ -54,7 +54,7 @@ export default function ContactPage() {
 
       {/* ── Header ── */}
       <div className="border-b border-gray-100 dark:border-gray-800 py-12">
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-4">Contact</p>
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Get in touch</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -63,7 +63,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid md:grid-cols-5 gap-12">
 
           {/* Left — info */}

@@ -176,7 +176,7 @@ export default function ToolsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 space-y-16">
 
         {/* ══════════════════════════════════════════════
             SECTION 2 · TRENDING THIS WEEK — real data only,

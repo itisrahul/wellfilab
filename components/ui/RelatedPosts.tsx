@@ -28,7 +28,7 @@ export function RelatedPosts({ posts, category }: Props) {
   if (!posts.length) return null;
 
   return (
-    <section className="max-w-6xl mx-auto px-4 pb-16">
+    <section className="max-w-7xl mx-auto px-4 pb-16">
       <h2 className="font-bold text-base text-gray-800 dark:text-gray-200 mb-4 capitalize">
         More {category} articles
       </h2>

@@ -371,7 +371,7 @@ function StageA({ body, setBody, bmi, preview, requiredFilled, filledSlots, accu
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Your Health Profile</h1>
@@ -565,7 +565,7 @@ function StageB({ finance, setFinance, age, income, savingsRate, previewHealthSc
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Your Financial Picture</h1>
@@ -730,7 +730,7 @@ function StageWealthOnly({ finance, setFinance, age, setAge, income, savingsRate
 }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-5xl mx-auto px-4 pt-10">
+      <div className="max-w-7xl mx-auto px-4 pt-10">
         <FieldSection title="About You">
           <NumberField label="Age (years) — used to benchmark your net worth and risk allocation for your age" value={age} onChange={setAge} min={16} max={80} />
         </FieldSection>

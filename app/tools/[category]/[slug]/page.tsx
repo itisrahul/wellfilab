@@ -73,7 +73,7 @@ export default function ToolPage({ params }: { params: { category: string; slug:
 
       <div className={`h-1 w-full ${bar}`} />
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
 
         <nav className="print:hidden flex items-center gap-1.5 text-xs text-gray-400 mb-5 flex-wrap">
           <Link href="/" className="hover:text-teal-600 transition-colors">Home</Link>

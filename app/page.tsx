@@ -96,7 +96,7 @@ export default function HomePage() {
           and money, plus one score that ties them together. Text left,
           the real interactive calculator right, in an elevated card.
       ══════════════════════════════════════════════ */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-24">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-24">
         <div className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-16 items-center">
           <Reveal>
             <p className="text-xs font-bold tracking-[0.15em] uppercase text-teal-700 dark:text-teal-400 mb-5">
@@ -133,7 +133,7 @@ export default function HomePage() {
           STATS — a plain divided row.
       ══════════════════════════════════════════════ */}
       <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800">
           {STATS.map(s => (
             <div key={s.label} className="py-7 px-4 sm:px-6 text-center sm:text-left">
               <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">
@@ -145,7 +145,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
         {/* ══════════════════════════════════════════════
             TWO PATHS
@@ -189,7 +189,7 @@ export default function HomePage() {
           HOW IT WORKS
       ══════════════════════════════════════════════ */}
       <section className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <Reveal className="max-w-xl mb-10">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">See the whole loop in 15 seconds</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2.5">Watch it play, or tap a step below to jump straight to it.</p>
@@ -203,7 +203,7 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════
           WHY WELLFILAB
       ══════════════════════════════════════════════ */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <Reveal as="section" className="py-20">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-8">Built different from day one</h2>
           <div className="divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
@@ -221,7 +221,7 @@ export default function HomePage() {
           DASHBOARD PREVIEW — elevated card, clearly sample data.
       ══════════════════════════════════════════════ */}
       <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
           <Reveal>
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">A dashboard you will actually open every day</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-3 mb-6 text-[15px] leading-relaxed">Log sleep, water, movement and spending in under a minute. See your trends, tick off today's actions, and keep your goals in one place.</p>
@@ -292,7 +292,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
         {/* ══════════════════════════════════════════════
             GUIDES

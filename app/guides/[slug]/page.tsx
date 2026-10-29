@@ -85,7 +85,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
       {/* Category colour bar */}
       <div className={`h-1 w-full ${ACCENT[post.category] ?? ACCENT.health}`} />
 
-      <article className="max-w-6xl mx-auto px-4 py-12 md:py-16">
+      <article className="max-w-7xl mx-auto px-4 py-12 md:py-16">
 
         {/* Breadcrumb */}
         <nav className="text-xs text-gray-400 flex items-center gap-1.5 mb-8">
@@ -158,7 +158,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
 
       {/* HWT cross-link — drives traffic between sites */}
       {post.hwtCalc && (
-        <section className="max-w-6xl mx-auto px-4 pb-10">
+        <section className="max-w-7xl mx-auto px-4 pb-10">
           <div className="bg-gradient-to-r from-teal-600 to-cyan-500 rounded-2xl p-5 text-white flex flex-col sm:flex-row items-center gap-4">
             <div className="text-3xl flex-shrink-0">🧮</div>
             <div className="flex-1 text-center sm:text-left">
@@ -174,12 +174,12 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
       )}
 
       {/* Newsletter signup */}
-      <section className="max-w-6xl mx-auto px-4 pb-10">
+      <section className="max-w-7xl mx-auto px-4 pb-10">
         <NewsletterSignup source="guide-article" />
       </section>
 
       {/* Plan upsell — very bottom of every guide article */}
-      <section className="max-w-6xl mx-auto px-4 pb-16">
+      <section className="max-w-7xl mx-auto px-4 pb-16">
         <PlanUpsell category={post.category} />
       </section>
 
