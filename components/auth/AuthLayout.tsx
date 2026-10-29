@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 const TRUST_POINTS = [
   { icon: '🔒', label: 'Your data stays private', detail: 'Never sold, never browsed by us.' },
   { icon: '📊', label: 'One score for health and money', detail: 'See where you actually stand, in one place.' },
@@ -21,16 +19,11 @@ export function AuthLayout({ mode, children }: { mode: 'sign-in' | 'sign-up'; ch
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-white dark:bg-gray-950">
-      {/* Brand panel — flat solid teal, hidden on mobile, full column on desktop */}
-      <div className="hidden lg:flex bg-teal-700 flex-col justify-between p-12 xl:p-16">
-        <Link href="/" className="flex items-center gap-2.5">
-          <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-            <rect width="34" height="34" rx="9" fill="white" fillOpacity="0.15" />
-            <path d="M6 10L10 24L17 15L24 24L28 10" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="font-bold text-lg tracking-tight text-white">WellFiLab</span>
-        </Link>
-
+      {/* Brand panel — flat solid teal, hidden on mobile, full column on desktop.
+          No logo here — the site header above already has one; this page
+          keeps the header/footer for navigability, so repeating the logo
+          here just duplicated it. */}
+      <div className="hidden lg:flex bg-teal-700 flex-col justify-center p-12 xl:p-16">
         <div>
           <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-3 text-balance">{heading}</h1>
           <p className="text-teal-100 text-base leading-relaxed max-w-sm mb-10">{subheading}</p>
@@ -51,16 +44,10 @@ export function AuthLayout({ mode, children }: { mode: 'sign-in' | 'sign-up'; ch
         <p className="text-teal-100/60 text-xs">© {new Date().getFullYear()} WellFiLab</p>
       </div>
 
-      {/* Auth card panel */}
+      {/* Auth card panel — no logo here either (mobile included); the site
+          header above already has one, every viewport width. */}
       <div className="flex items-center justify-center px-4 py-12 sm:px-6">
         <div className="w-full max-w-md flex flex-col items-center">
-          <Link href="/" className="lg:hidden flex items-center gap-2.5 mb-8">
-            <svg width="36" height="36" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-              <rect width="34" height="34" rx="9" fill="#0d9488" />
-              <path d="M6 10L10 24L17 15L24 24L28 10" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white">WellFiLab</span>
-          </Link>
           {children}
         </div>
       </div>

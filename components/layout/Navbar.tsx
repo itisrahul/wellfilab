@@ -248,11 +248,6 @@ export function Navbar() {
   const closeSearch = useCallback(() => setShowSrch(false), []);
   const closeMega   = useCallback(() => setShowTools(false), []);
 
-  // /sign-in and /sign-up render their own full-page branded layout
-  // (AuthLayout) with its own logo — the site nav above it just duplicated
-  // that logo and added unrelated distraction to a conversion-focused page.
-  if (pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up')) return null;
-
   return (
     <header ref={headerRef} className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
