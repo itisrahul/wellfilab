@@ -7,7 +7,7 @@ import {
   getHoldings, addHolding, updateHolding, deleteHolding, computeTotals, computeBreakdown,
   HOLDING_TYPES, HOLDING_TYPE_META, type Holding, type HoldingCategory, type HoldingType,
 } from '@/lib/holdingsStorage';
-import { getSnapshots, addSnapshot, computeGainHistory } from '@/lib/netWorthHistory';
+import { getSnapshots, addSnapshot, computeGainHistory, syncNetWorthGoal } from '@/lib/netWorthHistory';
 import { getGoals, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
@@ -38,7 +38,11 @@ export default function AssetsPage() {
   const totals = computeTotals(h);
   const breakdown = computeBreakdown(h);
   const gainHistory = computeGainHistory(snapshots ?? []);
-  const netWorthGoal = (goals ?? []).find(g => g.type === 'net-worth');
+  const rawNetWorthGoal = (goals ?? []).find(g => g.type === 'net-worth');
+  // Synced against the real snapshot history (not the live holdings total
+  // below) — pace/ETA need a genuine recorded data point to measure a rate
+  // against, never "right now" standing in for a real update.
+  const netWorthGoal = rawNetWorthGoal ? syncNetWorthGoal(rawNetWorthGoal, snapshots ?? []) : undefined;
 
   const recordSnapshot = async () => {
     setRecording(true);
@@ -191,10 +195,18 @@ function SummaryCard({ label, value, accent }: { label: string; value: string; a
   );
 }
 
+/**
+ * `current` is today's live holdings total — used for the progress bar so
+ * "how far there" is always real-time. `goal` is the version already
+ * synced to the latest real snapshot (see syncNetWorthGoal, called by the
+ * parent) — used for pace/ETA, which need a genuine recorded data point to
+ * measure a rate against. Deliberately two different "current"s: one
+ * instantaneous, one a real history point — never blended into one
+ * fabricated "as of right now" rate.
+ */
 function NetWorthGoalProgress({ goal, current }: { goal: Goal; current: number }) {
-  const liveGoal: Goal = { ...goal, current, lastUpdated: new Date().toISOString() };
-  const eta = estimateGoalETA(liveGoal);
-  const pace = getGoalPaceStatus(liveGoal);
+  const eta = estimateGoalETA(goal);
+  const pace = getGoalPaceStatus(goal);
   const span = goal.target - goal.startValue;
   const pct = span === 0 ? 100 : Math.max(0, Math.min(100, ((current - goal.startValue) / span) * 100));
   return (
@@ -244,12 +256,37 @@ function CategoryBlock({ cat, onChange }: { cat: ReturnType<typeof computeBreakd
 }
 
 function HoldingRow({ id, subType, value, onChange }: { id: string; subType: string; value: number; onChange: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(String(value));
+
   const remove = async () => { if (confirm(`Delete "${subType}"?`)) { await deleteHolding(id); onChange(); } };
+  const save = async () => {
+    const n = +val;
+    if (val !== '' && !Number.isNaN(n)) await updateHolding(id, { currentValue: Math.abs(n) });
+    setEditing(false);
+    onChange();
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="truncate flex-1 text-gray-500 dark:text-gray-400">{subType}</span>
+        <input type="number" autoFocus value={val} onChange={e => setVal(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setVal(String(value)); } }}
+          className="w-24 text-xs border border-teal-400 rounded px-1.5 py-0.5 bg-white dark:bg-gray-800 focus:outline-none" />
+        <button onClick={save} className="text-teal-600 dark:text-teal-400 font-bold">✓</button>
+        <button onClick={() => { setEditing(false); setVal(String(value)); }} className="text-gray-400">✕</button>
+      </div>
+    );
+  }
+
   return (
     <div className="group flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
       <span className="truncate">{subType}</span>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="font-mono tabular-nums">{fmtINR(value)}</span>
+        <button onClick={() => setEditing(true)} className="font-mono tabular-nums hover:text-teal-600 dark:hover:text-teal-400 hover:underline" title="Update this month's value">
+          {fmtINR(value)}
+        </button>
         <button onClick={remove} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity">✕</button>
       </div>
     </div>
