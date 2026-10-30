@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { goals } from '@/lib/db/schema';
-import type { Goal } from '@/lib/goalsStorage';
+import { GOAL_TYPE_META, type Goal, type GoalType } from '@/lib/goalsStorage';
 
 /** Account-level Goals, keyed by Clerk userId — mirrors lib/goalsStorage.ts's shape. */
 
@@ -34,7 +34,11 @@ export async function GET() {
   return NextResponse.json({ goals: rows.map(toGoal) });
 }
 
-const GOAL_TYPES = ['net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus', 'weight', 'sleep', 'fitness', 'hydration', 'wellfilab-score', 'custom'] as const;
+// Derived from GOAL_TYPE_META (the single source of truth for GoalType)
+// instead of a hand-maintained parallel list — a hardcoded copy here
+// silently drifted out of sync when new goal types were added client-side,
+// rejecting every new-type goal with a 400 until this was caught.
+const GOAL_TYPES = Object.keys(GOAL_TYPE_META) as [GoalType, ...GoalType[]];
 
 const addGoalSchema = z.object({
   type: z.enum(GOAL_TYPES),

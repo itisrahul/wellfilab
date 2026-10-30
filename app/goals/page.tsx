@@ -7,6 +7,7 @@ import {
   getGoals, addGoal, updateGoalProgress, toggleGoalPause, deleteGoal, getGoalHistory,
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
+import { estimateGoalETA, getGoalPaceStatus, type GoalPaceStatus } from '@/lib/goalPace';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
@@ -82,32 +83,11 @@ function isComplete(g: Goal): boolean {
   return span > 0 ? g.current >= g.target : g.current <= g.target;
 }
 
-function paceLabel(g: Goal): { label: string; tone: 'ahead' | 'behind' | 'ontrack' } | null {
-  if (!g.targetDate) return null;
-  const start = new Date(g.startDate).getTime();
-  const end = new Date(g.targetDate).getTime();
-  const now = Date.now();
-  if (end <= start || now >= end) return null;
-  const timePct = ((now - start) / (end - start)) * 100;
-  const actualPct = progressPct(g);
-  const diff = actualPct - timePct;
-  if (diff > 8) return { label: 'Ahead of schedule', tone: 'ahead' };
-  if (diff < -8) return { label: 'Behind schedule', tone: 'behind' };
-  return { label: 'On track', tone: 'ontrack' };
-}
-
-function estimatedCompletion(g: Goal): string | null {
-  const daysSinceStart = Math.max(1, Math.floor((Date.now() - new Date(g.startDate).getTime()) / 86400000));
-  const progressed = g.current - g.startValue;
-  const remaining = g.target - g.current;
-  if (progressed === 0 || Math.sign(progressed) !== Math.sign(g.target - g.startValue)) return null;
-  const ratePerDay = progressed / daysSinceStart;
-  if (ratePerDay === 0) return null;
-  const daysNeeded = remaining / ratePerDay;
-  if (daysNeeded <= 0 || !Number.isFinite(daysNeeded) || daysNeeded > 365 * 30) return null;
-  const date = new Date(Date.now() + daysNeeded * 86400000);
-  return date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-}
+const PACE_LABEL: Record<GoalPaceStatus, { label: string; tone: 'ahead' | 'behind' | 'ontrack' }> = {
+  ahead:      { label: 'Ahead of schedule', tone: 'ahead' },
+  behind:     { label: 'Behind schedule',   tone: 'behind' },
+  'on-track': { label: 'On track',          tone: 'ontrack' },
+};
 
 const CATEGORY_STYLE: Record<string, string> = {
   wealth: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800',
@@ -262,8 +242,9 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
   const [showReport, setShowReport] = useState(false);
   const pct = progressPct(goal);
   const complete = isComplete(goal);
-  const pace = paceLabel(goal);
-  const eta = !complete ? estimatedCompletion(goal) : null;
+  const paceStatus = getGoalPaceStatus(goal);
+  const pace = paceStatus ? PACE_LABEL[paceStatus] : null;
+  const eta = !complete ? estimateGoalETA(goal) : null;
 
   const save = async () => {
     const willComplete = !complete && isComplete({ ...goal, current: val });
@@ -315,7 +296,7 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
         <GoalTrendChart history={getGoalHistory(goal)} target={goal.target} unit={meta.unit} color={CATEGORY_CHART_COLOR[meta.category]} />
       </div>
 
-      {eta && <p className="text-[11px] text-gray-400 mb-2">At your current pace: ~{eta}</p>}
+      {eta && <p className="text-[11px] text-gray-400 mb-2">{eta}</p>}
 
       {scoreInsight && !complete && (
         <p className="text-[11px] text-gray-400 mb-2">Your roadmap's "Fix top 3 issues" path projects a monthly passive income of ~{fmtVal(scoreInsight.monthlyPassiveIncome, '₹')} by 60 — <Link href="/roadmap" className="underline hover:text-teal-600">see the actions behind it →</Link></p>
