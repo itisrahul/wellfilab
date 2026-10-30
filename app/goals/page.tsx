@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import {
-  getGoals, addGoal, updateGoalProgress, toggleGoalPause, deleteGoal,
+  getGoals, addGoal, updateGoalProgress, toggleGoalPause, deleteGoal, getGoalHistory,
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
 import { getScoreHistory } from '@/lib/scoreStorage';
@@ -16,11 +17,18 @@ import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
+// recharts is heavy — load it only on the client, same pattern the
+// dashboard's trend chart already uses.
+const GoalTrendChart = dynamic(
+  () => import('@/components/dashboard/GoalTrendChart').then(m => m.GoalTrendChart),
+  { ssr: false, loading: () => <div className="h-[140px] animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" /> }
+);
+
 // Lump-sum money goals where "invest X/month, let it compound" is a real
 // question — excludes sip-target (already a monthly amount, not a lump
 // target), debt-freedom (decreasing, needs payoff math not growth math),
 // health/score goals (not monetary), and custom (unknown unit).
-const ACCUMULATION_GOAL_TYPES: GoalType[] = ['net-worth', 'emergency-fund', 'fire-corpus'];
+const ACCUMULATION_GOAL_TYPES: GoalType[] = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
 
 interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
 
@@ -106,6 +114,7 @@ const CATEGORY_STYLE: Record<string, string> = {
   health: 'bg-teal-50 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800',
   score:  'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800',
 };
+const CATEGORY_CHART_COLOR: Record<string, string> = { wealth: '#d97706', health: '#0d9488', score: '#9333ea' };
 
 export default function GoalsPage() {
   const { data: goals, isLoading: goalsLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
@@ -302,6 +311,10 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
         )}
       </div>
 
+      <div className="mb-3 -mx-1">
+        <GoalTrendChart history={getGoalHistory(goal)} target={goal.target} unit={meta.unit} color={CATEGORY_CHART_COLOR[meta.category]} />
+      </div>
+
       {eta && <p className="text-[11px] text-gray-400 mb-2">At your current pace: ~{eta}</p>}
 
       {scoreInsight && !complete && (
@@ -405,7 +418,11 @@ function GoalProgressReportPanel({ goal, meta }: { goal: Goal; meta: { unit: str
   );
 }
 
-const TYPE_OPTIONS: GoalType[] = ['net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus', 'weight', 'sleep', 'fitness', 'hydration', 'wellfilab-score'];
+const TYPE_OPTIONS: GoalType[] = [
+  'net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus',
+  'home-down-payment', 'education-fund', 'vacation-fund',
+  'weight', 'sleep', 'fitness', 'hydration', 'steps', 'wellfilab-score',
+];
 
 function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdded: () => void; prefill?: { type: GoalType; current: number; target?: number } | null }) {
   const [type, setType] = useState<GoalType | null>(prefill?.type ?? null);

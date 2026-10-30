@@ -11,7 +11,8 @@
 
 export type GoalType =
   | 'net-worth' | 'sip-target' | 'emergency-fund' | 'debt-freedom' | 'fire-corpus'
-  | 'weight' | 'sleep' | 'fitness' | 'hydration'
+  | 'home-down-payment' | 'education-fund' | 'vacation-fund'
+  | 'weight' | 'sleep' | 'fitness' | 'hydration' | 'steps'
   | 'wellfilab-score' | 'custom';
 
 export interface GoalHistoryPoint { date: string; value: number }
@@ -43,10 +44,14 @@ export const GOAL_TYPE_META: Record<GoalType, { label: string; icon: string; uni
   'emergency-fund':  { label: 'Emergency fund',      icon: '🏦', unit: '₹',        category: 'wealth' },
   'debt-freedom':    { label: 'Debt freedom',        icon: '💳', unit: '₹ remaining', category: 'wealth' },
   'fire-corpus':     { label: 'FIRE corpus',         icon: '🔥', unit: '₹',        category: 'wealth' },
+  'home-down-payment': { label: 'Home down payment', icon: '🏠', unit: '₹',       category: 'wealth' },
+  'education-fund':  { label: 'Education fund',      icon: '🎓', unit: '₹',        category: 'wealth' },
+  'vacation-fund':   { label: 'Vacation fund',       icon: '✈️', unit: '₹',        category: 'wealth' },
   'weight':          { label: 'Weight target',       icon: '⚖️', unit: 'kg',       category: 'health' },
   'sleep':           { label: 'Sleep target',        icon: '😴', unit: 'hrs/night', category: 'health' },
   'fitness':         { label: 'Fitness target',      icon: '🏃', unit: 'days/week', category: 'health' },
   'hydration':       { label: 'Hydration',           icon: '💧', unit: 'L/day',    category: 'health' },
+  'steps':           { label: 'Daily steps',         icon: '👟', unit: 'steps/day', category: 'health' },
   'wellfilab-score': { label: 'WellFiLab Score target', icon: '⭐', unit: 'pts',   category: 'score' },
   custom:            { label: 'Custom goal',         icon: '🎯', unit: '',         category: 'wealth' },
 };
