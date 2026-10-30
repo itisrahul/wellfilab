@@ -15,6 +15,7 @@ import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus'
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
+import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
@@ -298,10 +299,6 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
 
       {eta && <p className="text-[11px] text-gray-400 mb-2">{eta}</p>}
 
-      {goal.type === 'net-worth' && (
-        <p className="text-[11px] text-gray-400 mb-2"><Link href="/assets" className="underline hover:text-teal-600 dark:hover:text-teal-400">Track this by actual holding — EPF, stocks, loans →</Link></p>
-      )}
-
       {scoreInsight && !complete && (
         <p className="text-[11px] text-gray-400 mb-2">Your roadmap's "Fix top 3 issues" path projects a monthly passive income of ~{fmtVal(scoreInsight.monthlyPassiveIncome, '₹')} by 60 — <Link href="/roadmap" className="underline hover:text-teal-600">see the actions behind it →</Link></p>
       )}
@@ -318,7 +315,7 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           <button onClick={() => setEditing(true)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Update progress</button>
           <button onClick={pause} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">{goal.paused ? 'Resume' : 'Pause'}</button>
           <button onClick={() => setShowReport(s => !s)} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-auto">
-            📊 Progress report {showReport ? '▲' : '▼'}
+            {goal.type === 'net-worth' ? '📊 Progress report + real holdings' : '📊 Progress report'} {showReport ? '▲' : '▼'}
           </button>
         </div>
       )}
@@ -328,6 +325,11 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           <GoalProgressReportPanel goal={goal} meta={meta} />
           {ACCUMULATION_GOAL_TYPES.includes(goal.type) && !complete && (
             <GoalPathCalculator target={goal.target} current={goal.current} targetDate={goal.targetDate} />
+          )}
+          {goal.type === 'net-worth' && (
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <AssetTrackerPanel compact />
+            </div>
           )}
         </>
       )}
