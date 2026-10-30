@@ -20,6 +20,7 @@ function toHolding(row: typeof holdings.$inferSelect): Holding {
     investedAmount: row.investedAmount ?? undefined,
     monthlyContribution: row.monthlyContribution ?? undefined,
     lastUpdated: row.lastUpdated.toISOString(),
+    history: row.history,
   };
 }
 
@@ -42,6 +43,7 @@ const addHoldingSchema = z.object({
   currentValue: z.number(),
   investedAmount: z.number().optional(),
   monthlyContribution: z.number().optional(),
+  history: z.array(z.object({ date: z.string(), value: z.number() })).optional(),
 });
 
 export async function POST(req: Request) {
@@ -59,6 +61,7 @@ export async function POST(req: Request) {
     category: input.category, type: input.type, subType: input.subType,
     currentValue: input.currentValue, investedAmount: input.investedAmount, monthlyContribution: input.monthlyContribution,
     lastUpdated: now,
+    history: input.history ?? [{ date: now.toISOString(), value: input.currentValue }],
   });
 
   const [row] = await db.select().from(holdings).where(eq(holdings.id, id));

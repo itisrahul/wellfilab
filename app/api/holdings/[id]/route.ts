@@ -17,6 +17,10 @@ const patchHoldingSchema = z.object({
   currentValue: z.number().optional(),
   investedAmount: z.number().optional(),
   monthlyContribution: z.number().optional(),
+  // The client (lib/holdingsStorage.ts's updateHolding) computes the full
+  // appended history itself and sends it whenever currentValue actually
+  // changed — this route just needs to not strip it.
+  history: z.array(z.object({ date: z.string(), value: z.number() })).optional(),
 });
 
 export async function PATCH(req: Request, { params }: Params) {

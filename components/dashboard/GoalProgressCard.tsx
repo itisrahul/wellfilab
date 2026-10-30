@@ -1,9 +1,34 @@
 import Link from 'next/link';
-import { GOAL_TYPE_META, type Goal } from '@/lib/goalsStorage';
+import { GOAL_TYPE_META, getGoalHistory, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus, type GoalPaceStatus } from '@/lib/goalPace';
 import { fmtINR } from '@/lib/roadmapActions';
 import type { ScoreFocus } from '@/lib/scoreFocus';
 import { LinkChip, LinkBar } from './LinkChip';
+
+const CATEGORY_COLOR: Record<string, string> = { wealth: '#d97706', health: '#0d9488', score: '#9333ea' };
+
+/** A tiny, dependency-free trend line — real history points, no axis/grid/
+ * tooltip. The full interactive chart (components/dashboard/GoalTrendChart)
+ * belongs on /goals where there's room per goal; this widget is a glance,
+ * not a destination, so it gets a glance-sized version of the same real
+ * data instead of the heavier recharts component four times over. */
+function Sparkline({ goal, color }: { goal: Goal; color: string }) {
+  const points = getGoalHistory(goal);
+  if (points.length < 2) return null;
+  const values = points.map(p => p.value);
+  const min = Math.min(...values), max = Math.max(...values);
+  const w = 64, h = 20, pad = 2;
+  const coords = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="flex-shrink-0" aria-hidden="true">
+      <polyline points={coords} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function fmtValue(n: number, unit: string): string {
   if (unit.startsWith('₹')) return `${fmtINR(Math.round(n))}${unit.slice(1)}`;
@@ -56,9 +81,12 @@ export function GoalProgressCard({ goals, focus = 'both' }: { goals: Goal[]; foc
                 <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate flex items-center gap-1.5">
                   <span>{meta.icon}</span>{g.label}
                 </span>
-                <span className="font-mono tabular-nums text-[11px] text-gray-400 flex-shrink-0">
-                  {fmtValue(g.current, meta.unit)} <span className="text-gray-300 dark:text-gray-600">/</span> {fmtValue(g.target, meta.unit)}
-                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Sparkline goal={g} color={CATEGORY_COLOR[meta.category]} />
+                  <span className="font-mono tabular-nums text-[11px] text-gray-400">
+                    {fmtValue(g.current, meta.unit)} <span className="text-gray-300 dark:text-gray-600">/</span> {fmtValue(g.target, meta.unit)}
+                  </span>
+                </div>
               </div>
               <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1">
                 <div className="h-full bg-teal-500 rounded-full" style={{ width: `${pct}%` }} />

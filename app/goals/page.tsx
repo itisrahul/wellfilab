@@ -16,6 +16,7 @@ import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
+import { getHoldings, computeTotals } from '@/lib/holdingsStorage';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
@@ -425,6 +426,18 @@ function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdd
 
   const meta = type ? GOAL_TYPE_META[type] : null;
 
+  // Net worth is the one goal type where "current value" shouldn't be a
+  // guess typed in — it's the sum of real holdings. Auto-fill it from
+  // whatever's already tracked (0 if nothing yet) instead of asking the
+  // user to do that arithmetic themselves; still editable.
+  const { data: holdingsForNetWorth } = useSWR(type === 'net-worth' ? SWR_KEYS.holdings : null, getHoldings);
+  useEffect(() => {
+    if (type === 'net-worth' && !prefill && holdingsForNetWorth != null) {
+      setCurrent(String(Math.round(computeTotals(holdingsForNetWorth).netWorth)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, holdingsForNetWorth]);
+
   const save = async () => {
     if (!type || !meta || target === '' || current === '') return;
     await addGoal({ type, label: meta.label, target: +target, current: +current, targetDate: targetDate || undefined });
@@ -460,13 +473,20 @@ function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdd
               ✓ Current value filled in from your calculator result — just set a target.
             </p>
           )}
+          {type === 'net-worth' && !prefill && (
+            <p className="text-[11px] text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/20 rounded-lg px-2.5 py-1.5">
+              ✓ Current value filled in from your real holdings{holdingsForNetWorth && holdingsForNetWorth.length === 0 ? ' (none tracked yet — add them after saving this goal)' : ''} — just set a target.
+            </p>
+          )}
           <div>
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
             <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
               className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Current value</label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">
+              Current value{type === 'net-worth' ? ' (from your holdings)' : ''}
+            </label>
             <input type="number" value={current} onChange={e => setCurrent(e.target.value)} placeholder="e.g. 500000"
               className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
           </div>

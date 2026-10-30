@@ -33,6 +33,8 @@ export const HOLDING_TYPE_META: Record<HoldingType, { label: string; icon: strin
   Custom:     { label: 'Other',       icon: '📦' },
 };
 
+export interface HoldingHistoryPoint { date: string; value: number }
+
 export interface Holding {
   id: string;
   category: HoldingCategory;
@@ -46,6 +48,11 @@ export interface Holding {
   /** Monthly SIP/contribution (asset) or EMI (liability) — optional. */
   monthlyContribution?: number;
   lastUpdated: string;
+  /** Every real value update, in order — powers "what changed this month".
+   * Optional because holdings created before this field existed don't have
+   * it; getHoldingHistory() below synthesizes a single current point for
+   * those instead of inventing a past it never recorded. */
+  history?: HoldingHistoryPoint[];
 }
 
 const KEY = 'wfl_holdings';
@@ -79,30 +86,49 @@ export async function getHoldings(): Promise<Holding[]> {
   return readHoldings();
 }
 
-export async function addHolding(input: Omit<Holding, 'id' | 'lastUpdated'>): Promise<Holding> {
+export async function addHolding(input: Omit<Holding, 'id' | 'lastUpdated' | 'history'>): Promise<Holding> {
+  const now = new Date().toISOString();
+  const withHistory = { ...input, history: [{ date: now, value: input.currentValue }] };
   try {
     const res = await fetch('/api/holdings', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(withHistory),
     });
     if (!res.ok) throw new Error(`create failed: ${res.status}`);
     const { holding } = await res.json();
     writeHoldings([...readHoldings(), holding]);
     return holding as Holding;
   } catch {
-    const holding: Holding = { ...input, id: genId(), lastUpdated: new Date().toISOString() };
+    const holding: Holding = { ...withHistory, id: genId(), lastUpdated: now };
     writeHoldings([...readHoldings(), holding]);
     return holding;
   }
 }
 
 export async function updateHolding(id: string, patch: Partial<Omit<Holding, 'id'>>): Promise<void> {
+  const now = new Date().toISOString();
+  const existing = readHoldings().find(h => h.id === id);
+  // Only append a new history point when the value itself actually moved —
+  // editing just the monthly contribution or invested amount shouldn't log
+  // a (0-delta) value change.
+  const historyPatch = (patch.currentValue != null && existing && patch.currentValue !== existing.currentValue)
+    ? { history: [...getHoldingHistory(existing), { date: now, value: patch.currentValue }] }
+    : {};
+  const fullPatch = { ...patch, ...historyPatch };
+
   try {
     await fetch(`/api/holdings/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fullPatch),
     });
   } catch { /* best-effort — local write below still applies */ }
-  const now = new Date().toISOString();
-  writeHoldings(readHoldings().map(h => h.id === id ? { ...h, ...patch, lastUpdated: now } : h));
+  writeHoldings(readHoldings().map(h => h.id === id ? { ...h, ...fullPatch, lastUpdated: now } : h));
+}
+
+/** Real history for a holding — the actual log if one exists, or a
+ * single current-value point for a holding saved before history was
+ * tracked. Never fabricates a past value it doesn't actually have. */
+export function getHoldingHistory(h: Holding): HoldingHistoryPoint[] {
+  if (h.history && h.history.length > 0) return h.history;
+  return [{ date: h.lastUpdated, value: h.currentValue }];
 }
 
 export async function deleteHolding(id: string): Promise<void> {
@@ -133,6 +159,30 @@ export function computeTotals(holdings: Holding[]): HoldingTotals {
     monthlyInvestment: assets.reduce((s, h) => s + (h.monthlyContribution ?? 0), 0),
     monthlyEMI: liabilities.reduce((s, h) => s + (h.monthlyContribution ?? 0), 0),
   };
+}
+
+export interface HoldingChange {
+  id: string; subType: string; category: HoldingCategory; type: HoldingType;
+  fromValue: number; toValue: number; delta: number;
+}
+
+/** Compares each holding's current value against its value ~30 days ago —
+ * the closest real recorded point at or before that cutoff, never
+ * interpolated — "what changed this month, and where". A holding with no
+ * history older than 30 days is skipped (nothing real to compare against
+ * yet), not shown against a fabricated baseline. */
+export function computeMonthOverMonthChanges(holdings: Holding[]): HoldingChange[] {
+  const cutoff = Date.now() - 30 * 86400000;
+  const changes: HoldingChange[] = [];
+  for (const h of holdings) {
+    const history = getHoldingHistory(h);
+    const before = [...history].reverse().find(p => new Date(p.date).getTime() <= cutoff);
+    if (!before) continue;
+    const delta = h.currentValue - before.value;
+    if (delta === 0) continue;
+    changes.push({ id: h.id, subType: h.subType, category: h.category, type: h.type, fromValue: before.value, toValue: h.currentValue, delta });
+  }
+  return changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 }
 
 export interface BreakdownSubRow { subType: string; value: number; id: string }

@@ -22,7 +22,7 @@
 import { pgTable, text, timestamp, doublePrecision, boolean, integer, jsonb, index, primaryKey } from 'drizzle-orm/pg-core';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '../wellfilab-score';
 import type { GoalType, GoalHistoryPoint } from '../goalsStorage';
-import type { HoldingCategory, HoldingType } from '../holdingsStorage';
+import type { HoldingCategory, HoldingType, HoldingHistoryPoint } from '../holdingsStorage';
 import type { RoadmapChecks } from '../roadmapChecks';
 import type { PlanKind } from '../onboardingStorage';
 
@@ -70,6 +70,7 @@ export const holdings = pgTable('holdings', {
   investedAmount: doublePrecision('invested_amount'),
   monthlyContribution: doublePrecision('monthly_contribution'),
   lastUpdated: timestamp('last_updated', { withTimezone: true }).notNull(),
+  history: jsonb('history').$type<HoldingHistoryPoint[]>().notNull().default([]),
 }, (t) => [
   index('holdings_user_id_idx').on(t.userId),
 ]);

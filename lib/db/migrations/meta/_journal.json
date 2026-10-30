@@ -29,6 +29,13 @@
       "when": 1793392470516,
       "tag": "0003_lucky_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793394888804,
+      "tag": "0004_thick_the_stranger",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import {
-  getHoldings, addHolding, updateHolding, deleteHolding, computeTotals, computeBreakdown,
+  getHoldings, addHolding, updateHolding, deleteHolding, computeTotals, computeBreakdown, computeMonthOverMonthChanges,
   HOLDING_TYPES, HOLDING_TYPE_META, type HoldingCategory, type HoldingType,
 } from '@/lib/holdingsStorage';
 import { getSnapshots, addSnapshot, computeGainHistory } from '@/lib/netWorthHistory';
@@ -41,6 +41,7 @@ export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
   const totals = computeTotals(h);
   const breakdown = computeBreakdown(h);
   const gainHistory = computeGainHistory(snapshots ?? []);
+  const changes = computeMonthOverMonthChanges(h);
 
   const recordSnapshot = async () => {
     setRecording(true);
@@ -90,6 +91,29 @@ export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
               {breakdown.map(cat => (
                 <CategoryBlock key={cat.category} cat={cat} onChange={refreshHoldings} />
               ))}
+            </div>
+          )}
+
+          {changes.length > 0 && (
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">What changed in the last month</p>
+              <div className="space-y-1.5">
+                {changes.map(c => {
+                  // "Good" for net worth: an asset grew, or a liability shrank.
+                  const good = c.category === 'asset' ? c.delta > 0 : c.delta < 0;
+                  return (
+                    <div key={c.id} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600 dark:text-gray-300 truncate flex-1">
+                        {HOLDING_TYPE_META[c.type].icon} {c.subType}
+                      </span>
+                      <span className="text-gray-400 font-mono tabular-nums mr-2">{fmtINR(c.fromValue)} → {fmtINR(c.toValue)}</span>
+                      <span className={`font-mono tabular-nums font-bold flex-shrink-0 ${good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                        {c.delta >= 0 ? '+' : ''}{fmtINR(c.delta)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
