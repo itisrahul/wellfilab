@@ -330,6 +330,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
               <div id="money" className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5 scroll-mt-16">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Money</p>
+                  <Link href="/assets" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Track by holding →</Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
                   <div className="border border-gray-100 dark:border-gray-800 rounded-lg p-3.5 bg-gray-50 dark:bg-gray-800/60">

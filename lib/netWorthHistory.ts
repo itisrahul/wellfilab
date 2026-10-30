@@ -96,3 +96,22 @@ export function syncNetWorthGoal(goal: Goal, snapshots: NetWorthSnapshot[]): Goa
   const latest = snapshots[snapshots.length - 1]; // getSnapshots() sorts oldest → newest
   return { ...goal, current: latest.netWorth, lastUpdated: latest.date };
 }
+
+export interface NetWorthGainPoint extends NetWorthSnapshot {
+  /** vs. the previous real snapshot — null for the first one, real
+   * arithmetic on the two actual recorded values, never estimated. */
+  amountGain: number | null;
+  pctGain: number | null;
+}
+
+/** Month-over-month gain for each real snapshot — snapshots must already
+ * be sorted oldest→newest (getSnapshots()'s own order). */
+export function computeGainHistory(snapshots: NetWorthSnapshot[]): NetWorthGainPoint[] {
+  return snapshots.map((s, i) => {
+    if (i === 0) return { ...s, amountGain: null, pctGain: null };
+    const prev = snapshots[i - 1];
+    const amountGain = s.netWorth - prev.netWorth;
+    const pctGain = prev.netWorth !== 0 ? (amountGain / Math.abs(prev.netWorth)) * 100 : null;
+    return { ...s, amountGain, pctGain };
+  });
+}

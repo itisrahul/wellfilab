@@ -10,6 +10,7 @@ export const SWR_KEYS = {
   scoreHistory: 'account:score-history',
   goals: 'account:goals',
   netWorthSnapshots: 'account:net-worth-snapshots',
+  holdings: 'account:holdings',
   roadmapChecks: 'account:roadmap-checks',
   scoreInputs: 'account:score-inputs',
 } as const;

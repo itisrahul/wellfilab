@@ -298,6 +298,10 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
 
       {eta && <p className="text-[11px] text-gray-400 mb-2">{eta}</p>}
 
+      {goal.type === 'net-worth' && (
+        <p className="text-[11px] text-gray-400 mb-2"><Link href="/assets" className="underline hover:text-teal-600 dark:hover:text-teal-400">Track this by actual holding — EPF, stocks, loans →</Link></p>
+      )}
+
       {scoreInsight && !complete && (
         <p className="text-[11px] text-gray-400 mb-2">Your roadmap's "Fix top 3 issues" path projects a monthly passive income of ~{fmtVal(scoreInsight.monthlyPassiveIncome, '₹')} by 60 — <Link href="/roadmap" className="underline hover:text-teal-600">see the actions behind it →</Link></p>
       )}

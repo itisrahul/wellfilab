@@ -1,5 +1,6 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
-import type { GoalHistoryPoint } from '@/lib/goalsStorage';
+
+interface TrendPoint { date: string; value: number }
 
 function fmtCompact(n: number, unit: string): string {
   if (unit.startsWith('₹')) {
@@ -13,14 +14,15 @@ function fmtCompact(n: number, unit: string): string {
 }
 
 /**
- * A real line-over-area chart of a goal's own recorded history (never
- * interpolated — the same points lib/goalsStorage.ts's getGoalHistory()
- * returns, start→current for a goal with no update history yet), with the
- * target as a reference line so "how far to go" reads visually, not just
- * as a percentage bar.
+ * A real line-over-area chart of a goal's (or net worth's) own recorded
+ * history (never interpolated — real points only), with an optional target
+ * reference line so "how far to go" reads visually, not just as a
+ * percentage bar. Used for both a single goal's history and the broader
+ * net-worth snapshot history (no target there unless a net-worth goal
+ * exists), so `target` is optional.
  */
-export function GoalTrendChart({ history, target, unit, color = '#0d9488' }: {
-  history: GoalHistoryPoint[]; target: number; unit: string; color?: string;
+export function GoalTrendChart({ history, target, unit, color = '#0d9488', emptyLabel = 'Update this a couple more times to see a real trend here.' }: {
+  history: TrendPoint[]; target?: number; unit: string; color?: string; emptyLabel?: string;
 }) {
   const points = history.map(h => ({
     date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -30,12 +32,12 @@ export function GoalTrendChart({ history, target, unit, color = '#0d9488' }: {
   if (points.length < 2) {
     return (
       <div className="h-[140px] flex flex-col items-center justify-center text-center">
-        <p className="text-xs text-gray-400">Update this goal a couple more times to see a real trend here.</p>
+        <p className="text-xs text-gray-400">{emptyLabel}</p>
       </div>
     );
   }
 
-  const values = [...points.map(p => p.value), target];
+  const values = target != null ? [...points.map(p => p.value), target] : points.map(p => p.value);
   const min = Math.min(...values), max = Math.max(...values);
   const pad = Math.max((max - min) * 0.15, max * 0.02, 1);
 
@@ -55,8 +57,10 @@ export function GoalTrendChart({ history, target, unit, color = '#0d9488' }: {
         <Tooltip
           contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }}
           formatter={(v: number) => [fmtCompact(v, unit), 'Value']} />
-        <ReferenceLine y={target} stroke={color} strokeDasharray="4 3" strokeOpacity={0.6}
-          label={{ value: 'Target', position: 'insideTopRight', fontSize: 9, fill: color }} />
+        {target != null && (
+          <ReferenceLine y={target} stroke={color} strokeDasharray="4 3" strokeOpacity={0.6}
+            label={{ value: 'Target', position: 'insideTopRight', fontSize: 9, fill: color }} />
+        )}
         <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2.5}
           fill={`url(#goalFill-${color.replace('#', '')})`} dot={{ r: 2.5, fill: color }} activeDot={{ r: 4 }} />
       </AreaChart>
