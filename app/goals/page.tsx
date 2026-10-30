@@ -7,7 +7,7 @@ import {
   getGoals, addGoal, updateGoalProgress, toggleGoalPause, deleteGoal, getGoalHistory,
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
-import { estimateGoalETA, getGoalPaceStatus, type GoalPaceStatus } from '@/lib/goalPace';
+import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
@@ -16,8 +16,10 @@ import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
+import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
 import { getHoldings, computeTotals } from '@/lib/holdingsStorage';
 import { getSnapshots, syncNetWorthGoal } from '@/lib/netWorthHistory';
+import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_STYLE, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
@@ -63,41 +65,6 @@ function buildSuggestions(score: WellFiScore, body: BodyInputs | null, finance: 
 
   return suggestions.filter(s => inFocus(s.type)).slice(0, 3);
 }
-
-function fmtVal(n: number, unit: string): string {
-  if (unit === '₹' || unit === '₹/month' || unit === '₹ remaining') {
-    if (Math.abs(n) >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
-    if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-    if (Math.abs(n) >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
-    return `₹${n.toLocaleString('en-IN')}`;
-  }
-  return `${n.toLocaleString('en-IN')}${unit ? ' ' + unit : ''}`;
-}
-
-function progressPct(g: Goal): number {
-  const span = g.target - g.startValue;
-  if (span === 0) return g.current === g.target ? 100 : 0;
-  return Math.max(0, Math.min(100, ((g.current - g.startValue) / span) * 100));
-}
-
-function isComplete(g: Goal): boolean {
-  const span = g.target - g.startValue;
-  if (span === 0) return g.current === g.target;
-  return span > 0 ? g.current >= g.target : g.current <= g.target;
-}
-
-const PACE_LABEL: Record<GoalPaceStatus, { label: string; tone: 'ahead' | 'behind' | 'ontrack' }> = {
-  ahead:      { label: 'Ahead of schedule', tone: 'ahead' },
-  behind:     { label: 'Behind schedule',   tone: 'behind' },
-  'on-track': { label: 'On track',          tone: 'ontrack' },
-};
-
-const CATEGORY_STYLE: Record<string, string> = {
-  wealth: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800',
-  health: 'bg-teal-50 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800',
-  score:  'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800',
-};
-const CATEGORY_CHART_COLOR: Record<string, string> = { wealth: '#d97706', health: '#0d9488', score: '#9333ea' };
 
 export default function GoalsPage() {
   const { data: goals, isLoading: goalsLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
@@ -251,7 +218,7 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
   const [justCompleted, setJustCompleted] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const pct = progressPct(goal);
-  const complete = isComplete(goal);
+  const complete = isGoalComplete(goal);
   const paceStatus = getGoalPaceStatus(goal);
   const pace = paceStatus ? PACE_LABEL[paceStatus] : null;
   const eta = !complete ? estimateGoalETA(goal) : null;
@@ -261,7 +228,7 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
   const report = buildGoalProgressReport(goal);
 
   const save = async () => {
-    const willComplete = !complete && isComplete({ ...goal, current: val });
+    const willComplete = !complete && isGoalComplete({ ...goal, current: val });
     await updateGoalProgress(goal.id, val);
     onChange();
     setEditing(false);
@@ -346,6 +313,7 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           <button onClick={() => setShowReport(s => !s)} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-auto">
             📊 Advanced progress report {showReport ? '▲' : '▼'}
           </button>
+          <Link href={`/goals/${goal.id}`} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Full page →</Link>
         </div>
       )}
 
@@ -356,69 +324,6 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
             <GoalPathCalculator target={goal.target} current={goal.current} targetDate={goal.targetDate} />
           )}
         </>
-      )}
-    </div>
-  );
-}
-
-const REPORT_STATUS_STYLE: Record<string, { label: string; color: string }> = {
-  ahead:      { label: 'Ahead of pace',   color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' },
-  'on-track': { label: 'On track',        color: 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400' },
-  behind:     { label: 'Behind pace',     color: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' },
-  'no-target':        { label: 'No target date', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
-  'not-enough-data':  { label: 'Not enough data', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
-};
-
-function GoalProgressReportPanel({ report, meta }: { report: ReturnType<typeof buildGoalProgressReport>; meta: { unit: string } }) {
-  const statusStyle = REPORT_STATUS_STYLE[report.status];
-
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Advanced progress report</p>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusStyle.color}`}>{statusStyle.label}</span>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
-        <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Days elapsed</p>
-          <p className="font-mono tabular-nums text-sm font-bold text-gray-900 dark:text-white">{report.daysElapsed}</p>
-        </div>
-        <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Days remaining</p>
-          <p className="font-mono tabular-nums text-sm font-bold text-gray-900 dark:text-white">{report.daysRemaining ?? '—'}</p>
-        </div>
-        <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Your real pace</p>
-          <p className="font-mono tabular-nums text-sm font-bold text-gray-900 dark:text-white">
-            {report.actualMonthlyPace != null ? `${fmtVal(report.actualMonthlyPace, meta.unit)}/mo` : '—'}
-          </p>
-        </div>
-        <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Pace needed</p>
-          <p className="font-mono tabular-nums text-sm font-bold text-gray-900 dark:text-white">
-            {report.requiredMonthlyPace != null ? `${fmtVal(report.requiredMonthlyPace, meta.unit)}/mo` : '—'}
-          </p>
-        </div>
-      </div>
-
-      {report.monthlyBreakdown.length > 1 && (
-        <div className="mb-3">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Monthly breakdown — real recorded updates</p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {report.monthlyBreakdown.slice(-6).map((m, i) => (
-              <div key={i} className="flex-shrink-0 min-w-[64px] p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center">
-                <p className="text-[9px] text-gray-400">{m.monthLabel}</p>
-                <p className="font-mono tabular-nums text-xs font-bold text-gray-900 dark:text-white">{fmtVal(m.value, meta.unit)}</p>
-                {m.change != null && (
-                  <p className={`font-mono tabular-nums text-[9px] font-bold ${m.change > 0 ? 'text-emerald-600 dark:text-emerald-400' : m.change < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                    {m.change > 0 ? '+' : ''}{fmtVal(m.change, meta.unit)}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   );
