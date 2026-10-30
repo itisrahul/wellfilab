@@ -28,8 +28,17 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  const rows = await db.select().from(holdings).where(eq(holdings.userId, userId));
-  return NextResponse.json({ holdings: rows.map(toHolding) });
+  try {
+    const rows = await db.select().from(holdings).where(eq(holdings.userId, userId));
+    return NextResponse.json({ holdings: rows.map(toHolding) });
+  } catch (err) {
+    // Surfaced client-side (lib/holdingsStorage.ts's getHoldingsSyncError)
+    // instead of silently falling back to local-only data with no clue why —
+    // most likely cause is a schema drift (e.g. a column added here but the
+    // migration never run against the live database).
+    console.error('[GET /api/holdings] DB error:', err);
+    return NextResponse.json({ error: 'Could not load holdings from the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
 
 // Derived from HOLDING_TYPES (the single source of truth) rather than a
@@ -56,14 +65,19 @@ export async function POST(req: Request) {
 
   const id = crypto.randomUUID();
   const now = new Date();
-  await db.insert(holdings).values({
-    id, userId,
-    category: input.category, type: input.type, subType: input.subType,
-    currentValue: input.currentValue, investedAmount: input.investedAmount, monthlyContribution: input.monthlyContribution,
-    lastUpdated: now,
-    history: input.history ?? [{ date: now.toISOString(), value: input.currentValue }],
-  });
+  try {
+    await db.insert(holdings).values({
+      id, userId,
+      category: input.category, type: input.type, subType: input.subType,
+      currentValue: input.currentValue, investedAmount: input.investedAmount, monthlyContribution: input.monthlyContribution,
+      lastUpdated: now,
+      history: input.history ?? [{ date: now.toISOString(), value: input.currentValue }],
+    });
 
-  const [row] = await db.select().from(holdings).where(eq(holdings.id, id));
-  return NextResponse.json({ holding: toHolding(row) });
+    const [row] = await db.select().from(holdings).where(eq(holdings.id, id));
+    return NextResponse.json({ holding: toHolding(row) });
+  } catch (err) {
+    console.error('[POST /api/holdings] DB error:', err);
+    return NextResponse.json({ error: 'Could not save this holding to the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }

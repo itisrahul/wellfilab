@@ -7,7 +7,7 @@ import { Flame } from 'lucide-react';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { getGoals } from '@/lib/goalsStorage';
-import { getHoldings, syncNetWorthGoalFromHoldings, computeMonthlyNetWorthHistory } from '@/lib/holdingsStorage';
+import { getHoldings, syncNetWorthGoalFromHoldings, computeMonthlyNetWorthHistory, getHoldingsSyncError } from '@/lib/holdingsStorage';
 import { getRiskAlerts } from '@/lib/riskAlerts';
 import { computeRoadmapProgress } from '@/lib/roadmapProgress';
 import { dimMatchesFocus } from '@/lib/scoreFocus';
@@ -136,6 +136,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
   const savingsRatePct = rawInputs?.finance && rawInputs.finance.monthlyIncome > 0
     ? Math.round(((rawInputs.finance.monthlyIncome - rawInputs.finance.monthlyExpenses) / rawInputs.finance.monthlyIncome) * 100) : null;
   const sipGoal = goals.find(g => g.type === 'sip-target');
+  const holdingsSyncError = getHoldingsSyncError();
 
   return (
     <div className="min-h-screen bg-gray-50/60 dark:bg-gray-950">
@@ -180,19 +181,19 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
             </div>
             <div className="flex gap-2.5">
               <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
-                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score.overall}</p>
-                <p className="text-[11px] text-[#93ADA8] mt-1">Overall score</p>
+                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score.overall}{scoreDelta != null && (
+                  <span className={`text-xs font-bold ml-1 ${scoreDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{scoreDelta > 0 ? '+' : ''}{scoreDelta}</span>
+                )}</p>
+                <p className="text-[11px] text-[#93ADA8] mt-1">Score</p>
               </div>
               <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
-                <p className="text-xl font-black text-teal-300 flex items-center justify-center gap-1 leading-none">{score.streakDays > 0 && <Flame size={15} />}{score.streakDays}</p>
-                <p className="text-[11px] text-[#93ADA8] mt-1">{score.streakDays === 1 ? 'Day' : 'Days'} streak</p>
+                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{latestNetWorth ? fmtINR(latestNetWorth.netWorth) : '—'}</p>
+                <p className="text-[11px] text-[#93ADA8] mt-1">Net worth</p>
               </div>
-              {scoreDelta != null && (
-                <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
-                  <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{scoreDelta > 0 ? '+' : ''}{scoreDelta}</p>
-                  <p className="text-[11px] text-[#93ADA8] mt-1">Since last check-in</p>
-                </div>
-              )}
+              <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
+                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score.date ? new Date(score.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}</p>
+                <p className="text-[11px] text-[#93ADA8] mt-1">Last check-in{score.streakDays > 0 && <span className="inline-flex items-center gap-0.5 ml-1"><Flame size={10} />{score.streakDays}</span>}</p>
+              </div>
             </div>
           </div>
 
@@ -257,6 +258,11 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
                 <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Key numbers</p>
                 <Link href="/assets" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Track by holding →</Link>
               </div>
+              {holdingsSyncError && (
+                <p className="text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-lg px-2.5 py-2 mb-3 leading-relaxed">
+                  ⚠️ Net worth couldn't load from your account — {holdingsSyncError}.
+                </p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Metric label="Net worth" value={latestNetWorth ? fmtINR(latestNetWorth.netWorth) : '—'}
                   pct={netWorthDelta != null && latestNetWorth ? Math.min(100, Math.max(2, (Math.abs(netWorthDelta) / Math.max(1, Math.abs(latestNetWorth.netWorth))) * 100)) : 2}

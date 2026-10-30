@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import {
   getHoldings, addHolding, updateHolding, deleteHolding, computeTotals, computeBreakdown, computeMonthOverMonthChanges,
-  computeMonthlyNetWorthHistory, computeMonthlyGainHistory,
+  computeMonthlyNetWorthHistory, computeMonthlyGainHistory, getHoldingsSyncError,
   HOLDING_TYPES, HOLDING_TYPE_META, type HoldingCategory, type HoldingType,
 } from '@/lib/holdingsStorage';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -42,6 +42,7 @@ export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
   const monthly = computeMonthlyNetWorthHistory(h);
   const gainHistory = computeMonthlyGainHistory(monthly);
   const changes = computeMonthOverMonthChanges(h);
+  const syncError = getHoldingsSyncError();
 
   if (holdingsLoading) {
     return <div className="h-32 animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" />;
@@ -55,6 +56,12 @@ export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
           {showAdd ? 'Cancel' : '+ Add holding'}
         </button>
       </div>
+
+      {syncError && (
+        <p className="text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-lg px-2.5 py-2 leading-relaxed">
+          ⚠️ Couldn't sync with your account — {syncError}. Showing this device's local copy only until this clears.
+        </p>
+      )}
 
       {!compact && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">

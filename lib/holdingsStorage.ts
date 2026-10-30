@@ -77,14 +77,36 @@ function writeHoldings(h: Holding[]): void {
   try { window.localStorage.setItem(KEY, JSON.stringify(h)); } catch { /* quota exceeded — non-critical */ }
 }
 
+/** Set whenever a remote holdings call falls back to local-only storage, so
+ * the UI can show *why* instead of a silent, unexplained empty state — the
+ * single biggest source of "my holdings disappeared" confusion, since the
+ * local fallback itself works fine and masks a real sync failure. Cleared
+ * on the next successful call. */
+let lastSyncError: string | null = null;
+export function getHoldingsSyncError(): string | null { return lastSyncError; }
+
+async function describeFailure(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    return body?.error ? `${body.error}${body.detail ? ` (${body.detail})` : ''}` : `Server returned ${res.status}`;
+  } catch {
+    return `Server returned ${res.status}`;
+  }
+}
+
 export async function getHoldings(): Promise<Holding[]> {
   try {
     const res = await fetch('/api/holdings');
     if (res.ok) {
+      lastSyncError = null;
       const { holdings } = await res.json();
       return holdings as Holding[];
     }
-  } catch { /* offline, signed out (401), or a server error — fall back to local */ }
+    if (res.status === 401) { lastSyncError = null; } // signed out — local-only is expected, not an error
+    else lastSyncError = await describeFailure(res);
+  } catch (err) {
+    lastSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
+  }
   return readHoldings();
 }
 
@@ -95,11 +117,13 @@ export async function addHolding(input: Omit<Holding, 'id' | 'lastUpdated' | 'hi
     const res = await fetch('/api/holdings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(withHistory),
     });
-    if (!res.ok) throw new Error(`create failed: ${res.status}`);
+    if (!res.ok) { lastSyncError = await describeFailure(res); throw new Error('create failed'); }
+    lastSyncError = null;
     const { holding } = await res.json();
     writeHoldings([...readHoldings(), holding]);
     return holding as Holding;
-  } catch {
+  } catch (err) {
+    if (!lastSyncError) lastSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
     const holding: Holding = { ...withHistory, id: genId(), lastUpdated: now };
     writeHoldings([...readHoldings(), holding]);
     return holding;
@@ -118,10 +142,13 @@ export async function updateHolding(id: string, patch: Partial<Omit<Holding, 'id
   const fullPatch = { ...patch, ...historyPatch };
 
   try {
-    await fetch(`/api/holdings/${id}`, {
+    const res = await fetch(`/api/holdings/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fullPatch),
     });
-  } catch { /* best-effort — local write below still applies */ }
+    lastSyncError = res.ok ? null : await describeFailure(res);
+  } catch (err) {
+    lastSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
+  }
   writeHoldings(readHoldings().map(h => h.id === id ? { ...h, ...fullPatch, lastUpdated: now } : h));
 }
 

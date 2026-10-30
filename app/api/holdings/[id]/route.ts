@@ -30,15 +30,25 @@ export async function PATCH(req: Request, { params }: Params) {
   const parsed = patchHoldingSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid payload.', details: parsed.error.flatten() }, { status: 400 });
 
-  await db.update(holdings).set({ ...parsed.data, lastUpdated: new Date() })
-    .where(and(eq(holdings.id, params.id), eq(holdings.userId, userId)));
-  return NextResponse.json({ ok: true });
+  try {
+    await db.update(holdings).set({ ...parsed.data, lastUpdated: new Date() })
+      .where(and(eq(holdings.id, params.id), eq(holdings.userId, userId)));
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[PATCH /api/holdings/[id]] DB error:', err);
+    return NextResponse.json({ error: 'Could not save this change to the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  await db.delete(holdings).where(and(eq(holdings.id, params.id), eq(holdings.userId, userId)));
-  return NextResponse.json({ ok: true });
+  try {
+    await db.delete(holdings).where(and(eq(holdings.id, params.id), eq(holdings.userId, userId)));
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[DELETE /api/holdings/[id]] DB error:', err);
+    return NextResponse.json({ error: 'Could not delete this holding from the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
