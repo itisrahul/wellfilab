@@ -86,15 +86,22 @@ export async function clearSnapshots(): Promise<void> {
  * A 'net-worth' goal is set once and otherwise sits stale unless the user
  * remembers to open Goals and update it by hand — but the Net Worth
  * Calculator already produces a real, dated number every time it's run.
- * This overrides the goal's *displayed* current/lastUpdated from the latest
- * snapshot (never writes back to goal storage) so progress and the pace-based
- * ETA both reflect the real, most recent figure automatically. Goals of any
- * other type, or a 'net-worth' goal with no snapshots yet, pass through unchanged.
+ * This overrides the goal's *displayed* current/lastUpdated/history from the
+ * latest snapshots (never writes back to goal storage) so progress, the
+ * pace-based ETA, and the trend chart/advanced report (which all read a
+ * goal's history) reflect the real, most recent figures automatically.
+ * Goals of any other type, or a 'net-worth' goal with no snapshots yet, pass
+ * through unchanged.
  */
 export function syncNetWorthGoal(goal: Goal, snapshots: NetWorthSnapshot[]): Goal {
   if (goal.type !== 'net-worth' || snapshots.length === 0) return goal;
   const latest = snapshots[snapshots.length - 1]; // getSnapshots() sorts oldest → newest
-  return { ...goal, current: latest.netWorth, lastUpdated: latest.date };
+  return {
+    ...goal,
+    current: latest.netWorth,
+    lastUpdated: latest.date,
+    history: snapshots.map(s => ({ date: s.date, value: s.netWorth })),
+  };
 }
 
 export interface NetWorthGainPoint extends NetWorthSnapshot {

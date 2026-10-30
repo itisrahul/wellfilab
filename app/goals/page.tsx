@@ -17,6 +17,7 @@ import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { getHoldings, computeTotals } from '@/lib/holdingsStorage';
+import { getSnapshots, syncNetWorthGoal } from '@/lib/netWorthHistory';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
@@ -100,6 +101,7 @@ const CATEGORY_CHART_COLOR: Record<string, string> = { wealth: '#d97706', health
 
 export default function GoalsPage() {
   const { data: goals, isLoading: goalsLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
+  const { data: netWorthSnapshots } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
   const { data: history } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
   const { data: rawInputs } = useSWR(SWR_KEYS.scoreInputs, syncScoreInputsFromAccount);
   const score = history?.[0] ?? null;
@@ -131,7 +133,13 @@ export default function GoalsPage() {
   const suggestions = score
     ? buildSuggestions(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, goals ?? [], focus).filter(s => !dismissed.includes(s.type))
     : [];
-  const visibleGoals = (goals ?? []).filter(g => focus === 'both' || GOAL_TYPE_META[g.type].category === focus || GOAL_TYPE_META[g.type].category === 'score');
+  // Net-worth goals get their current/history overridden from the real
+  // recorded snapshots here — same sync app/assets/page.tsx already does —
+  // so the progress bar, pace, ETA, trend chart, and recommendation on this
+  // card all reflect the latest actual month, not a stale typed-in number.
+  const visibleGoals = (goals ?? [])
+    .filter(g => focus === 'both' || GOAL_TYPE_META[g.type].category === focus || GOAL_TYPE_META[g.type].category === 'score')
+    .map(g => syncNetWorthGoal(g, netWorthSnapshots ?? []));
 
   const addSuggested = async (s: SuggestedGoal) => {
     await addGoal({ type: s.type, label: GOAL_TYPE_META[s.type].label, target: s.target, current: s.current });
@@ -205,7 +213,7 @@ export default function GoalsPage() {
           </div>
         )}
 
-        {showAdd && <AddGoalForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refresh(); }} prefill={prefill} />}
+        {showAdd && <AddGoalForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refresh(); }} prefill={prefill} existing={goals ?? []} />}
 
         {visibleGoals.length === 0 && !showAdd ? (
           <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
@@ -329,7 +337,11 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
         </div>
       ) : (
         <div className="flex items-center gap-3 mt-1">
-          <button onClick={() => setEditing(true)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Update progress</button>
+          {goal.type === 'net-worth' ? (
+            <span className="text-[11px] text-gray-400">Updates automatically from your holdings below</span>
+          ) : (
+            <button onClick={() => setEditing(true)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Update progress</button>
+          )}
           <button onClick={pause} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">{goal.paused ? 'Resume' : 'Pause'}</button>
           <button onClick={() => setShowReport(s => !s)} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-auto">
             📊 Advanced progress report {showReport ? '▲' : '▼'}
@@ -418,25 +430,30 @@ const TYPE_OPTIONS: GoalType[] = [
   'weight', 'sleep', 'fitness', 'hydration', 'steps', 'wellfilab-score',
 ];
 
-function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdded: () => void; prefill?: { type: GoalType; current: number; target?: number } | null }) {
+function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => void; onAdded: () => void; prefill?: { type: GoalType; current: number; target?: number } | null; existing: Goal[] }) {
   const [type, setType] = useState<GoalType | null>(prefill?.type ?? null);
   const [target, setTarget] = useState(prefill?.target != null ? String(prefill.target) : '');
   const [current, setCurrent] = useState(prefill ? String(prefill.current) : '');
   const [targetDate, setTargetDate] = useState('');
 
   const meta = type ? GOAL_TYPE_META[type] : null;
+  const isNetWorth = type === 'net-worth' && !prefill;
+  // Net worth is a single global number derived from one shared holdings
+  // tracker — a second net-worth goal would just embed the same tracker
+  // twice under two different targets, so it's blocked at the type picker
+  // rather than allowed and left confusing.
+  const hasNetWorthGoal = existing.some(g => g.type === 'net-worth');
 
-  // Net worth is the one goal type where "current value" shouldn't be a
-  // guess typed in — it's the sum of real holdings. Auto-fill it from
-  // whatever's already tracked (0 if nothing yet) instead of asking the
-  // user to do that arithmetic themselves; still editable.
-  const { data: holdingsForNetWorth } = useSWR(type === 'net-worth' ? SWR_KEYS.holdings : null, getHoldings);
+  // Net worth's "current value" is never typed in — it's the live sum of
+  // real holdings, computed right here so the form is the actual place to
+  // set up assets/liabilities, not a plain number field pointing
+  // somewhere else to go do that.
+  const { data: holdingsForNetWorth } = useSWR(isNetWorth ? SWR_KEYS.holdings : null, getHoldings);
+  const liveNetWorth = holdingsForNetWorth != null ? computeTotals(holdingsForNetWorth).netWorth : 0;
   useEffect(() => {
-    if (type === 'net-worth' && !prefill && holdingsForNetWorth != null) {
-      setCurrent(String(Math.round(computeTotals(holdingsForNetWorth).netWorth)));
-    }
+    if (isNetWorth) setCurrent(String(Math.round(liveNetWorth)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, holdingsForNetWorth]);
+  }, [isNetWorth, liveNetWorth]);
 
   const save = async () => {
     if (!type || !meta || target === '' || current === '') return;
@@ -453,13 +470,54 @@ function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdd
 
       {!type ? (
         <div className="grid sm:grid-cols-3 gap-2.5">
-          {TYPE_OPTIONS.map(t => (
-            <button key={t} onClick={() => setType(t)}
-              className="p-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 text-center transition-all">
-              <span className="text-2xl">{GOAL_TYPE_META[t].icon}</span>
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">{GOAL_TYPE_META[t].label}</p>
-            </button>
-          ))}
+          {TYPE_OPTIONS.map(t => {
+            const blocked = t === 'net-worth' && hasNetWorthGoal;
+            return (
+              <button key={t} disabled={blocked} onClick={() => !blocked && setType(t)}
+                className={`p-3.5 rounded-xl border-2 text-center transition-all ${blocked ? 'border-gray-100 dark:border-gray-800 opacity-40 cursor-not-allowed' : 'border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600'}`}>
+                <span className="text-2xl">{GOAL_TYPE_META[t].icon}</span>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">{GOAL_TYPE_META[t].label}</p>
+                {blocked && <p className="text-[9px] font-bold text-teal-600 dark:text-teal-400 mt-1">✓ Already tracking</p>}
+              </button>
+            );
+          })}
+        </div>
+      ) : isNetWorth ? (
+        <div className="space-y-5 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{meta!.icon}</span>
+            <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{meta!.label}</p>
+            <button onClick={() => setType(null)} className="text-xs text-gray-400 hover:underline ml-auto">Change type</button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3 max-w-md">
+            <div>
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target net worth (₹)</label>
+              <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
+                className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target date (optional)</label>
+              <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)}
+                className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Add what you actually own and owe below — your current net worth (shown as you go) is computed from these, not typed in.
+            </p>
+            <AssetTrackerPanel />
+          </div>
+
+          {target !== '' && !Number.isNaN(+target) && +target > liveNetWorth && (
+            <GoalPathCalculator target={+target} current={liveNetWorth} targetDate={targetDate || undefined} />
+          )}
+
+          <button onClick={save} disabled={target === ''}
+            className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
+            Save goal — current net worth {fmtVal(liveNetWorth, '₹')}
+          </button>
         </div>
       ) : (
         <div className="space-y-3 max-w-sm">
@@ -473,20 +531,13 @@ function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdd
               ✓ Current value filled in from your calculator result — just set a target.
             </p>
           )}
-          {type === 'net-worth' && !prefill && (
-            <p className="text-[11px] text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/20 rounded-lg px-2.5 py-1.5">
-              ✓ Current value filled in from your real holdings{holdingsForNetWorth && holdingsForNetWorth.length === 0 ? ' (none tracked yet — add them after saving this goal)' : ''} — just set a target.
-            </p>
-          )}
           <div>
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
             <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
               className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">
-              Current value{type === 'net-worth' ? ' (from your holdings)' : ''}
-            </label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Current value</label>
             <input type="number" value={current} onChange={e => setCurrent(e.target.value)} placeholder="e.g. 500000"
               className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
           </div>
