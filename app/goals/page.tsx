@@ -12,8 +12,15 @@ import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-sco
 import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
+import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
+
+// Lump-sum money goals where "invest X/month, let it compound" is a real
+// question — excludes sip-target (already a monthly amount, not a lump
+// target), debt-freedom (decreasing, needs payoff math not growth math),
+// health/score goals (not monetary), and custom (unknown unit).
+const ACCUMULATION_GOAL_TYPES: GoalType[] = ['net-worth', 'emergency-fund', 'fire-corpus'];
 
 interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
 
@@ -318,7 +325,14 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
         </div>
       )}
 
-      {showReport && <GoalProgressReportPanel goal={goal} meta={meta} />}
+      {showReport && (
+        <>
+          <GoalProgressReportPanel goal={goal} meta={meta} />
+          {ACCUMULATION_GOAL_TYPES.includes(goal.type) && !complete && (
+            <GoalPathCalculator target={goal.target} current={goal.current} targetDate={goal.targetDate} />
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -451,6 +465,11 @@ function AddGoalForm({ onClose, onAdded, prefill }: { onClose: () => void; onAdd
             <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)}
               className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
           </div>
+
+          {type && ACCUMULATION_GOAL_TYPES.includes(type) && target !== '' && current !== '' && !Number.isNaN(+target) && !Number.isNaN(+current) && +target > +current && (
+            <GoalPathCalculator target={+target} current={+current} targetDate={targetDate || undefined} />
+          )}
+
           <button onClick={save} disabled={target === '' || current === ''}
             className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
             Save goal
