@@ -27,6 +27,7 @@ import { GoalProgressCard } from './GoalProgressCard';
 import { AchievementsCard } from './AchievementsCard';
 import { NextStepsCard } from './NextStepsCard';
 import { MonthlyReviewBand } from './MonthlyReviewBand';
+import { NetWorthReviewBand } from './NetWorthReviewBand';
 
 // recharts is heavy — load it only on the client, same pattern every
 // calculator widget already uses.
@@ -430,6 +431,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
             />
 
             <MonthlyReviewBand score={score} />
+            <NetWorthReviewBand snapshots={netWorthSnapshots ?? []} />
           </div>
 
           <p className="text-center text-[11px] text-gray-400 pt-2">
