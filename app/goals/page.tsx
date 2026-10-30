@@ -3,23 +3,23 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
+import { ExternalLink, Pencil, X, ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  getGoals, addGoal, updateGoalProgress, toggleGoalPause, deleteGoal, getGoalHistory,
+  getGoals, addGoal, updateGoalProgress, updateGoalTarget, deleteGoal, getGoalHistory,
   GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { getScoreHistory } from '@/lib/scoreStorage';
-import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
-import type { WellFiScore, BodyInputs, FinanceInputs } from '@/lib/wellfilab-score';
+import type { WellFiScore } from '@/lib/wellfilab-score';
 import { getScoreFocus, setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { FocusSelector } from '@/components/dashboard/FocusSelector';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
-import { getHoldings, computeTotals } from '@/lib/holdingsStorage';
-import { getSnapshots, syncNetWorthGoal } from '@/lib/netWorthHistory';
+import { getHoldings, computeTotals, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_STYLE, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
@@ -36,45 +36,13 @@ const GoalTrendChart = dynamic(
 // health/score goals (not monetary), and custom (unknown unit).
 const ACCUMULATION_GOAL_TYPES: GoalType[] = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
 
-interface SuggestedGoal { type: GoalType; target: number; current: number; reason: string }
-
-function buildSuggestions(score: WellFiScore, body: BodyInputs | null, finance: FinanceInputs | null, existing: Goal[], focus: ScoreFocus): SuggestedGoal[] {
-  const has = (t: GoalType) => existing.some(g => g.type === t);
-  const suggestions: SuggestedGoal[] = [];
-  // 'score' category goals are cross-cutting and stay suggested in either single-focus view.
-  const inFocus = (t: GoalType) => focus === 'both' || GOAL_TYPE_META[t].category === focus || GOAL_TYPE_META[t].category === 'score';
-
-  if (!has('wellfilab-score')) {
-    suggestions.push({ type: 'wellfilab-score', target: Math.min(100, score.overall + 10), current: score.overall, reason: `You're at ${score.overall}/100 today — a realistic next milestone.` });
-  }
-  if (finance && !finance.hasEmergencyFund && !has('emergency-fund')) {
-    suggestions.push({ type: 'emergency-fund', target: Math.round(finance.monthlyExpenses * 3), current: Math.round(finance.totalSavings), reason: 'No emergency fund yet — 3 months of your real expenses is the standard target.' });
-  }
-  if (finance && finance.monthlyInvestments < finance.monthlyIncome * 0.1 && !has('sip-target')) {
-    suggestions.push({ type: 'sip-target', target: Math.round(Math.max(1000, finance.monthlyIncome * 0.15)), current: Math.round(finance.monthlyInvestments), reason: `You invest ${finance.monthlyIncome > 0 ? Math.round((finance.monthlyInvestments / finance.monthlyIncome) * 100) : 0}% of income today — 15% is a common target.` });
-  }
-  if (finance && finance.totalDebt > 0 && !has('debt-freedom')) {
-    suggestions.push({ type: 'debt-freedom', target: 0, current: Math.round(finance.totalDebt), reason: 'Tracking debt paydown to zero, even slowly, is real visible progress.' });
-  }
-  if (body && body.sleepHours < 7.5 && !has('sleep')) {
-    suggestions.push({ type: 'sleep', target: 7.5, current: body.sleepHours, reason: `You're sleeping ${body.sleepHours}h — 7.5h is the optimal target used in your score.` });
-  }
-  if (body && body.exerciseDays < 4 && !has('fitness')) {
-    suggestions.push({ type: 'fitness', target: 4, current: body.exerciseDays, reason: `${body.exerciseDays} days/week today — 4+ is where the score gives full credit.` });
-  }
-
-  return suggestions.filter(s => inFocus(s.type)).slice(0, 3);
-}
-
 export default function GoalsPage() {
   const { data: goals, isLoading: goalsLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
-  const { data: netWorthSnapshots } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
+  const { data: holdingsForSync } = useSWR(SWR_KEYS.holdings, getHoldings);
   const { data: history } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
-  const { data: rawInputs } = useSWR(SWR_KEYS.scoreInputs, syncScoreInputsFromAccount);
   const score = history?.[0] ?? null;
   const [showAdd, setShowAdd] = useState(false);
   const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
-  const [dismissed, setDismissed] = useState<GoalType[]>([]);
   const [focus, setFocus] = useState<ScoreFocus>('both');
 
   useEffect(() => {
@@ -96,22 +64,14 @@ export default function GoalsPage() {
 
   const handleFocusChange = (f: ScoreFocus) => { setFocus(f); setScoreFocus(f); };
 
-  const needsUpdate = (goals ?? []).some(g => !g.paused && Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
-  const suggestions = score
-    ? buildSuggestions(score, rawInputs?.body ?? null, rawInputs?.finance ?? null, goals ?? [], focus).filter(s => !dismissed.includes(s.type))
-    : [];
-  // Net-worth goals get their current/history overridden from the real
-  // recorded snapshots here — same sync app/assets/page.tsx already does —
-  // so the progress bar, pace, ETA, trend chart, and recommendation on this
+  const needsUpdate = (goals ?? []).some(g => Date.now() - new Date(g.lastUpdated).getTime() > 25 * 86400000);
+  // Net-worth goals get their current/history overridden here from the real
+  // holdings-derived monthly series (last recorded value each month) — so
+  // the progress bar, pace, ETA, trend chart, and recommendation on this
   // card all reflect the latest actual month, not a stale typed-in number.
   const visibleGoals = (goals ?? [])
     .filter(g => focus === 'both' || GOAL_TYPE_META[g.type].category === focus || GOAL_TYPE_META[g.type].category === 'score')
-    .map(g => syncNetWorthGoal(g, netWorthSnapshots ?? []));
-
-  const addSuggested = async (s: SuggestedGoal) => {
-    await addGoal({ type: s.type, label: GOAL_TYPE_META[s.type].label, target: s.target, current: s.current });
-    refresh();
-  };
+    .map(g => syncNetWorthGoalFromHoldings(g, holdingsForSync ?? []));
 
   if (goalsLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
@@ -147,7 +107,7 @@ export default function GoalsPage() {
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-gray-400">Show goals and suggestions for:</p>
+          <p className="text-xs text-gray-400">Show goals for:</p>
           <FocusSelector focus={focus} onChange={handleFocusChange} />
         </div>
 
@@ -155,28 +115,6 @@ export default function GoalsPage() {
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
             <span className="text-lg flex-shrink-0">⏰</span>
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 flex-1">It's been a while since you updated a goal — a quick monthly check-in keeps your progress accurate.</p>
-          </div>
-        )}
-
-        {suggestions.length > 0 && !showAdd && (
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Suggested for you — based on your real score</p>
-            <div className="grid sm:grid-cols-3 gap-3">
-              {suggestions.map(s => {
-                const meta = GOAL_TYPE_META[s.type];
-                return (
-                  <div key={s.type} className="relative p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                    <button onClick={() => setDismissed(d => [...d, s.type])} className="absolute top-2 right-2 text-gray-300 hover:text-gray-500 text-xs">✕</button>
-                    <span className="text-xl">{meta.icon}</span>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1.5">{meta.label}</p>
-                    <p className="text-xs text-gray-400 mt-1 mb-3 leading-relaxed">{s.reason}</p>
-                    <button onClick={() => addSuggested(s)} className="w-full py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all">
-                      + Add this goal
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         )}
 
@@ -217,6 +155,11 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
   const [val, setVal] = useState(goal.current);
   const [justCompleted, setJustCompleted] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetVal, setTargetVal] = useState(String(goal.target));
+  const [targetDateVal, setTargetDateVal] = useState(goal.targetDate ? goal.targetDate.slice(0, 10) : '');
+  const { confirmDialog, dialog } = useConfirmDialog();
   const pct = progressPct(goal);
   const complete = isGoalComplete(goal);
   const paceStatus = getGoalPaceStatus(goal);
@@ -234,25 +177,57 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
     setEditing(false);
     if (willComplete) { setJustCompleted(true); setTimeout(() => setJustCompleted(false), 4000); }
   };
-  const remove = async () => { if (confirm(`Delete "${goal.label}"?`)) { await deleteGoal(goal.id); onChange(); } };
-  const pause = async () => { await toggleGoalPause(goal.id); onChange(); };
+  const remove = async () => { if (await confirmDialog(`Delete "${goal.label}"? This can't be undone.`)) { await deleteGoal(goal.id); onChange(); } };
+  const saveTarget = async () => {
+    if (targetVal === '' || Number.isNaN(+targetVal)) return;
+    await updateGoalTarget(goal.id, +targetVal, targetDateVal || undefined);
+    onChange();
+    setEditingTarget(false);
+  };
 
   const scoreInsight = score && meta.category === 'wealth' && score.trajectories
     ? score.trajectories.find(t => t.scenario === 'improved')
     : null;
 
   return (
-    <div className={`rounded-2xl border p-5 ${goal.paused ? 'opacity-50 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800' : `${CATEGORY_STYLE[meta.category]} bg-white dark:bg-gray-900`}`}>
+    <div className={`rounded-2xl border p-5 ${CATEGORY_STYLE[meta.category]} bg-white dark:bg-gray-900`}>
+      {dialog}
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2.5">
-          <span className="text-2xl">{meta.icon}</span>
-          <div>
-            <p className="font-bold text-gray-900 dark:text-white text-sm">{goal.label}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => setCollapsed(c => !c)} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
+            {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <span className="text-2xl flex-shrink-0">{meta.icon}</span>
+          <div className="min-w-0">
+            <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{goal.label}</p>
             {goal.targetDate && <p className="text-[11px] text-gray-400">Target: {new Date(goal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
           </div>
         </div>
-        <button onClick={remove} className="text-gray-300 hover:text-red-500 text-sm flex-shrink-0">✕</button>
+        <div className="flex items-center gap-2.5 flex-shrink-0 ml-2">
+          <Link href={`/goals/${goal.id}`} title="Full page" className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400"><ExternalLink size={15} /></Link>
+          <button onClick={() => setEditingTarget(e => !e)} title="Edit target & date" className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400"><Pencil size={15} /></button>
+          <button onClick={remove} title="Delete goal" className="text-gray-300 hover:text-red-500"><X size={16} /></button>
+        </div>
       </div>
+
+      {editingTarget && (
+        <div className="mb-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 grid sm:grid-cols-2 gap-2.5">
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta.unit || 'value'})</label>
+            <input type="number" value={targetVal} onChange={e => setTargetVal(e.target.value)}
+              className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Target date</label>
+            <input type="date" value={targetDateVal} onChange={e => setTargetDateVal(e.target.value)}
+              className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+          </div>
+          <div className="flex gap-2 sm:col-span-2">
+            <button onClick={saveTarget} className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold">Save</button>
+            <button onClick={() => setEditingTarget(false)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {justCompleted && (
         <div className="mb-3 px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-bold text-center animate-pulse">
@@ -266,14 +241,16 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
       <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
         <div className={`h-full rounded-full transition-all duration-700 ${complete ? 'bg-green-500' : 'bg-teal-500'}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between">
         <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{complete ? '🎉 Goal reached' : `${Math.round(pct)}% complete`}</p>
         {pace && !complete && (
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${pace.tone === 'ahead' ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400' : pace.tone === 'behind' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{pace.label}</span>
         )}
       </div>
 
-      <div className="mb-3 -mx-1">
+      {!collapsed && (
+      <>
+      <div className="mb-3 mt-3 -mx-1">
         <GoalTrendChart history={getGoalHistory(goal)} target={goal.target} unit={meta.unit} color={CATEGORY_CHART_COLOR[meta.category]} />
       </div>
 
@@ -309,11 +286,9 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           ) : (
             <button onClick={() => setEditing(true)} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Update progress</button>
           )}
-          <button onClick={pause} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">{goal.paused ? 'Resume' : 'Pause'}</button>
           <button onClick={() => setShowReport(s => !s)} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-auto">
             📊 Advanced progress report {showReport ? '▲' : '▼'}
           </button>
-          <Link href={`/goals/${goal.id}`} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Full page →</Link>
         </div>
       )}
 
@@ -324,6 +299,8 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
             <GoalPathCalculator target={goal.target} current={goal.current} targetDate={goal.targetDate} />
           )}
         </>
+      )}
+      </>
       )}
     </div>
   );

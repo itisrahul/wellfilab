@@ -4,16 +4,18 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
+import { Pencil } from 'lucide-react';
 import {
-  getGoals, updateGoalProgress, toggleGoalPause, deleteGoal, getGoalHistory, GOAL_TYPE_META,
+  getGoals, updateGoalProgress, updateGoalTarget, deleteGoal, getGoalHistory, GOAL_TYPE_META,
 } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
-import { getSnapshots, syncNetWorthGoal } from '@/lib/netWorthHistory';
+import { getHoldings, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 const ACCUMULATION_GOAL_TYPES = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
@@ -36,12 +38,16 @@ export default function GoalDetailPage() {
   const id = params.id as string;
 
   const { data: goals, isLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
-  const { data: netWorthSnapshots } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
+  const { data: holdingsForSync } = useSWR(SWR_KEYS.holdings, getHoldings);
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(0);
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetVal, setTargetVal] = useState('');
+  const [targetDateVal, setTargetDateVal] = useState('');
+  const { confirmDialog, dialog } = useConfirmDialog();
 
   const rawGoal = (goals ?? []).find(g => g.id === id);
-  const goal = rawGoal ? syncNetWorthGoal(rawGoal, netWorthSnapshots ?? []) : null;
+  const goal = rawGoal ? syncNetWorthGoalFromHoldings(rawGoal, holdingsForSync ?? []) : null;
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
@@ -72,25 +78,54 @@ export default function GoalDetailPage() {
 
   const startEdit = () => { setVal(goal.current); setEditing(true); };
   const save = async () => { await updateGoalProgress(goal.id, val); refresh(); setEditing(false); };
-  const pause = async () => { await toggleGoalPause(goal.id); refresh(); };
-  const remove = async () => { if (confirm(`Delete "${goal.label}"?`)) { await deleteGoal(goal.id); window.location.href = '/goals'; } };
+  const startEditTarget = () => { setTargetVal(String(goal.target)); setTargetDateVal(goal.targetDate ? goal.targetDate.slice(0, 10) : ''); setEditingTarget(true); };
+  const saveTarget = async () => {
+    if (targetVal === '' || Number.isNaN(+targetVal)) return;
+    await updateGoalTarget(goal.id, +targetVal, targetDateVal || undefined);
+    refresh();
+    setEditingTarget(false);
+  };
+  const remove = async () => { if (await confirmDialog(`Delete "${goal.label}"? This can't be undone.`)) { await deleteGoal(goal.id); window.location.href = '/goals'; } };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      {dialog}
       <div className="bg-[#0F2A27]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
           <Link href="/goals" className="text-xs font-bold text-teal-300 hover:underline">← Back to your goals</Link>
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-3xl">{meta.icon}</span>
-            <div>
-              <h1 className="text-2xl font-extrabold text-white leading-tight">{goal.label}</h1>
-              {goal.targetDate && <p className="text-sm text-white/50">Target date: {new Date(goal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{meta.icon}</span>
+              <div>
+                <h1 className="text-2xl font-extrabold text-white leading-tight">{goal.label}</h1>
+                {goal.targetDate && <p className="text-sm text-white/50">Target date: {new Date(goal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
+              </div>
             </div>
+            <button onClick={startEditTarget} title="Edit target & date" className="text-white/50 hover:text-white flex-shrink-0"><Pencil size={16} /></button>
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+        {editingTarget && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta.unit || 'value'})</label>
+              <input type="number" value={targetVal} onChange={e => setTargetVal(e.target.value)}
+                className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target date</label>
+              <input type="date" value={targetDateVal} onChange={e => setTargetDateVal(e.target.value)}
+                className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+            </div>
+            <div className="flex gap-2 sm:col-span-2">
+              <button onClick={saveTarget} className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold">Save</button>
+              <button onClick={() => setEditingTarget(false)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500">Cancel</button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
           <div className="flex items-center justify-between text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
             <span>{fmtVal(goal.current, meta.unit)}</span>
@@ -128,7 +163,6 @@ export default function GoalDetailPage() {
             ) : (
               <button onClick={startEdit} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Update progress</button>
             )}
-            <button onClick={pause} className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">{goal.paused ? 'Resume' : 'Pause'}</button>
             <button onClick={remove} className="text-xs font-semibold text-gray-400 hover:text-red-500 ml-auto">Delete goal</button>
           </div>
         </div>

@@ -4,9 +4,10 @@ import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import {
   getHoldings, addHolding, updateHolding, deleteHolding, computeTotals, computeBreakdown, computeMonthOverMonthChanges,
+  computeMonthlyNetWorthHistory, computeMonthlyGainHistory,
   HOLDING_TYPES, HOLDING_TYPE_META, type HoldingCategory, type HoldingType,
 } from '@/lib/holdingsStorage';
-import { getSnapshots, addSnapshot, computeGainHistory } from '@/lib/netWorthHistory';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 const GoalTrendChart = dynamic(
@@ -33,24 +34,16 @@ function fmtINR(n: number): string {
  */
 export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
   const { data: holdings, isLoading: holdingsLoading, mutate: refreshHoldings } = useSWR(SWR_KEYS.holdings, getHoldings);
-  const { data: snapshots, isLoading: snapshotsLoading, mutate: refreshSnapshots } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
   const [showAdd, setShowAdd] = useState(false);
-  const [recording, setRecording] = useState(false);
 
   const h = holdings ?? [];
   const totals = computeTotals(h);
   const breakdown = computeBreakdown(h);
-  const gainHistory = computeGainHistory(snapshots ?? []);
+  const monthly = computeMonthlyNetWorthHistory(h);
+  const gainHistory = computeMonthlyGainHistory(monthly);
   const changes = computeMonthOverMonthChanges(h);
 
-  const recordSnapshot = async () => {
-    setRecording(true);
-    await addSnapshot(totals.totalAssets, totals.totalLiabilities);
-    await refreshSnapshots();
-    setRecording(false);
-  };
-
-  if (holdingsLoading || snapshotsLoading) {
+  if (holdingsLoading) {
     return <div className="h-32 animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" />;
   }
 
@@ -118,17 +111,11 @@ export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
           )}
 
           <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Net worth over time</p>
-              <button onClick={recordSnapshot} disabled={recording}
-                className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline disabled:opacity-50">
-                {recording ? 'Saving…' : '+ Record this month →'}
-              </button>
-            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Net worth over time — last recorded value each month</p>
             <GoalTrendChart
-              history={(snapshots ?? []).map(s => ({ date: s.date, value: s.netWorth }))}
+              history={monthly.map(m => ({ date: m.date, value: m.netWorth }))}
               unit="₹" color="#0d9488"
-              emptyLabel="Record a snapshot each month to see your real net-worth trend here."
+              emptyLabel="Add a holding above to start seeing your real net-worth trend here."
             />
             {gainHistory.length > 0 && (
               <div className="mt-3 overflow-x-auto">
@@ -143,7 +130,7 @@ export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
                   </thead>
                   <tbody>
                     {gainHistory.slice(-6).reverse().map(g => (
-                      <tr key={g.id} className="border-b border-gray-50 dark:border-gray-800/50">
+                      <tr key={g.date} className="border-b border-gray-50 dark:border-gray-800/50">
                         <td className="py-2 text-gray-600 dark:text-gray-300">{new Date(g.date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</td>
                         <td className="py-2 text-right font-mono tabular-nums font-bold text-gray-900 dark:text-white">{fmtINR(g.netWorth)}</td>
                         <td className={`py-2 text-right font-mono tabular-nums font-semibold ${g.amountGain == null ? 'text-gray-300' : g.amountGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
@@ -207,8 +194,9 @@ function CategoryBlock({ cat, onChange }: { cat: ReturnType<typeof computeBreakd
 function HoldingRow({ id, subType, value, onChange }: { id: string; subType: string; value: number; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(String(value));
+  const { confirmDialog, dialog } = useConfirmDialog();
 
-  const remove = async () => { if (confirm(`Delete "${subType}"?`)) { await deleteHolding(id); onChange(); } };
+  const remove = async () => { if (await confirmDialog(`Delete "${subType}"? This can't be undone.`)) { await deleteHolding(id); onChange(); } };
   const save = async () => {
     const n = +val;
     if (val !== '' && !Number.isNaN(n)) await updateHolding(id, { currentValue: Math.abs(n) });
@@ -230,15 +218,18 @@ function HoldingRow({ id, subType, value, onChange }: { id: string; subType: str
   }
 
   return (
-    <div className="group flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-      <span className="truncate">{subType}</span>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <button onClick={() => setEditing(true)} className="font-mono tabular-nums hover:text-teal-600 dark:hover:text-teal-400 hover:underline" title="Update this month's value">
-          {fmtINR(value)}
-        </button>
-        <button onClick={remove} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity">✕</button>
+    <>
+      {dialog}
+      <div className="group flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span className="truncate">{subType}</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => setEditing(true)} className="font-mono tabular-nums hover:text-teal-600 dark:hover:text-teal-400 hover:underline" title="Update this month's value">
+            {fmtINR(value)}
+          </button>
+          <button onClick={remove} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity">✕</button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

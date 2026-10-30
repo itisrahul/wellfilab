@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { getSnapshots, syncNetWorthGoal } from '@/lib/netWorthHistory';
+import { getHoldings, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { getGoals, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
@@ -17,11 +17,11 @@ import { SWR_KEYS } from '@/lib/swrKeys';
  * bookmark/link — same data, same component, not a second implementation.
  */
 export default function AssetsPage() {
-  const { data: snapshots } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
+  const { data: holdings } = useSWR(SWR_KEYS.holdings, getHoldings);
   const { data: goals } = useSWR(SWR_KEYS.goals, getGoals);
 
   const rawNetWorthGoal = (goals ?? []).find(g => g.type === 'net-worth');
-  const netWorthGoal = rawNetWorthGoal ? syncNetWorthGoal(rawNetWorthGoal, snapshots ?? []) : undefined;
+  const netWorthGoal = rawNetWorthGoal ? syncNetWorthGoalFromHoldings(rawNetWorthGoal, holdings ?? []) : undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

@@ -138,6 +138,22 @@ export async function updateGoalProgress(id: string, current: number): Promise<v
     : g));
 }
 
+/** Edits the goal's target itself (and/or its target date) — distinct from
+ * updateGoalProgress, which logs a real progress update instead. Doesn't
+ * touch current/history, so correcting a target you mistyped, or a target
+ * date that moved, never fabricates a fake progress point. */
+export async function updateGoalTarget(id: string, target: number, targetDate?: string): Promise<void> {
+  try {
+    await fetch(`/api/goals/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target, targetDate: targetDate ?? null }),
+    });
+  } catch { /* best-effort — local write below still applies */ }
+
+  writeGoals(readGoals().map(g => g.id === id ? { ...g, target, targetDate } : g));
+}
+
 export async function toggleGoalPause(id: string): Promise<void> {
   const existing = readGoals();
   const target = existing.find(g => g.id === id);

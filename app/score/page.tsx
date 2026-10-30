@@ -11,6 +11,18 @@ import {
 import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
 import { saveRawInputs, syncScoreInputsFromAccount, saveAge, loadAge } from '@/lib/scoreInputs';
 import { getSnapshots } from '@/lib/netWorthHistory';
+import { getHoldings, computeTotals } from '@/lib/holdingsStorage';
+
+/** The real holdings tracker is the current source of truth for net worth;
+ * the older manual-snapshot mechanism (lib/netWorthHistory.ts) is kept only
+ * for the standalone public Net Worth calculator tool, so it's still read
+ * here as a fallback for anyone who only ever used that. */
+async function getLatestNetWorth(): Promise<number | null> {
+  const holdings = await getHoldings();
+  if (holdings.length > 0) return computeTotals(holdings).netWorth;
+  const snapshots = await getSnapshots();
+  return snapshots.length > 0 ? snapshots[snapshots.length - 1].netWorth : null;
+}
 import { buildRiskManagementPlan } from '@/lib/riskManagement';
 import { setScoreFocus, type ScoreFocus } from '@/lib/scoreFocus';
 import { SITE_URL } from '@/config/site';
@@ -201,8 +213,7 @@ export default function ScorePage() {
     setStage('calculating');
     const effectiveFinance = buildEffectiveFinance();
     const finalQuick = deriveQuick(effectiveBody, savingsRate, effectiveFinance.hasEmergencyFund);
-    const [netWorthSnapshots] = await Promise.all([getSnapshots(), new Promise(r => setTimeout(r, 1500))]);
-    const latestNetWorth = netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1].netWorth : null;
+    const [latestNetWorth] = await Promise.all([getLatestNetWorth(), new Promise(r => setTimeout(r, 1500))]);
     const result = calculateFullScore(finalQuick, effectiveBody, effectiveFinance, history, latestNetWorth);
     const saved = await saveScore(result);
     saveRawInputs(effectiveBody, effectiveFinance);
@@ -222,8 +233,7 @@ export default function ScorePage() {
     if (!income || !wealthAge) return;
     setStage('calculating');
     const effectiveFinance = buildEffectiveFinance();
-    const [netWorthSnapshots] = await Promise.all([getSnapshots(), new Promise(r => setTimeout(r, 1200))]);
-    const latestNetWorth = netWorthSnapshots.length > 0 ? netWorthSnapshots[netWorthSnapshots.length - 1].netWorth : null;
+    const [latestNetWorth] = await Promise.all([getLatestNetWorth(), new Promise(r => setTimeout(r, 1200))]);
     const result = calculateWealthOnlyScore(wealthAge, effectiveFinance, history, latestNetWorth);
     const saved = await saveScore(result);
     saveRawInputs(null, effectiveFinance);
@@ -756,7 +766,7 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
   const [netWorth, setNetWorth] = useState<number | null>(null);
 
   useEffect(() => {
-    getSnapshots().then(snaps => setNetWorth(snaps.length > 0 ? snaps[snaps.length - 1].netWorth : null));
+    getLatestNetWorth().then(setNetWorth);
   }, []);
 
   // Two independent booleans, not one — a genuine Wealth-only score has real

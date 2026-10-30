@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { getScoreHistory } from '@/lib/scoreStorage';
 import { getGoals, getGoalHistory, GOAL_TYPE_META } from '@/lib/goalsStorage';
 import { getSnapshots } from '@/lib/netWorthHistory';
+import { getHoldings, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { syncRoadmapChecksFromAccount, checkedAt } from '@/lib/roadmapChecks';
 import { fmtINR } from '@/lib/roadmapActions';
 import { SWR_KEYS } from '@/lib/swrKeys';
@@ -38,10 +39,11 @@ function labelRoadmapCheck(id: string): string {
 export default function HistoryPage() {
   const { isSignedIn } = useUser();
   const { data: scoreHistory, isLoading: scoreLoading } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
-  const { data: goals, isLoading: goalsLoading } = useSWR(SWR_KEYS.goals, getGoals);
+  const { data: rawGoals, isLoading: goalsLoading } = useSWR(SWR_KEYS.goals, getGoals);
+  const { data: holdings, isLoading: holdingsLoading } = useSWR(SWR_KEYS.holdings, getHoldings);
   const { data: netWorthSnapshots, isLoading: snapshotsLoading } = useSWR(SWR_KEYS.netWorthSnapshots, getSnapshots);
   const { data: roadmapChecks, isLoading: checksLoading } = useSWR(SWR_KEYS.roadmapChecks, syncRoadmapChecksFromAccount);
-  const loading = scoreLoading || goalsLoading || snapshotsLoading || checksLoading;
+  const loading = scoreLoading || goalsLoading || holdingsLoading || snapshotsLoading || checksLoading;
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
@@ -49,6 +51,9 @@ export default function HistoryPage() {
     </div>;
   }
 
+  // Net-worth goal updates come from the real holdings history, same as
+  // everywhere else now — no separate "record this month" action.
+  const goals = rawGoals.map(g => syncNetWorthGoalFromHoldings(g, holdings ?? []));
   const hasAnyHistory = scoreHistory.length > 0 || goals.length > 0 || netWorthSnapshots.length > 0;
 
   // ── Unified activity timeline — every real, dated event across the app ──

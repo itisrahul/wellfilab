@@ -19,6 +19,8 @@ interface Params { params: { id: string } }
 const patchGoalSchema = z.object({
   current: z.number().optional(),
   paused: z.boolean().optional(),
+  target: z.number().optional(),
+  targetDate: z.string().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -42,6 +44,12 @@ export async function PATCH(req: Request, { params }: Params) {
   }
   if (body.paused !== undefined) {
     update.paused = body.paused;
+  }
+  if (body.target !== undefined) {
+    update.target = body.target;
+  }
+  if (body.targetDate !== undefined) {
+    update.targetDate = body.targetDate ? new Date(body.targetDate) : null;
   }
 
   await db.update(goals).set(update).where(eq(goals.id, params.id));

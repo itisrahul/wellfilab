@@ -5,14 +5,16 @@
  * Clerk userId) when signed in, with localStorage as an always-on
  * fallback/cache, same pattern as every other lib/*Storage.ts file.
  *
- * This is deliberately a layer BELOW net worth, not a replacement for it:
- * lib/netWorthHistory.ts's snapshots (assets, liabilities, netWorth on a
- * date) stay exactly as they are and keep powering the net-worth goal type
- * and the dashboard's Money section. Holdings exist so a snapshot's two
- * numbers can be computed from real, named line items instead of typed in
- * as two lump sums — computeTotals() below produces exactly the
- * {assets, liabilities} pair netWorthHistory.addSnapshot() already expects.
+ * The net-worth goal and the Assets tracker both read their monthly history
+ * straight from these holdings (computeMonthlyNetWorthHistory below) — no
+ * separate "record this month" action; a month's net worth is just the
+ * last real value each holding had that month. lib/netWorthHistory.ts's
+ * explicit snapshots are a separate, older mechanism kept only for the
+ * standalone public Net Worth calculator tool, which has no holdings of
+ * its own to derive a history from.
  */
+
+import type { Goal } from './goalsStorage';
 
 export type HoldingCategory = 'asset' | 'liability';
 
@@ -183,6 +185,80 @@ export function computeMonthOverMonthChanges(holdings: Holding[]): HoldingChange
     changes.push({ id: h.id, subType: h.subType, category: h.category, type: h.type, fromValue: before.value, toValue: h.currentValue, delta });
   }
   return changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+}
+
+export interface MonthlyNetWorthPoint { date: string; assets: number; liabilities: number; netWorth: number }
+
+/**
+ * Net worth, one point per calendar month, derived entirely from each
+ * holding's own real update history — no separate "record this month"
+ * action needed. For each month, every holding contributes its latest
+ * recorded value at or before that month (carry-forward, never
+ * interpolated); a holding added later simply doesn't count for months
+ * before it existed. The most recent month is always included so "today"
+ * shows up even mid-month, using whatever was last actually recorded.
+ */
+export function computeMonthlyNetWorthHistory(holdings: Holding[]): MonthlyNetWorthPoint[] {
+  if (holdings.length === 0) return [];
+  const perHoldingHistory = holdings.map(h => ({ h, history: getHoldingHistory(h) }));
+
+  const months = new Set<string>();
+  for (const { history } of perHoldingHistory) for (const p of history) months.add(p.date.slice(0, 7));
+  months.add(new Date().toISOString().slice(0, 7));
+
+  return [...months].sort().map(month => {
+    const cutoff = new Date(`${month}-01T00:00:00.000Z`);
+    cutoff.setUTCMonth(cutoff.getUTCMonth() + 1); // exclusive end of this month
+    let assets = 0, liabilities = 0;
+    for (const { h, history } of perHoldingHistory) {
+      const upto = history.filter(p => new Date(p.date).getTime() < cutoff.getTime());
+      if (upto.length === 0) continue; // holding didn't exist yet this month
+      const latest = upto[upto.length - 1].value;
+      if (h.category === 'asset') assets += latest; else liabilities += latest;
+    }
+    return { date: `${month}-01`, assets, liabilities, netWorth: assets - liabilities };
+  });
+}
+
+/**
+ * Overrides a net-worth goal's *displayed* current/lastUpdated/history from
+ * the real holdings-derived monthly series (never writes back to goal
+ * storage) — same role lib/netWorthHistory.ts's syncNetWorthGoal played
+ * against manual snapshots, now against the auto-derived monthly history
+ * instead. Goals of any other type, or a 'net-worth' goal with no holdings
+ * yet, pass through unchanged.
+ */
+export function syncNetWorthGoalFromHoldings(goal: Goal, holdings: Holding[]): Goal {
+  if (goal.type !== 'net-worth') return goal;
+  const monthly = computeMonthlyNetWorthHistory(holdings);
+  if (monthly.length === 0) return goal;
+  const latest = monthly[monthly.length - 1];
+  return {
+    ...goal,
+    current: latest.netWorth,
+    lastUpdated: latest.date,
+    history: monthly.map(m => ({ date: m.date, value: m.netWorth })),
+  };
+}
+
+export interface MonthlyGainPoint extends MonthlyNetWorthPoint {
+  /** vs. the previous month in this same derived series — null for the
+   * first one, real arithmetic on two real totals, never estimated. */
+  amountGain: number | null;
+  pctGain: number | null;
+}
+
+/** Month-over-month gain for the holdings-derived monthly series — same
+ * math as lib/netWorthHistory.ts's computeGainHistory, just over the
+ * auto-derived points instead of manually recorded snapshots. */
+export function computeMonthlyGainHistory(monthly: MonthlyNetWorthPoint[]): MonthlyGainPoint[] {
+  return monthly.map((m, i) => {
+    if (i === 0) return { ...m, amountGain: null, pctGain: null };
+    const prev = monthly[i - 1];
+    const amountGain = m.netWorth - prev.netWorth;
+    const pctGain = prev.netWorth !== 0 ? (amountGain / Math.abs(prev.netWorth)) * 100 : null;
+    return { ...m, amountGain, pctGain };
+  });
 }
 
 export interface BreakdownSubRow { subType: string; value: number; id: string }
