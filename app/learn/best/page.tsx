@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { COMPARISONS } from '@/lib/comparisons';
+import { ComparisonTeaserCard } from '@/components/learn/ComparisonTeaserCard';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -23,14 +24,7 @@ export default function BestPicksIndexPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <div className="grid sm:grid-cols-2 gap-3.5">
-          {COMPARISONS.map(c => (
-            <Link key={c.slug} href={`/learn/best/${c.slug}`}
-              className="block p-5 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-amber-200 dark:hover:border-amber-800 transition-colors">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5">{c.category}</p>
-              <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1.5">{c.title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{c.dek}</p>
-            </Link>
-          ))}
+          {COMPARISONS.map(c => <ComparisonTeaserCard key={c.slug} post={c} />)}
         </div>
       </div>
     </div>

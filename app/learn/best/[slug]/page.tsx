@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { COMPARISONS, getComparison } from '@/lib/comparisons';
+import { COMPARISONS, getComparison, overallRating } from '@/lib/comparisons';
+import { Stars } from '@/components/ui/Stars';
+import { ComparisonQuiz } from '@/components/learn/ComparisonQuiz';
 import { SITE_NAME, SITE_URL } from '@/config/site';
 
 export function generateStaticParams() {
@@ -21,10 +23,11 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 /**
  * The comparison/best-picks article template — one real page
  * (best-investing-apps-india) proves the shape out; more entries are just
- * more lib/comparisons.ts objects, not new page code. Structure matches the
- * spec: hero, top pick, every pick's pros/cons, a comparison table, the
- * editorial "why", FAQ, and a plain affiliate disclosure — never links
- * presented as if they were neutral.
+ * more lib/comparisons.ts objects, not new page code. Every pick gets its
+ * own "best for X" badge and a real 3-axis star rating (see Stars +
+ * overallRating), not just a single overall winner — more of the real
+ * conversion surface for a goal-driven affiliate model, closer to how
+ * NerdWallet structures a "best of" page than a flat ranked list.
  */
 export default function ComparisonPage({ params }: { params: { slug: string } }) {
   const post = getComparison(params.slug);
@@ -40,27 +43,41 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
       }) }} />
 
       {/* Hero */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-gradient-to-b from-amber-50/60 to-white dark:from-amber-950/10 dark:to-gray-950 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8">
           <Link href="/learn/best" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">← Comparisons & Best Picks</Link>
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mt-3 mb-2">{post.category}</p>
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">{post.title}</h1>
-          <p className="text-base text-gray-500 dark:text-gray-400 mt-2 max-w-2xl">{post.dek}</p>
-          <p className="text-[11px] text-gray-400 mt-4">Last checked {new Date(post.lastVerified).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} — confirm current pricing and features on each provider's own site before acting; details change.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{post.title}</h1>
+          <p className="text-base text-gray-600 dark:text-gray-400 mt-2.5 max-w-2xl">{post.dek}</p>
+          <div className="flex items-center gap-3 flex-wrap mt-5 text-[11px] text-gray-400">
+            <span>Last checked {new Date(post.lastVerified).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <span>·</span>
+            <Link href="/learn/best/methodology" className="underline hover:text-teal-600 dark:hover:text-teal-400">How we rate these</Link>
+            <span>·</span>
+            <Link href="/affiliate-disclosure" className="underline hover:text-teal-600 dark:hover:text-teal-400">Affiliate disclosure</Link>
+          </div>
+
+          {/* Jump nav */}
+          <nav className="flex items-center gap-4 mt-6 text-xs font-semibold text-gray-500 dark:text-gray-400 overflow-x-auto">
+            <a href="#picks" className="hover:text-amber-600 dark:hover:text-amber-400 whitespace-nowrap">Top picks</a>
+            <a href="#compare" className="hover:text-amber-600 dark:hover:text-amber-400 whitespace-nowrap">Compare</a>
+            <a href="#quiz" className="hover:text-amber-600 dark:hover:text-amber-400 whitespace-nowrap">Which one's for me?</a>
+            <a href="#faq" className="hover:text-amber-600 dark:hover:text-amber-400 whitespace-nowrap">FAQ</a>
+          </nav>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-12">
 
-        {/* Top pick */}
-        <section className="rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/10 p-6">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-2">Top pick</p>
+        {/* Top pick banner */}
+        <section className="rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/10 p-6 relative overflow-hidden">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-2">🏆 {topPick.badge}</p>
           <div className="flex items-start gap-4 flex-wrap">
-            <span className="text-3xl flex-shrink-0">{topPick.logo}</span>
-            <div className="flex-1 min-w-[200px]">
+            <span className="text-3xl flex-shrink-0 w-14 h-14 rounded-2xl bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-800 flex items-center justify-center">{topPick.logo}</span>
+            <div className="flex-1 min-w-[220px]">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{topPick.name}</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{topPick.tagline}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2"><strong className="text-gray-700 dark:text-gray-300">Best for:</strong> {topPick.bestFor}</p>
+              <Stars value={overallRating(topPick.ratings)} />
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{topPick.tagline}</p>
             </div>
             <a href={topPick.url} target="_blank" rel="noopener noreferrer sponsored"
               className="flex-shrink-0 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors">
@@ -70,31 +87,40 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
         </section>
 
         {/* All picks */}
-        <section>
+        <section id="picks" className="scroll-mt-20">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">All {post.picks.length} options, compared</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             {post.picks.map(p => (
-              <div key={p.id} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <span className="text-2xl">{p.logo}</span>
+              <div key={p.id} id={`pick-${p.id}`} className="scroll-mt-20 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 flex flex-col">
+                <span className="inline-flex self-start text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 mb-3">{p.badge}</span>
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <span className="text-xl w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">{p.logo}</span>
                   <h3 className="font-bold text-gray-900 dark:text-white text-sm">{p.name}</h3>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{p.tagline}</p>
+                <Stars value={overallRating(p.ratings)} size={12} />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 mb-3">{p.tagline}</p>
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-3"><strong>Best for:</strong> {p.bestFor}</p>
                 <ul className="space-y-1 mb-2">
                   {p.pros.map(pro => <li key={pro} className="text-[12px] text-green-700 dark:text-green-400 flex gap-1.5"><span>+</span><span>{pro}</span></li>)}
                 </ul>
-                <ul className="space-y-1 mb-3">
+                <ul className="space-y-1 mb-4">
                   {p.cons.map(con => <li key={con} className="text-[12px] text-gray-500 dark:text-gray-400 flex gap-1.5"><span>–</span><span>{con}</span></li>)}
                 </ul>
-                <a href={p.url} target="_blank" rel="noopener noreferrer sponsored" className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline">{p.cta}</a>
+                <a href={p.url} target="_blank" rel="noopener noreferrer sponsored" className="mt-auto text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline">{p.cta}</a>
               </div>
             ))}
           </div>
         </section>
 
+        {/* Quiz */}
+        {post.quiz && (
+          <section id="quiz" className="scroll-mt-20">
+            <ComparisonQuiz quiz={post.quiz} picks={post.picks} />
+          </section>
+        )}
+
         {/* Comparison table */}
-        <section className="overflow-x-auto">
+        <section id="compare" className="scroll-mt-20 overflow-x-auto">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Side by side</h2>
           <table className="w-full text-sm border-collapse min-w-[480px]">
             <thead>
@@ -106,8 +132,14 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
               </tr>
             </thead>
             <tbody>
-              {post.comparisonRows.map(row => (
-                <tr key={row.label} className="border-b border-gray-100 dark:border-gray-800">
+              <tr className="border-b border-gray-100 dark:border-gray-800">
+                <td className="py-2.5 pr-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Rating</td>
+                {post.picks.map(p => (
+                  <td key={p.id} className="py-2.5 px-4"><Stars value={overallRating(p.ratings)} size={12} /></td>
+                ))}
+              </tr>
+              {post.comparisonRows.map((row, i) => (
+                <tr key={row.label} className={`border-b border-gray-100 dark:border-gray-800 ${i % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/40' : ''}`}>
                   <td className="py-2.5 pr-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{row.label}</td>
                   {post.picks.map(p => (
                     <td key={p.id} className="py-2.5 px-4 text-xs text-gray-700 dark:text-gray-300">{row.values[p.id] ?? '—'}</td>
@@ -122,20 +154,22 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
         <section>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Why these three, and how to actually choose</h2>
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{post.whyWeRecommend}</p>
-          {post.relatedCalcSlug && post.relatedCalcCat && (
-            <Link href={`/tools/${post.relatedCalcCat}/${post.relatedCalcSlug}`} className="inline-flex items-center gap-1.5 mt-3 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline">
-              Run the calculator first →
-            </Link>
-          )}
-          {post.relatedGuideSlug && (
-            <Link href={`/guides/${post.relatedGuideSlug}`} className="inline-flex items-center gap-1.5 mt-3 ml-4 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline">
-              Read the full guide →
-            </Link>
-          )}
+          <div className="flex flex-wrap gap-4 mt-3">
+            {post.relatedCalcSlug && post.relatedCalcCat && (
+              <Link href={`/tools/${post.relatedCalcCat}/${post.relatedCalcSlug}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline">
+                Run the calculator first →
+              </Link>
+            )}
+            {post.relatedGuideSlug && (
+              <Link href={`/guides/${post.relatedGuideSlug}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline">
+                Read the full guide →
+              </Link>
+            )}
+          </div>
         </section>
 
         {/* FAQ */}
-        <section>
+        <section id="faq" className="scroll-mt-20">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Questions people ask</h2>
           <div className="max-w-2xl">
             {post.faq.map((item, i) => (
@@ -152,7 +186,7 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
 
         {/* Disclosure */}
         <p className="text-[11px] text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-800 pt-5">
-          Some links on this page may earn WellFiLab a commission if you sign up through them — this never affects which provider is listed first or what's written about it. We'd write the same comparison either way.
+          Some links on this page may earn WellFiLab a commission if you sign up through them — this never affects which provider is listed first, its rating, or what's written about it. See our <Link href="/affiliate-disclosure" className="underline hover:text-teal-600 dark:hover:text-teal-400">full disclosure</Link>.
         </p>
       </div>
     </div>

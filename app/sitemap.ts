@@ -10,6 +10,8 @@ export default function sitemap() {
     { url: `${SITE_URL}/guides`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: UPD },
     { url: `${SITE_URL}/learn`, changeFrequency: 'weekly' as const, priority: 0.8, lastModified: UPD },
     { url: `${SITE_URL}/learn/best`, changeFrequency: 'weekly' as const, priority: 0.7, lastModified: UPD },
+    { url: `${SITE_URL}/learn/best/methodology`, changeFrequency: 'monthly' as const, priority: 0.4, lastModified: UPD },
+    { url: `${SITE_URL}/affiliate-disclosure`, changeFrequency: 'yearly' as const, priority: 0.3, lastModified: UPD },
     { url: `${SITE_URL}/score`, changeFrequency: 'monthly' as const, priority: 0.9, lastModified: UPD },
     { url: `${SITE_URL}/score/methodology`, changeFrequency: 'monthly' as const, priority: 0.5, lastModified: new Date() },
     { url: `${SITE_URL}/roadmap`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: new Date() },

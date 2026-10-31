@@ -610,7 +610,7 @@ function AffiliateCard({ affiliate, score }: { affiliate: Affiliate; score: Well
       <p className="text-[10px] text-gray-400 mt-2">
         {affiliate.type === 'book'
           ? 'This links to a public search, not a tracked affiliate ID — we don\'t monetize book recommendations.'
-          : 'This is an affiliate link — we earn a small commission if you sign up, at no cost to you. We only recommend tools we believe in.'}
+          : <>This is an affiliate link — we earn a small commission if you sign up, at no cost to you. We only recommend tools we believe in. <Link href="/affiliate-disclosure" className="underline hover:text-teal-600 dark:hover:text-teal-400">Full disclosure →</Link></>}
       </p>
     </div>
   );
