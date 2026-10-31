@@ -135,58 +135,78 @@ export default function NewGoalPage() {
     </div>
   );
 
+  const gap = target !== '' && current !== '' && !Number.isNaN(+target) && !Number.isNaN(+current) ? Math.abs(+target - +current) : null;
+  const displayLabel = type === 'custom' && customLabel.trim() ? customLabel : meta?.label ?? '';
+
+  const LivePreview = meta && (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Preview</p>
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="text-2xl flex-shrink-0">{meta.icon}</span>
+        <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{displayLabel || 'Untitled goal'}</p>
+      </div>
+      <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+        <span>{current !== '' && !Number.isNaN(+current) ? fmtVal(+current, meta.unit) : '—'}</span>
+        <span>{target !== '' && !Number.isNaN(+target) ? fmtVal(+target, meta.unit) : '—'}</span>
+      </div>
+      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden" />
+      {gap != null && <p className="text-[11px] text-gray-400 mt-2">Gap to close: {fmtVal(gap, meta.unit)}</p>}
+      {targetDate && <p className="text-[11px] text-gray-400 mt-1">Target date: {new Date(targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="bg-[#0F2A27]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <Link href="/goals" className="text-xs font-bold text-teal-300 hover:underline">← Back to your goals</Link>
           <h1 className="text-xl font-extrabold text-white mt-2">Add a goal</h1>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-          {!type ? (
-            <div className="space-y-6">
-              {TYPE_GROUPS.map(group => (
-                <div key={group.category}>
-                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5 flex items-center gap-1.5">
-                    <span>{group.icon}</span>{group.label}
-                  </p>
-                  <div className="grid sm:grid-cols-3 gap-2.5">
-                    {group.types.map(t => {
-                      const blocked = existingTypes.has(t);
-                      return (
-                        <button key={t} disabled={blocked} onClick={() => !blocked && setType(t)}
-                          className={`p-3.5 rounded-xl border-2 text-center transition-all ${blocked ? 'border-gray-100 dark:border-gray-800 opacity-40 cursor-not-allowed' : 'border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600'}`}>
-                          <span className="text-2xl">{GOAL_TYPE_META[t].icon}</span>
-                          <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">{GOAL_TYPE_META[t].label}</p>
-                          {blocked && <p className="text-[9px] font-bold text-teal-600 dark:text-teal-400 mt-1">✓ Already tracking</p>}
-                        </button>
-                      );
-                    })}
-                  </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {!type ? (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 space-y-6">
+            {TYPE_GROUPS.map(group => (
+              <div key={group.category}>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5 flex items-center gap-1.5">
+                  <span>{group.icon}</span>{group.label}
+                </p>
+                <div className="grid sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                  {group.types.map(t => {
+                    const blocked = existingTypes.has(t);
+                    return (
+                      <button key={t} disabled={blocked} onClick={() => !blocked && setType(t)}
+                        className={`p-3.5 rounded-xl border-2 text-center transition-all ${blocked ? 'border-gray-100 dark:border-gray-800 opacity-40 cursor-not-allowed' : 'border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600'}`}>
+                        <span className="text-2xl">{GOAL_TYPE_META[t].icon}</span>
+                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">{GOAL_TYPE_META[t].label}</p>
+                        {blocked && <p className="text-[9px] font-bold text-teal-600 dark:text-teal-400 mt-1">✓ Already tracking</p>}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5">🎯 Something else</p>
-                <button onClick={() => setType('custom')}
-                  className="w-full p-3.5 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 text-center transition-all">
-                  <span className="text-2xl">{GOAL_TYPE_META.custom.icon}</span>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">Custom goal — set your own label</p>
-                </button>
               </div>
+            ))}
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5">🎯 Something else</p>
+              <button onClick={() => setType('custom')}
+                className="w-full sm:w-auto sm:min-w-[200px] p-3.5 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 text-center transition-all">
+                <span className="text-2xl">{GOAL_TYPE_META.custom.icon}</span>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">Custom goal — set your own label</p>
+              </button>
             </div>
-          ) : isNetWorth ? (
-            <div className="space-y-5">
+          </div>
+        ) : isNetWorth ? (
+          <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 space-y-5">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{meta!.icon}</span>
                 <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{meta!.label}</p>
                 <button onClick={() => setType(null)} className="text-xs text-gray-400 hover:underline ml-auto">Change type</button>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-3 max-w-md">
+              <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target net worth (₹)</label>
                   <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
@@ -205,6 +225,18 @@ export default function NewGoalPage() {
                 </p>
                 <AssetTrackerPanel />
               </div>
+            </div>
+
+            <div className="space-y-4 lg:sticky lg:top-6">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Preview</p>
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+                  <span>{fmtVal(liveNetWorth, '₹')}</span>
+                  <span>{target !== '' && !Number.isNaN(+target) ? fmtVal(+target, '₹') : '—'}</span>
+                </div>
+                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden" />
+                <p className="text-[11px] text-gray-400 mt-2">Current net worth updates automatically from your holdings.</p>
+              </div>
 
               {target !== '' && !Number.isNaN(+target) && +target > liveNetWorth && (
                 <GoalPathCalculator target={+target} current={liveNetWorth} targetDate={targetDate || undefined} />
@@ -215,16 +247,18 @@ export default function NewGoalPage() {
               <div className="flex gap-2">
                 <button onClick={save} disabled={target === ''}
                   className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
-                  Save goal — current net worth {fmtVal(liveNetWorth, '₹')}
+                  Save goal
                 </button>
                 <button onClick={goBack} className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400">Cancel</button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-3 max-w-sm">
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 space-y-3">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xl">{meta!.icon}</span>
-                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{type === 'custom' && customLabel.trim() ? customLabel : meta!.label}</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{displayLabel}</p>
                 <button onClick={() => setType(null)} className="text-xs text-gray-400 hover:underline ml-auto">Change type</button>
               </div>
               {prefill && (
@@ -249,29 +283,33 @@ export default function NewGoalPage() {
                     className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
                 </div>
               )}
-              <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
-                <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
-                  className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Current value</label>
-                <input type="number" value={current} onChange={e => setCurrent(e.target.value)} placeholder="e.g. 500000"
-                  className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
+                  <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
+                    className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Current value</label>
+                  <input type="number" value={current} onChange={e => setCurrent(e.target.value)} placeholder="e.g. 500000"
+                    className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target date (optional)</label>
                 <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)}
-                  className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+                  className="w-full sm:w-1/2 text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
                 <p className="text-[11px] text-gray-400 mt-1">Set this to unlock pace and ETA tracking on the goal card.</p>
               </div>
 
               {ACCUMULATION_GOAL_TYPES.includes(type) && target !== '' && current !== '' && !Number.isNaN(+target) && !Number.isNaN(+current) && +target > +current && (
                 <GoalPathCalculator target={+target} current={+current} targetDate={targetDate || undefined} />
               )}
+            </div>
 
+            <div className="space-y-4 lg:sticky lg:top-6">
+              {LivePreview}
               {PrioritySelector}
-
               <div className="flex gap-2">
                 <button onClick={save} disabled={target === '' || current === '' || existingTypes.has(type) || (type === 'custom' && !customLabel.trim())}
                   className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
@@ -280,8 +318,8 @@ export default function NewGoalPage() {
                 <button onClick={goBack} className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400">Cancel</button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
