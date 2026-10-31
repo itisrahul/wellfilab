@@ -838,7 +838,7 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
 
         {/* The simple default path: who you are, what's weak, what to do,
             where to go next. Everything deeper is one click away below,

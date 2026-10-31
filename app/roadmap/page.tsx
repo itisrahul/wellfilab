@@ -298,11 +298,8 @@ export default function RoadmapPage() {
           </div>
         </div>
 
-        {/* SECTION 4: 90-day roadmap — its own reading-width column (a
-            sequential checklist stays single-column even on a wide page,
-            same as an inbox or a form would) while the sections around it
-            use the page's full width. */}
-        <div className="max-w-3xl">
+        {/* SECTION 4: 90-day roadmap */}
+        <div>
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your 90-day roadmap</p>
 
           <PhaseBlock

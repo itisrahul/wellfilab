@@ -144,15 +144,15 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
     <div className="min-h-screen bg-gray-50/60 dark:bg-gray-950">
 
       {!loading && showImportBanner && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
           <ImportLocalDataBanner onDone={handleImportDone} />
         </div>
       )}
 
       {loading ? (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
       ) : (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
           {/* ── Welcome band — the one deliberately-dark band regardless of
                theme, same role as a dark CTA band on an otherwise light
