@@ -2,19 +2,22 @@ import Link from 'next/link';
 import { SITE_NAME, PLANS_ENABLED } from '@/config/site';
 
 const EXPLORE_LINKS = [
-  ['/tools',   'Tools'],
-  ['/guides',  'Guides'],
-  ['/score',   'WellFiLab Score'],
-  ['/roadmap', 'Roadmap'],
+  ['/tools',      'Calculators'],
+  ['/goals',      'Goals'],
+  ['/score',      'WellFiLab Score'],
+  ['/roadmap',    'Roadmap'],
+  ['/learn',      'Learn'],
+  ['/learn/best', 'Best Picks & Comparisons'],
   ...(PLANS_ENABLED ? [['/plan', 'Plans & Pricing']] : []),
 ];
 
 const COMPANY_LINKS = [
-  ['/about',          'About'],
-  ['/contact',        'Contact'],
-  ['/dashboard',      'Member Dashboard'],
-  ['/privacy-policy', 'Privacy Policy'],
-  ['/terms',           'Terms of Service'],
+  ['/about',                'About'],
+  ['/contact',               'Contact'],
+  ['/dashboard',             'Member Dashboard'],
+  ['/affiliate-disclosure',  'Affiliate Disclosure'],
+  ['/privacy-policy',        'Privacy Policy'],
+  ['/terms',                 'Terms of Service'],
 ];
 
 export function Footer() {

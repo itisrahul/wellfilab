@@ -206,9 +206,6 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
             </div>
           ) : (
             <>
-              {/* ── Monthly review cadence — last check-in, next one due, streak ── */}
-              <MonthlyReviewBand score={score} />
-
               {/* ── Score, every month ── */}
               <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
@@ -292,6 +289,9 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
               </div>
             </div>
           </div>
+
+          {/* ── Monthly review cadence — last check-in, next one due, streak ── */}
+          {score && <MonthlyReviewBand score={score} />}
 
           <p className="text-center text-[11px] text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-800">
             Your data is private, encrypted, and synced to your account only — sign in on any device and it's all here. <Link href="/contact" className="underline hover:text-teal-600 dark:hover:text-teal-400">Questions?</Link>
