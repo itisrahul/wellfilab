@@ -176,9 +176,14 @@ export default function RoadmapPage() {
   const phase3ScoreGain = scoreGainForDim(thirdDim?.id);
 
   const activePhaseNum: 1 | 2 | 3 = phase3Unlocked ? 3 : phase2Unlocked ? 2 : 1;
-  // A dedicated right-rail, not one squeezed between each phase's actions —
-  // 4 instead of the old inline cap of 2, since a sidebar has real room.
-  const relevantAffiliates = getRelevantAffiliates(score, activePhaseNum, 4);
+  // One real recommendation per phase, attached to that phase's own
+  // dimension-specific action card (same simple inline-link pattern as
+  // RiskAlertsCard) — not a separate card block, and not one per action.
+  const allRelevantAffiliates = getRelevantAffiliates(score, activePhaseNum, 3);
+  const affiliateForDim = (dimId?: string) => allRelevantAffiliates.find(a => a.showWhen.dimensionId === dimId);
+  const anyAffiliateShown = !!affiliateForDim(lowestDim.id)
+    || (phase2Unlocked && !!affiliateForDim(secondDim?.id))
+    || (phase3Unlocked && !!affiliateForDim(thirdDim?.id));
 
   const trajectories = score.trajectories;
   const current = trajectories?.find(t => t.scenario === 'current');
@@ -297,71 +302,67 @@ export default function RoadmapPage() {
           </div>
         </div>
 
-        {/* SECTION 4: 90-day roadmap — phases on the left, recommended
-            products in a dedicated right rail (sticky at lg+) instead of
-            cards wedged between each phase's actions. */}
+        {/* SECTION 4: 90-day roadmap */}
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your 90-day roadmap</p>
 
-          <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
-            <div>
-              <PhaseBlock
-                label="Right Now" weeks="Weeks 1-2: Start Here" status="active"
-                focusLabel={lowestDim.label} subtitle={lowestDim.insight} scoreGain={phase1ScoreGain} linkedGoal={linkedGoalFor(lowestDim.id)}
-              >
-                {phase1AlgoActions.map((a, i) => (
-                  <ActionCard key={`alg-${i}`} id={`p1-alg-${i}`} checked={!!checks[`p1-alg-${i}`]} onToggle={toggleCheck}
-                    title={a.title} why={a.why} impact={a.impact} priority={a.howEasy === 'today' ? 'Today' : 'This week'}
-                    category={a.category === 'health' ? 'Health' : a.category === 'finance' ? 'Finance' : a.category === 'mind' ? 'Mind' : 'Health'}
-                    timeEstimate={howEasyTime(a.howEasy)}
-                    toolSlug={a.toolSlug} toolCat={a.toolCat as 'health' | 'finance' | undefined} />
-                ))}
-                {phase1Extras.map((a, i) => (
-                  <ActionCard key={`extra-${i}`} id={`p1-extra-${i}`} checked={!!checks[`p1-extra-${i}`]} onToggle={toggleCheck}
-                    title={a.title} why={a.why} impact={a.impact}
-                    priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat} />
-                ))}
-                <PhaseProgress checked={phase1CheckedCount} total={phase1Total} complete={phase1CheckedCount >= phase1Total} nextLabel="Phase 2 is now active." />
-              </PhaseBlock>
+          <PhaseBlock
+            label="Right Now" weeks="Weeks 1-2: Start Here" status="active"
+            focusLabel={lowestDim.label} subtitle={lowestDim.insight} scoreGain={phase1ScoreGain} linkedGoal={linkedGoalFor(lowestDim.id)}
+          >
+            {phase1AlgoActions.map((a, i) => (
+              <ActionCard key={`alg-${i}`} id={`p1-alg-${i}`} checked={!!checks[`p1-alg-${i}`]} onToggle={toggleCheck}
+                title={a.title} why={a.why} impact={a.impact} priority={a.howEasy === 'today' ? 'Today' : 'This week'}
+                category={a.category === 'health' ? 'Health' : a.category === 'finance' ? 'Finance' : a.category === 'mind' ? 'Mind' : 'Health'}
+                timeEstimate={howEasyTime(a.howEasy)}
+                toolSlug={a.toolSlug} toolCat={a.toolCat as 'health' | 'finance' | undefined} />
+            ))}
+            {phase1Extras.map((a, i) => (
+              <ActionCard key={`extra-${i}`} id={`p1-extra-${i}`} checked={!!checks[`p1-extra-${i}`]} onToggle={toggleCheck}
+                title={a.title} why={a.why} impact={a.impact}
+                priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat}
+                affiliate={i === 0 ? affiliateForDim(lowestDim.id) : undefined} />
+            ))}
+            <PhaseProgress checked={phase1CheckedCount} total={phase1Total} complete={phase1CheckedCount >= phase1Total} nextLabel="Phase 2 is now active." />
+          </PhaseBlock>
 
-              <PhaseBlock
-                label="Building" weeks="Weeks 3-6: Build On It" status={phase2Unlocked ? 'active' : 'locked'}
-                focusLabel={secondDim?.label ?? '—'} subtitle={phase2Unlocked ? secondDim?.insight : 'Complete at least 2 actions in Phase 1 to unlock'} scoreGain={phase2ScoreGain} linkedGoal={phase2Unlocked ? linkedGoalFor(secondDim?.id) : undefined}
-              >
-                {secondDim && phase2Actions.map((a, i) => (
-                  <ActionCard key={i} id={`p2-${i}`} checked={!!checks[`p2-${i}`]} onToggle={toggleCheck} disabled={!phase2Unlocked}
-                    title={a.title} why={a.why} impact={a.impact}
-                    priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat} />
-                ))}
-                {secondDim && <PhaseProgress checked={phase2CheckedCount} total={phase2Actions.length} complete={phase2CheckedCount >= phase2Actions.length} nextLabel="Phase 3 is now active." />}
-              </PhaseBlock>
+          <PhaseBlock
+            label="Building" weeks="Weeks 3-6: Build On It" status={phase2Unlocked ? 'active' : 'locked'}
+            focusLabel={secondDim?.label ?? '—'} subtitle={phase2Unlocked ? secondDim?.insight : 'Complete at least 2 actions in Phase 1 to unlock'} scoreGain={phase2ScoreGain} linkedGoal={phase2Unlocked ? linkedGoalFor(secondDim?.id) : undefined}
+          >
+            {secondDim && phase2Actions.map((a, i) => (
+              <ActionCard key={i} id={`p2-${i}`} checked={!!checks[`p2-${i}`]} onToggle={toggleCheck} disabled={!phase2Unlocked}
+                title={a.title} why={a.why} impact={a.impact}
+                priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat}
+                affiliate={phase2Unlocked && i === 0 ? affiliateForDim(secondDim.id) : undefined} />
+            ))}
+            {secondDim && <PhaseProgress checked={phase2CheckedCount} total={phase2Actions.length} complete={phase2CheckedCount >= phase2Actions.length} nextLabel="Phase 3 is now active." />}
+          </PhaseBlock>
 
-              <PhaseBlock
-                label="Growing" weeks="Month 2-3: Grow" status={phase3Unlocked ? 'active' : 'locked'}
-                focusLabel={thirdDim?.label ?? '—'} subtitle={phase3Unlocked ? 'Strengthening and growth' : 'Complete at least 2 actions in Phase 2 to unlock'} scoreGain={phase3ScoreGain} linkedGoal={phase3Unlocked ? linkedGoalFor(thirdDim?.id) : undefined}
-                isLast
-              >
-                {thirdDim && phase3Actions.map((a, i) => (
-                  <ActionCard key={i} id={`p3-${i}`} checked={!!checks[`p3-${i}`]} onToggle={toggleCheck} disabled={!phase3Unlocked}
-                    title={a.title} why={a.why} impact={a.impact}
-                    priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat} />
-                ))}
-                {phase3Unlocked && thirdDim && (
-                  <div className="space-y-3">
-                    <GrowthRecCard type="book" dim={lowestDim.id} />
-                    <GrowthRecCard type="tool" dim={lowestDim.id} />
-                  </div>
-                )}
-              </PhaseBlock>
-            </div>
-
-            {relevantAffiliates.length > 0 && (
-              <aside className="print:hidden lg:sticky lg:top-6 space-y-3">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Recommended for you</p>
-                {relevantAffiliates.map(a => <AffiliateCard key={a.id} affiliate={a} score={score} />)}
-              </aside>
+          <PhaseBlock
+            label="Growing" weeks="Month 2-3: Grow" status={phase3Unlocked ? 'active' : 'locked'}
+            focusLabel={thirdDim?.label ?? '—'} subtitle={phase3Unlocked ? 'Strengthening and growth' : 'Complete at least 2 actions in Phase 2 to unlock'} scoreGain={phase3ScoreGain} linkedGoal={phase3Unlocked ? linkedGoalFor(thirdDim?.id) : undefined}
+            isLast
+          >
+            {thirdDim && phase3Actions.map((a, i) => (
+              <ActionCard key={i} id={`p3-${i}`} checked={!!checks[`p3-${i}`]} onToggle={toggleCheck} disabled={!phase3Unlocked}
+                title={a.title} why={a.why} impact={a.impact}
+                priority={a.priority} category={a.category} timeEstimate={a.timeEstimate} toolSlug={a.toolSlug} toolCat={a.toolCat}
+                affiliate={phase3Unlocked && i === 0 ? affiliateForDim(thirdDim.id) : undefined} />
+            ))}
+            {phase3Unlocked && thirdDim && (
+              <div className="space-y-3">
+                <GrowthRecCard type="book" dim={lowestDim.id} />
+                <GrowthRecCard type="tool" dim={lowestDim.id} />
+              </div>
             )}
-          </div>
+          </PhaseBlock>
+
+          {anyAffiliateShown && (
+            <p className="print:hidden text-[11px] text-gray-400 mt-1">
+              A couple of actions above link to real products — we earn a small commission if you sign up, at no cost to you. <Link href="/affiliate-disclosure" className="underline hover:text-teal-600 dark:hover:text-teal-400">Full disclosure →</Link>
+            </p>
+          )}
         </div>
 
         {/* SECTION 7B: Turn this into a tracked goal */}
@@ -519,10 +520,10 @@ function PhaseBlock({ label, weeks, status, focusLabel, subtitle, scoreGain, chi
   );
 }
 
-function ActionCard({ id, checked, onToggle, disabled, title, why, impact, priority, category, timeEstimate, toolSlug, toolCat }: {
+function ActionCard({ id, checked, onToggle, disabled, title, why, impact, priority, category, timeEstimate, toolSlug, toolCat, affiliate }: {
   id: string; checked: boolean; onToggle: (id: string) => void; disabled?: boolean;
   title: string; why: string; impact: string; priority: 'Today' | 'This week'; category: 'Health' | 'Finance' | 'Mind';
-  timeEstimate?: string; toolSlug?: string; toolCat?: 'health' | 'finance';
+  timeEstimate?: string; toolSlug?: string; toolCat?: 'health' | 'finance'; affiliate?: Affiliate;
 }) {
   const catStyle = category === 'Health' ? 'bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400'
     : category === 'Finance' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
@@ -544,6 +545,12 @@ function ActionCard({ id, checked, onToggle, disabled, title, why, impact, prior
           <Link href={`/tools/${toolCat}/${toolSlug}`} onClick={e => e.stopPropagation()} className="inline-block text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline mt-1.5">
             Try the tool →
           </Link>
+        )}
+        {affiliate && (
+          <a href={affiliate.url} target="_blank" rel="noopener noreferrer sponsored" onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1.5 mt-1.5 text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
+            {affiliate.logo} {affiliate.cta.replace(/\s*→$/, '')} with {affiliate.name} →
+          </a>
         )}
       </div>
     </label>
@@ -600,59 +607,6 @@ function GrowthRecCard({ type, dim }: { type: 'book' | 'tool'; dim: string }) {
   );
 }
 
-// ── Affiliate card ─────────────────────────────────────────────────────
-
-const AFFILIATE_TYPE_LABEL: Record<Affiliate['type'], string> = {
-  product: 'Recommended product', service: 'Recommended service', app: 'Recommended app',
-  book: 'Recommended book', plan: 'Recommended plan',
-};
-
-function AffiliateCard({ affiliate, score }: { affiliate: Affiliate; score: WellFiScore }) {
-  const dim = score.dimensions.find(d => d.id === affiliate.showWhen.dimensionId);
-  return (
-    <div className="print:hidden bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 border-l-4 border-l-teal-500 rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-        <span className="text-lg">{affiliate.logo}</span>
-        <span className="font-bold text-sm text-gray-900 dark:text-white">{affiliate.name}</span>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400">{AFFILIATE_TYPE_LABEL[affiliate.type]}</span>
-      </div>
-      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{affiliate.tagline}</p>
-
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-3 mb-1">Why recommended</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-        {dim ? `Your ${dim.label.toLowerCase()} score is ${dim.score}/100. ` : ''}{affiliate.whyRecommend}
-      </p>
-
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-3 mb-1">Expected benefit</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{affiliate.expectedBenefit}</p>
-
-      {(affiliate.relatedGuideSlug || affiliate.relatedCalcSlug) && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {affiliate.relatedGuideSlug && (
-            <Link href={`/guides/${affiliate.relatedGuideSlug}`} className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline">
-              📖 {affiliate.relatedGuideTitle ?? 'Related guide'} →
-            </Link>
-          )}
-          {affiliate.relatedCalcSlug && affiliate.relatedCalcCat && (
-            <Link href={`/tools/${affiliate.relatedCalcCat}/${affiliate.relatedCalcSlug}`} className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline">
-              🧮 Verify with the calculator →
-            </Link>
-          )}
-        </div>
-      )}
-
-      <a href={affiliate.url} target="_blank" rel="noopener noreferrer sponsored"
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all mt-3">
-        {affiliate.cta}
-      </a>
-      <p className="text-[10px] text-gray-400 mt-2">
-        {affiliate.type === 'book'
-          ? 'This links to a public search, not a tracked affiliate ID — we don\'t monetize book recommendations.'
-          : <>This is an affiliate link — we earn a small commission if you sign up, at no cost to you. We only recommend tools we believe in. <Link href="/affiliate-disclosure" className="underline hover:text-teal-600 dark:hover:text-teal-400">Full disclosure →</Link></>}
-      </p>
-    </div>
-  );
-}
 
 // ── Section 5: Financial impact ─────────────────────────────────────────
 
