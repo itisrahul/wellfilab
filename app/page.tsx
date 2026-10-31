@@ -112,8 +112,8 @@ export default function HomePage() {
               <Link href="/tools/health" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-[15px] transition-colors">
                 Browse health tools
               </Link>
-              <Link href="/tools/finance" className="text-[15px] font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Browse finance tools →
+              <Link href="/tools/finance" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-[#2B1600] font-semibold text-[15px] transition-colors">
+                Browse finance tools
               </Link>
             </div>
             <p className="text-sm text-gray-400 dark:text-gray-500">
