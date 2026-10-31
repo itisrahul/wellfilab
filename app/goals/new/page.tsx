@@ -145,11 +145,11 @@ export default function NewGoalPage() {
         <span className="text-2xl flex-shrink-0">{meta.icon}</span>
         <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{displayLabel || 'Untitled goal'}</p>
       </div>
-      <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+      <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
         <span>{current !== '' && !Number.isNaN(+current) ? fmtVal(+current, meta.unit) : '—'}</span>
+        <span className="text-gray-300 dark:text-gray-600">→</span>
         <span>{target !== '' && !Number.isNaN(+target) ? fmtVal(+target, meta.unit) : '—'}</span>
       </div>
-      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden" />
       {gap != null && <p className="text-[11px] text-gray-400 mt-2">Gap to close: {fmtVal(gap, meta.unit)}</p>}
       {targetDate && <p className="text-[11px] text-gray-400 mt-1">Target date: {new Date(targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
     </div>
@@ -172,7 +172,7 @@ export default function NewGoalPage() {
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5 flex items-center gap-1.5">
                   <span>{group.icon}</span>{group.label}
                 </p>
-                <div className="grid sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                <div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                   {group.types.map(t => {
                     const blocked = existingTypes.has(t);
                     return (
@@ -190,11 +190,13 @@ export default function NewGoalPage() {
 
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5">🎯 Something else</p>
-              <button onClick={() => setType('custom')}
-                className="w-full sm:w-auto sm:min-w-[200px] p-3.5 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 text-center transition-all">
-                <span className="text-2xl">{GOAL_TYPE_META.custom.icon}</span>
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">Custom goal — set your own label</p>
-              </button>
+              <div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                <button onClick={() => setType('custom')}
+                  className="p-3.5 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 text-center transition-all">
+                  <span className="text-2xl">{GOAL_TYPE_META.custom.icon}</span>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">Custom goal — set your own label</p>
+                </button>
+              </div>
             </div>
           </div>
         ) : isNetWorth ? (
@@ -230,11 +232,11 @@ export default function NewGoalPage() {
             <div className="space-y-4 lg:sticky lg:top-6">
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Preview</p>
-                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
                   <span>{fmtVal(liveNetWorth, '₹')}</span>
+                  <span className="text-gray-300 dark:text-gray-600">→</span>
                   <span>{target !== '' && !Number.isNaN(+target) ? fmtVal(+target, '₹') : '—'}</span>
                 </div>
-                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden" />
                 <p className="text-[11px] text-gray-400 mt-2">Current net worth updates automatically from your holdings.</p>
               </div>
 
