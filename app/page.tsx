@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { CALCULATORS, getBySlug } from '@/config/tools';
+import { CALCULATORS } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
@@ -9,10 +9,8 @@ import { calcBMI, calcCalories, calcBedtime, calcBodyFat, calcSIP, calcLoan, cal
 import { fmtINR } from '@/lib/roadmapActions';
 import { CountUp } from '@/components/home/CountUp';
 import { Reveal } from '@/components/home/Reveal';
-import { AnimatedRing } from '@/components/home/AnimatedRing';
-import { AnimatedBar } from '@/components/home/AnimatedBar';
-import { AnimatedTrendChart } from '@/components/home/AnimatedTrendChart';
 import { ProductTour } from '@/components/home/ProductTour';
+import { FeatureGrid } from '@/components/home/FeatureGrid';
 import { SITE_NAME, SITE_URL, PLANS_ENABLED } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -35,14 +33,11 @@ const FAQ = [
 ];
 
 const REASONS = [
-  { title: 'Your numbers, not averages', body: 'You enter your own height, income and sleep. Results are calculated from them, and the formula is shown so you can check the work.' },
-  { title: 'Every result says what to do next', body: 'A number alone does not help. Each calculator explains what yours means and links to the next sensible step.' },
-  { title: 'A bigger picture, if you want it', body: 'The WellFiLab Score looks at health and money together and shows what to work on first. Skip it and just use the tools.' },
-  { title: 'Private by default', body: 'Calculators run in your browser. Sign in only if you want history saved across devices.' },
+  { icon: '🧮', title: 'Your numbers, not averages', body: 'You enter your own height, income and sleep. Results are calculated from them, and the formula is shown so you can check the work.' },
+  { icon: '🧭', title: 'Every result says what to do next', body: 'A number alone does not help. Each calculator explains what yours means and links to the next sensible step.' },
+  { icon: '🔗', title: 'A bigger picture, if you want it', body: 'The WellFiLab Score looks at health and money together and shows what to work on first. Skip it and just use the tools.' },
+  { icon: '🔒', title: 'Private by default', body: 'Calculators run in your browser. Sign in only if you want history saved across devices.' },
 ];
-
-const HEALTH_PICKS = ['bmi', 'calories', 'sleep', 'body-fat'].map(s => getBySlug(s)).filter(Boolean) as typeof CALCULATORS;
-const FINANCE_PICKS = ['sip', 'loan', 'fire', 'retirement'].map(s => getBySlug(s)).filter(Boolean) as typeof CALCULATORS;
 
 // Sample outputs for the two-path section — real formulas (lib/calc.ts) run
 // against one representative set of inputs, the same way LiveCalcHero does.
@@ -68,12 +63,6 @@ const FINANCE_PREVIEW = [
   { label: 'FIRE number', value: fmtINR(fireEx.fireNum) },
   { label: 'Retirement corpus', value: fmtINR(retirementEx.corpus) },
 ];
-const MOCK_RINGS = [
-  { label: 'Body', score: 82, color: '#0D9488', delta: '+6' },
-  { label: 'Mind', score: 53, color: '#8B5CF6', delta: '−2' },
-  { label: 'Wealth', score: 60, color: '#D97706', delta: '+4' },
-  { label: 'Life', score: 71, color: '#16A34A', delta: '+3' },
-];
 const STATS = [
   { value: CALCULATORS.length, suffix: '+', label: 'calculators' },
   { value: ALL_POSTS.length, suffix: '', label: 'step-by-step guides' },
@@ -92,40 +81,42 @@ export default function HomePage() {
       }) }} />
 
       {/* ══════════════════════════════════════════════
-          HERO — says plainly what the product is: calculators for health
-          and money, plus one score that ties them together. Text left,
-          the real interactive calculator right, in an elevated card.
+          HERO — a soft two-tone wash (teal/amber, the site's own two
+          categories) instead of a flat white field, no blur or glass —
+          just color. Text left, the real interactive calculator right.
       ══════════════════════════════════════════════ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-24">
-        <div className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-16 items-center">
-          <Reveal>
-            <p className="text-xs font-bold tracking-[0.15em] uppercase text-teal-700 dark:text-teal-400 mb-5">
-              Health + finance calculators
-            </p>
-            <h1 className="text-[2.75rem] sm:text-5xl font-bold tracking-tight text-gray-900 dark:text-white leading-[1.1] text-balance">
-              Real numbers for your health and your money.
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mt-6 mb-8 max-w-lg">
-              {CALCULATORS.length}+ calculators — BMI, sleep, SIP, EMI, FIRE and more — plus one score that tracks both together. Type your numbers, get an answer, and know what to do next.
-            </p>
-            <div className="flex flex-wrap items-center gap-x-7 gap-y-3 mb-9">
-              <Link href="/tools/health" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-[15px] transition-colors">
-                Browse health tools
-              </Link>
-              <Link href="/tools/finance" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-[#2B1600] font-semibold text-[15px] transition-colors">
-                Browse finance tools
-              </Link>
-            </div>
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              No signup · Runs in your browser · Private by default
-            </p>
-          </Reveal>
+      <section className="relative overflow-hidden bg-gradient-to-br from-teal-50/80 via-white to-amber-50/50 dark:from-teal-950/25 dark:via-gray-950 dark:to-amber-950/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-24">
+          <div className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-16 items-center">
+            <Reveal>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-teal-700 dark:text-teal-400 mb-5">
+                Health + finance, one place
+              </p>
+              <h1 className="text-[2.75rem] sm:text-5xl font-bold tracking-tight text-gray-900 dark:text-white leading-[1.1] text-balance">
+                Real numbers for your health and your money.
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mt-6 mb-8 max-w-lg">
+                {CALCULATORS.length}+ calculators — BMI, sleep, SIP, EMI, FIRE and more — plus one score, a roadmap, and goals that track themselves. Type your numbers, get a real answer, and know what to do next.
+              </p>
+              <div className="flex flex-wrap items-center gap-x-7 gap-y-3 mb-9">
+                <Link href="/tools/health" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-[15px] transition-colors">
+                  Browse health tools
+                </Link>
+                <Link href="/tools/finance" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-[#2B1600] font-semibold text-[15px] transition-colors">
+                  Browse finance tools
+                </Link>
+              </div>
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                No signup · Runs in your browser · Private by default
+              </p>
+            </Reveal>
 
-          <Reveal delayMs={120}>
-            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] dark:shadow-none">
-              <LiveCalcHero />
-            </div>
-          </Reveal>
+            <Reveal delayMs={120}>
+              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] dark:shadow-none">
+                <LiveCalcHero />
+              </div>
+            </Reveal>
+          </div>
         </div>
       </section>
 
@@ -183,6 +174,19 @@ export default function HomePage() {
             </Link>
           </div>
         </Reveal>
+
+        {/* ══════════════════════════════════════════════
+            FEATURE GRID — every real feature, each with a live
+            scroll-triggered demo instead of a stock icon. This is the
+            "what do I actually get" section.
+        ══════════════════════════════════════════════ */}
+        <Reveal as="section" className="py-20 border-t border-gray-100 dark:border-gray-800">
+          <div className="max-w-xl mb-10">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Everything you actually get</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2.5">Not just a calculator directory — a real score, a real plan, and goals that track themselves.</p>
+          </div>
+          <FeatureGrid calcCount={CALCULATORS.length} guideCount={ALL_POSTS.length} />
+        </Reveal>
       </div>
 
       {/* ══════════════════════════════════════════════
@@ -200,104 +204,30 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          WHY WELLFILAB
-      ══════════════════════════════════════════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
+
+        {/* ══════════════════════════════════════════════
+            WHY WELLFILAB
+        ══════════════════════════════════════════════ */}
         <Reveal as="section" className="py-20">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-8">Built different from day one</h2>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
+          <div className="grid sm:grid-cols-2 gap-5">
             {REASONS.map(r => (
-              <div key={r.title} className="grid md:grid-cols-[1fr_1.6fr] gap-2 md:gap-8 py-6">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{r.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-[15px]">{r.body}</p>
+              <div key={r.title} className="flex gap-4 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <span className="text-2xl flex-shrink-0">{r.icon}</span>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{r.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-[15px] leading-relaxed">{r.body}</p>
+                </div>
               </div>
             ))}
           </div>
         </Reveal>
-      </div>
-
-      {/* ══════════════════════════════════════════════
-          DASHBOARD PREVIEW — elevated card, clearly sample data.
-      ══════════════════════════════════════════════ */}
-      <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
-          <Reveal>
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">One dashboard, the whole real picture</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-3 mb-6 text-[15px] leading-relaxed">Retake your score whenever you want, tick off today's roadmap actions, and track every goal — net worth included, computed from the real holdings you add, not a number you type in once and forget.</p>
-            <ul className="grid gap-2.5 mb-7 text-[15px] text-gray-700 dark:text-gray-300">
-              {['Your real score, tracked across every retake — not a one-time snapshot', 'Roadmap actions ranked by real impact on your score', '20 goal types for health and money, each with real progress tracking', 'Net worth that updates itself from your real holdings'].map(li => (
-                <li key={li} className="flex items-start gap-2.5">
-                  <span className="text-teal-600 dark:text-teal-400 flex-shrink-0">—</span>{li}
-                </li>
-              ))}
-            </ul>
-            <Link href="/dashboard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-sm transition-colors">
-              Explore the dashboard
-            </Link>
-          </Reveal>
-
-          <Reveal delayMs={150} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.1)] dark:shadow-none p-5 grid gap-4" aria-label="Sample dashboard preview">
-            <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
-              <span>Good morning, Rahul</span><span>Sample data</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2.5">
-              {MOCK_RINGS.map((r, i) => (
-                <div key={r.label} className="text-center">
-                  <div className="relative mx-auto">
-                    <AnimatedRing pct={r.score} color={r.color} size={48} thick={4} delayMs={i * 180} />
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-900 dark:text-white">{r.score}</div>
-                  </div>
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white mt-1">{r.label}</p>
-                  <p className={`text-xs ${r.delta.startsWith('−') ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>{r.delta}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-gray-100 dark:border-gray-800 pt-3.5">
-              <div className="flex items-baseline justify-between mb-1">
-                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300">Score over time</h4>
-                <span className="text-xs font-bold text-teal-600 dark:text-teal-400">+23 in 6 months</span>
-              </div>
-              <AnimatedTrendChart />
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-5 border-t border-gray-100 dark:border-gray-800 pt-3.5">
-              <div className="grid gap-2.5 content-start">
-                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300">Today</h4>
-                {[
-                  { label: 'Bedtime alarm set for 10:30 pm', done: true },
-                  { label: 'No phone 30 minutes before bed', done: false },
-                  { label: 'Raise SIP from ₹3,000 to ₹6,500', done: false },
-                ].map((item, i) => (
-                  <Reveal key={item.label} delayMs={300 + i * 200} className="flex gap-2 text-xs text-gray-700 dark:text-gray-300">
-                    <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 mt-0.5 ${item.done ? 'border-teal-500 bg-teal-500' : 'border-gray-300 dark:border-gray-700'}`} />
-                    <span className={item.done ? 'line-through text-gray-400 dark:text-gray-500' : ''}>{item.label}</span>
-                  </Reveal>
-                ))}
-              </div>
-              <div className="grid gap-2.5 content-start">
-                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300">Goals</h4>
-                <div className="text-xs text-gray-700 dark:text-gray-300">Emergency fund
-                  <AnimatedBar pct={47} delayMs={400} />
-                  47% of ₹1.5 lakh
-                </div>
-                <div className="text-xs text-gray-700 dark:text-gray-300">Weight 84 → 75 kg
-                  <AnimatedBar pct={31} delayMs={700} />
-                  31% there
-                </div>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
         {/* ══════════════════════════════════════════════
             GUIDES
         ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20">
+        <Reveal as="section" className="py-20 border-t border-gray-100 dark:border-gray-800">
           <div className="max-w-xl mb-9">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Learn while you calculate</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2.5">Each calculator has matching guides that explain the math and what to do with your result.</p>
