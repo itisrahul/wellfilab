@@ -31,35 +31,45 @@ export async function PATCH(req: Request, { params }: Params) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid payload.', details: parsed.error.flatten() }, { status: 400 });
   const body = parsed.data;
 
-  const [existing] = await db.select().from(goals).where(and(eq(goals.id, params.id), eq(goals.userId, userId)));
-  if (!existing) return NextResponse.json({ error: 'Goal not found.' }, { status: 404 });
+  try {
+    const [existing] = await db.select().from(goals).where(and(eq(goals.id, params.id), eq(goals.userId, userId)));
+    if (!existing) return NextResponse.json({ error: 'Goal not found.' }, { status: 404 });
 
-  const now = new Date();
-  const update: Partial<typeof goals.$inferInsert> = {};
+    const now = new Date();
+    const update: Partial<typeof goals.$inferInsert> = {};
 
-  if (body.current !== undefined) {
-    update.current = body.current;
-    update.lastUpdated = now;
-    update.history = [...(existing.history ?? []), { date: now.toISOString(), value: body.current }];
-  }
-  if (body.paused !== undefined) {
-    update.paused = body.paused;
-  }
-  if (body.target !== undefined) {
-    update.target = body.target;
-  }
-  if (body.targetDate !== undefined) {
-    update.targetDate = body.targetDate ? new Date(body.targetDate) : null;
-  }
+    if (body.current !== undefined) {
+      update.current = body.current;
+      update.lastUpdated = now;
+      update.history = [...(existing.history ?? []), { date: now.toISOString(), value: body.current }];
+    }
+    if (body.paused !== undefined) {
+      update.paused = body.paused;
+    }
+    if (body.target !== undefined) {
+      update.target = body.target;
+    }
+    if (body.targetDate !== undefined) {
+      update.targetDate = body.targetDate ? new Date(body.targetDate) : null;
+    }
 
-  await db.update(goals).set(update).where(eq(goals.id, params.id));
-  return NextResponse.json({ ok: true });
+    await db.update(goals).set(update).where(eq(goals.id, params.id));
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[PATCH /api/goals/[id]] DB error:', err);
+    return NextResponse.json({ error: 'Could not save this change to the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  await db.delete(goals).where(and(eq(goals.id, params.id), eq(goals.userId, userId)));
-  return NextResponse.json({ ok: true });
+  try {
+    await db.delete(goals).where(and(eq(goals.id, params.id), eq(goals.userId, userId)));
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[DELETE /api/goals/[id]] DB error:', err);
+    return NextResponse.json({ error: 'Could not delete this goal from the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }

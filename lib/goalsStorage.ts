@@ -82,15 +82,33 @@ export function getLocalGoals(): Goal[] {
   return readGoals();
 }
 
+/** Set whenever a remote goals call falls back to local-only storage, so
+ * the UI can show *why* instead of a silent, unexplained "it didn't save" —
+ * same pattern as lib/holdingsStorage.ts's getHoldingsSyncError. */
+let lastGoalsSyncError: string | null = null;
+export function getGoalsSyncError(): string | null { return lastGoalsSyncError; }
+
+async function describeGoalFailure(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    return body?.error ? `${body.error}${body.detail ? ` (${body.detail})` : ''}` : `Server returned ${res.status}`;
+  } catch {
+    return `Server returned ${res.status}`;
+  }
+}
+
 export async function getGoals(): Promise<Goal[]> {
   try {
     const res = await fetch('/api/goals');
     if (res.ok) {
+      lastGoalsSyncError = null;
       const { goals } = await res.json();
       return goals as Goal[];
     }
-  } catch {
-    /* offline, signed out (401), or a server error — fall back to local */
+    if (res.status === 401) { lastGoalsSyncError = null; } // signed out — local-only is expected
+    else lastGoalsSyncError = await describeGoalFailure(res);
+  } catch (err) {
+    lastGoalsSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
   }
   return readGoals();
 }
@@ -102,11 +120,13 @@ export async function addGoal(input: { type: GoalType; label: string; target: nu
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    if (!res.ok) throw new Error(`create failed: ${res.status}`);
+    if (!res.ok) { lastGoalsSyncError = await describeGoalFailure(res); throw new Error('create failed'); }
+    lastGoalsSyncError = null;
     const { goal } = await res.json();
     writeGoals([...readGoals(), goal]);
     return goal as Goal;
-  } catch {
+  } catch (err) {
+    if (!lastGoalsSyncError) lastGoalsSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
     // Signed out, offline, or a server error — create locally so nothing is lost.
     const now = new Date().toISOString();
     const goal: Goal = {
@@ -127,9 +147,10 @@ export async function updateGoalProgress(id: string, current: number): Promise<v
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ current }),
     });
-    if (!res.ok) throw new Error(`update failed: ${res.status}`);
-  } catch {
+    lastGoalsSyncError = res.ok ? null : await describeGoalFailure(res);
+  } catch (err) {
     /* signed out, offline, or a goal not yet synced to the account — local write below still applies */
+    lastGoalsSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
   }
 
   const now = new Date().toISOString();
@@ -172,7 +193,12 @@ export async function toggleGoalPause(id: string): Promise<void> {
 }
 
 export async function deleteGoal(id: string): Promise<void> {
-  try { await fetch(`/api/goals/${id}`, { method: 'DELETE' }); } catch { /* best-effort */ }
+  try {
+    const res = await fetch(`/api/goals/${id}`, { method: 'DELETE' });
+    lastGoalsSyncError = res.ok ? null : await describeGoalFailure(res);
+  } catch (err) {
+    lastGoalsSyncError = err instanceof Error ? `Network error: ${err.message}` : 'Network error';
+  }
   writeGoals(readGoals().filter(g => g.id !== id));
 }
 

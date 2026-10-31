@@ -30,8 +30,13 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  const rows = await db.select().from(goals).where(eq(goals.userId, userId));
-  return NextResponse.json({ goals: rows.map(toGoal) });
+  try {
+    const rows = await db.select().from(goals).where(eq(goals.userId, userId));
+    return NextResponse.json({ goals: rows.map(toGoal) });
+  } catch (err) {
+    console.error('[GET /api/goals] DB error:', err);
+    return NextResponse.json({ error: 'Could not load goals from the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
 
 // Derived from GOAL_TYPE_META (the single source of truth for GoalType)
@@ -67,21 +72,26 @@ export async function POST(req: Request) {
 
   const now = new Date();
   const id = input.id ?? crypto.randomUUID();
-  await db.insert(goals).values({
-    id,
-    userId,
-    type: input.type,
-    label: input.label,
-    target: input.target,
-    current: input.current,
-    startValue: input.startValue ?? input.current,
-    startDate: input.startDate ? new Date(input.startDate) : now,
-    targetDate: input.targetDate ? new Date(input.targetDate) : undefined,
-    lastUpdated: input.lastUpdated ? new Date(input.lastUpdated) : now,
-    paused: input.paused ?? false,
-    history: input.history ?? [{ date: now.toISOString(), value: input.current }],
-  });
+  try {
+    await db.insert(goals).values({
+      id,
+      userId,
+      type: input.type,
+      label: input.label,
+      target: input.target,
+      current: input.current,
+      startValue: input.startValue ?? input.current,
+      startDate: input.startDate ? new Date(input.startDate) : now,
+      targetDate: input.targetDate ? new Date(input.targetDate) : undefined,
+      lastUpdated: input.lastUpdated ? new Date(input.lastUpdated) : now,
+      paused: input.paused ?? false,
+      history: input.history ?? [{ date: now.toISOString(), value: input.current }],
+    });
 
-  const [row] = await db.select().from(goals).where(eq(goals.id, id));
-  return NextResponse.json({ goal: toGoal(row) });
+    const [row] = await db.select().from(goals).where(eq(goals.id, id));
+    return NextResponse.json({ goal: toGoal(row) });
+  } catch (err) {
+    console.error('[POST /api/goals] DB error:', err);
+    return NextResponse.json({ error: 'Could not save this goal to the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }

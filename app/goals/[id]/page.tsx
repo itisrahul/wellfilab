@@ -13,7 +13,7 @@ import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
-import { getHoldings, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
+import { getHoldings, syncNetWorthGoalFromHoldings, deleteAllHoldings } from '@/lib/holdingsStorage';
 import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrency } from '@/lib/useCurrency';
@@ -87,7 +87,16 @@ export default function GoalDetailPage() {
     refresh();
     setEditingTarget(false);
   };
-  const remove = async () => { if (await confirmDialog(`Delete "${goal.label}"? This can't be undone.`)) { await deleteGoal(goal.id); window.location.href = '/goals'; } };
+  const remove = async () => {
+    const isNetWorth = goal.type === 'net-worth';
+    const msg = isNetWorth
+      ? `Delete "${goal.label}"? This also deletes every holding you've tracked under it — all your assets and liabilities. This can't be undone.`
+      : `Delete "${goal.label}"? This can't be undone.`;
+    if (!(await confirmDialog(msg))) return;
+    await deleteGoal(goal.id);
+    if (isNetWorth) await deleteAllHoldings();
+    window.location.href = '/goals';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

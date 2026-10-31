@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { ExternalLink, Pencil, X, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   getGoals, addGoal, updateGoalProgress, updateGoalTarget, deleteGoal, getGoalHistory,
-  GOAL_TYPE_META, type Goal, type GoalType,
+  getGoalsSyncError, GOAL_TYPE_META, type Goal, type GoalType,
 } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { getScoreHistory } from '@/lib/scoreStorage';
@@ -17,7 +17,7 @@ import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
-import { getHoldings, computeTotals, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
+import { getHoldings, computeTotals, syncNetWorthGoalFromHoldings, deleteAllHoldings } from '@/lib/holdingsStorage';
 import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_STYLE, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrency } from '@/lib/useCurrency';
@@ -120,6 +120,13 @@ export default function GoalsPage() {
           </div>
         )}
 
+        {getGoalsSyncError() && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+            <span className="text-lg flex-shrink-0">⚠️</span>
+            <p className="text-xs font-semibold text-red-700 dark:text-red-400 flex-1">Couldn't sync your goals with your account — {getGoalsSyncError()}. Showing this device's local copy only until this clears.</p>
+          </div>
+        )}
+
         {showAdd && <AddGoalForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refresh(); }} prefill={prefill} existing={goals ?? []} />}
 
         {visibleGoals.length === 0 && !showAdd ? (
@@ -179,7 +186,16 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
     setEditing(false);
     if (willComplete) { setJustCompleted(true); setTimeout(() => setJustCompleted(false), 4000); }
   };
-  const remove = async () => { if (await confirmDialog(`Delete "${goal.label}"? This can't be undone.`)) { await deleteGoal(goal.id); onChange(); } };
+  const remove = async () => {
+    const isNetWorth = goal.type === 'net-worth';
+    const msg = isNetWorth
+      ? `Delete "${goal.label}"? This also deletes every holding you've tracked under it — all your assets and liabilities. This can't be undone.`
+      : `Delete "${goal.label}"? This can't be undone.`;
+    if (!(await confirmDialog(msg))) return;
+    await deleteGoal(goal.id);
+    if (isNetWorth) { await deleteAllHoldings(); mutate(SWR_KEYS.holdings); }
+    onChange();
+  };
   const saveTarget = async () => {
     if (targetVal === '' || Number.isNaN(+targetVal)) return;
     await updateGoalTarget(goal.id, +targetVal, targetDateVal || undefined);

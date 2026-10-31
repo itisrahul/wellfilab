@@ -165,6 +165,14 @@ export async function deleteHolding(id: string): Promise<void> {
   writeHoldings(readHoldings().filter(h => h.id !== id));
 }
 
+/** Deletes every holding — used when the net-worth goal itself is deleted,
+ * so removing that goal actually removes the whole thing it was tracking
+ * instead of leaving orphaned holdings with nothing pointing at them. */
+export async function deleteAllHoldings(): Promise<void> {
+  try { await fetch('/api/holdings', { method: 'DELETE' }); } catch { /* best-effort */ }
+  writeHoldings([]);
+}
+
 // ── Pure computation — no I/O, same real numbers the UI and the net-worth
 // snapshot both read from ───────────────────────────────────────────────
 

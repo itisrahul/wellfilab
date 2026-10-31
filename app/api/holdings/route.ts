@@ -81,3 +81,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Could not save this holding to the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }
+
+/** Deletes every holding for this account — used when the net-worth goal
+ * itself is deleted, so a "start over" actually starts over instead of
+ * leaving orphaned holdings behind with nothing pointing at them. */
+export async function DELETE() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+
+  try {
+    await db.delete(holdings).where(eq(holdings.userId, userId));
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('[DELETE /api/holdings] DB error:', err);
+    return NextResponse.json({ error: 'Could not delete your holdings from the database.', detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
+}

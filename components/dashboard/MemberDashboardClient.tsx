@@ -16,7 +16,6 @@ import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { fmtINR } from '@/lib/roadmapActions';
 import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
-import { RecentToolsBanner } from '@/components/ui/RecentToolsBanner';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
@@ -151,24 +150,15 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
 
       {loading ? (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center text-gray-400 text-sm">Loading your dashboard…</div>
-      ) : !score ? (
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
-          <p className="text-4xl mb-4">🎯</p>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't taken your WellFiLab Score yet</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            Answer 3 quick questions and get your score, archetype, and a personalised action plan in under a minute.
-          </p>
-          <Link href="/score" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-sm transition-colors">
-            Get my score →
-          </Link>
-          <RecentToolsBanner className="mt-10" />
-        </div>
       ) : (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
           {/* ── Welcome band — the one deliberately-dark band regardless of
                theme, same role as a dark CTA band on an otherwise light
-               page; everything else below is fully theme-adaptive. ── */}
+               page; everything else below is fully theme-adaptive. Goals,
+               risk alerts, and key numbers below don't depend on having a
+               score — a goal set before ever taking the score must still
+               show up here, not get hidden behind a "take your score" wall. ── */}
           <div className="bg-[#0F2A27] rounded-xl p-6 flex flex-wrap justify-between items-center gap-5">
             <div className="flex items-center gap-3">
               {userImageUrl ? (
@@ -178,14 +168,17 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
               )}
               <div>
                 <h1 className="text-xl font-extrabold text-white leading-tight">{greeting}, {firstName}</h1>
-                <p className="text-sm text-[#93ADA8]">{dateLabel} · {actionsLeftToday} action{actionsLeftToday === 1 ? '' : 's'} left today</p>
+                <p className="text-sm text-[#93ADA8]">{dateLabel}{score ? ` · ${actionsLeftToday} action${actionsLeftToday === 1 ? '' : 's'} left today` : ''}</p>
               </div>
             </div>
             <div className="flex gap-2.5">
               <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
-                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score.overall}{scoreDelta != null && (
-                  <span className={`text-xs font-bold ml-1 ${scoreDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{scoreDelta > 0 ? '+' : ''}{scoreDelta}</span>
-                )}</p>
+                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">
+                  {score ? score.overall : '—'}
+                  {scoreDelta != null && (
+                    <span className={`text-xs font-bold ml-1 ${scoreDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{scoreDelta > 0 ? '+' : ''}{scoreDelta}</span>
+                  )}
+                </p>
                 <p className="text-[11px] text-[#93ADA8] mt-1">Score</p>
               </div>
               <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
@@ -193,63 +186,78 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
                 <p className="text-[11px] text-[#93ADA8] mt-1">Net worth</p>
               </div>
               <div className="bg-white/5 rounded-lg px-4 py-2.5 text-center min-w-[88px]">
-                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score.date ? new Date(score.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}</p>
-                <p className="text-[11px] text-[#93ADA8] mt-1">Last check-in{score.streakDays > 0 && <span className="inline-flex items-center gap-0.5 ml-1"><Flame size={10} />{score.streakDays}</span>}</p>
+                <p className="text-xl font-black text-teal-300 tabular-nums leading-none">{score?.date ? new Date(score.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}</p>
+                <p className="text-[11px] text-[#93ADA8] mt-1">Last check-in{score && score.streakDays > 0 && <span className="inline-flex items-center gap-0.5 ml-1"><Flame size={10} />{score.streakDays}</span>}</p>
               </div>
             </div>
           </div>
 
-          {/* ── Score, every month ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Your score, every month</p>
-              <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Full score →</Link>
+          {!score ? (
+            <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center">
+              <p className="text-3xl mb-3">🎯</p>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">You haven't taken your WellFiLab Score yet</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
+                Your goals below still track and save independently — the score adds a roadmap and a trend of its own on top.
+              </p>
+              <Link href="/score" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-[#04211E] font-semibold text-sm transition-colors">
+                Get my score →
+              </Link>
             </div>
-            <GoalTrendChart history={scoreTrend} unit="pts" color="#0d9488" emptyLabel="Retake your score a few times to see a real trend here." />
-          </div>
-
-          {/* ── Roadmap ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Today's actions</p>
-              <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Full roadmap →</Link>
-            </div>
-            {!roadmapStarted ? (
-              <div className="text-center py-4">
-                <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
-                <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
+          ) : (
+            <>
+              {/* ── Score, every month ── */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Your score, every month</p>
+                  <Link href="/score" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Full score →</Link>
+                </div>
+                <GoalTrendChart history={scoreTrend} unit="pts" color="#0d9488" emptyLabel="Retake your score a few times to see a real trend here." />
               </div>
-            ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
-              <>
-                <div className="space-y-3">
-                  {roadmapProgress.activePhaseActions.map(a => (
-                    <label key={a.id} className="flex items-start gap-3 cursor-pointer">
-                      <input type="checkbox" checked={a.checked} onChange={() => toggleCheck(a.id)}
-                        className="w-[18px] h-[18px] mt-0.5 accent-teal-600 flex-shrink-0" />
-                      <p className={`text-sm font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between text-xs text-gray-400 mt-4 mb-1.5">
-                  <span>Phase {roadmapProgress.activePhaseNum} of your roadmap</span>
-                  <span>{roadmapProgress.activePhaseChecked} of {roadmapProgress.activePhaseTotal} done</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className="h-full bg-teal-600 rounded-full transition-all" style={{ width: `${roadmapProgress.activePhaseTotal > 0 ? (roadmapProgress.activePhaseChecked / roadmapProgress.activePhaseTotal) * 100 : 0}%` }} /></div>
-              </>
-            ) : (
-              <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
-            )}
-          </div>
 
-          <NextStepsCard
-            dimensions={(() => {
-              const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, 'both'));
-              return focused.length > 0 ? focused : score.dimensions;
-            })()}
-            body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
-          />
+              {/* ── Roadmap ── */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Today's actions</p>
+                  <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Full roadmap →</Link>
+                </div>
+                {!roadmapStarted ? (
+                  <div className="text-center py-4">
+                    <p className="text-xs text-gray-400 mb-3">You haven't started your roadmap yet.</p>
+                    <Link href="/roadmap" className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">Start your roadmap →</Link>
+                  </div>
+                ) : roadmapProgress && roadmapProgress.activePhaseActions.length > 0 ? (
+                  <>
+                    <div className="space-y-3">
+                      {roadmapProgress.activePhaseActions.map(a => (
+                        <label key={a.id} className="flex items-start gap-3 cursor-pointer">
+                          <input type="checkbox" checked={a.checked} onChange={() => toggleCheck(a.id)}
+                            className="w-[18px] h-[18px] mt-0.5 accent-teal-600 flex-shrink-0" />
+                          <p className={`text-sm font-medium leading-tight ${a.checked ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}`}>{a.title}</p>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-400 mt-4 mb-1.5">
+                      <span>Phase {roadmapProgress.activePhaseNum} of your roadmap</span>
+                      <span>{roadmapProgress.activePhaseChecked} of {roadmapProgress.activePhaseTotal} done</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className="h-full bg-teal-600 rounded-full transition-all" style={{ width: `${roadmapProgress.activePhaseTotal > 0 ? (roadmapProgress.activePhaseChecked / roadmapProgress.activePhaseTotal) * 100 : 0}%` }} /></div>
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-400 py-2">No active phase yet — take your score to build a roadmap.</p>
+                )}
+              </div>
 
-          {/* ── Goal progress ── */}
+              <NextStepsCard
+                dimensions={(() => {
+                  const focused = score.dimensions.filter(d => dimMatchesFocus(d.id, 'both'));
+                  return focused.length > 0 ? focused : score.dimensions;
+                })()}
+                body={rawInputs?.body ?? null} finance={rawInputs?.finance ?? null}
+              />
+            </>
+          )}
+
+          {/* ── Goal progress — always shown, score or not ── */}
           <GoalProgressCard goals={goals} />
 
           {/* ── Other important things ── */}
