@@ -7,8 +7,10 @@ import useSWR from 'swr';
 import { Pencil } from 'lucide-react';
 import {
   getGoals, updateGoalProgress, updateGoalTarget, deleteGoal, getGoalHistory, GOAL_TYPE_META,
+  updateGoalDetails, addMilestone, setMilestoneAchieved, removeMilestone, type GoalPriority,
 } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
+import { estimateGoalProbability } from '@/lib/goalProbability';
 import { buildGoalProgressReport } from '@/lib/goalProgressReport';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
@@ -48,6 +50,9 @@ export default function GoalDetailPage() {
   );
   const [targetVal, setTargetVal] = useState('');
   const [targetDateVal, setTargetDateVal] = useState('');
+  const [notesVal, setNotesVal] = useState<string | null>(null);
+  const [newMilestoneLabel, setNewMilestoneLabel] = useState('');
+  const [newMilestoneValue, setNewMilestoneValue] = useState('');
   const { confirmDialog, dialog } = useConfirmDialog();
 
   const rawGoal = (goals ?? []).find(g => g.id === id);
@@ -86,7 +91,22 @@ export default function GoalDetailPage() {
   const paceStatus = getGoalPaceStatus(goal);
   const pace = paceStatus ? PACE_LABEL[paceStatus] : null;
   const eta = !complete ? estimateGoalETA(goal) : null;
+  const probability = !complete ? estimateGoalProbability(goal) : null;
   const report = buildGoalProgressReport(goal);
+  const notes = notesVal ?? goal.notes ?? '';
+  const priority: GoalPriority = goal.priority ?? 'medium';
+  const milestones = goal.milestones ?? [];
+
+  const setPriority = async (p: GoalPriority) => { await updateGoalDetails(goal.id, { priority: p }); refresh(); };
+  const saveNotes = async () => { await updateGoalDetails(goal.id, { notes }); refresh(); };
+  const addMilestoneNow = async () => {
+    if (!newMilestoneLabel.trim() || newMilestoneValue === '' || Number.isNaN(+newMilestoneValue)) return;
+    await addMilestone(goal, newMilestoneLabel.trim(), +newMilestoneValue);
+    setNewMilestoneLabel(''); setNewMilestoneValue('');
+    refresh();
+  };
+  const toggleMilestone = async (milestoneId: string, achieved: boolean) => { await setMilestoneAchieved(goal, milestoneId, achieved); refresh(); };
+  const deleteMilestone = async (milestoneId: string) => { await removeMilestone(goal, milestoneId); refresh(); };
 
   const startEdit = () => { setVal(goal.current); setEditing(true); };
   const save = async () => { await updateGoalProgress(goal.id, val); refresh(); setEditing(false); };
@@ -171,6 +191,16 @@ export default function GoalDetailPage() {
             </p>
           )}
 
+          {probability && probability.status === 'estimated' && (
+            <div className="flex items-center gap-3 mt-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+              <p className={`text-lg font-black tabular-nums flex-shrink-0 ${probability.pct >= 60 ? 'text-green-600 dark:text-green-400' : probability.pct >= 35 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{probability.pct}%</p>
+              <div>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Chance of hitting your target by {new Date(goal.targetDate!).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
+                <p className="text-[11px] text-gray-400">{probability.basis}</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
             {goal.type === 'net-worth' ? (
               <span className="text-xs text-gray-400">Updates automatically from your holdings below</span>
@@ -186,6 +216,48 @@ export default function GoalDetailPage() {
             )}
             <button onClick={remove} className="text-xs font-semibold text-gray-400 hover:text-red-500 ml-auto">Delete goal</button>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Priority</p>
+          <div className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full p-1 mb-5">
+            {(['low', 'medium', 'high'] as GoalPriority[]).map(p => (
+              <button key={p} onClick={() => setPriority(p)}
+                className={`text-xs font-bold px-3 py-1.5 rounded-full capitalize transition-colors ${
+                  priority === p ? 'bg-white dark:bg-gray-900 text-teal-600 dark:text-teal-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}>{p}</button>
+            ))}
+          </div>
+
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Milestones</p>
+          {milestones.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {milestones.map(m => {
+                const achieved = !!m.achievedDate;
+                return (
+                  <div key={m.id} className="flex items-center gap-3">
+                    <input type="checkbox" checked={achieved} onChange={e => toggleMilestone(m.id, e.target.checked)}
+                      className="w-[18px] h-[18px] accent-teal-600 flex-shrink-0" />
+                    <p className={`text-sm flex-1 ${achieved ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300 font-medium'}`}>
+                      {m.label} — {fmtVal(m.value, meta.unit)}
+                    </p>
+                    <button onClick={() => deleteMilestone(m.id)} className="text-gray-300 hover:text-red-500 text-xs flex-shrink-0">Remove</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input value={newMilestoneLabel} onChange={e => setNewMilestoneLabel(e.target.value)} placeholder="e.g. Halfway there"
+              className="flex-1 min-w-0 text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+            <input type="number" value={newMilestoneValue} onChange={e => setNewMilestoneValue(e.target.value)} placeholder={meta.unit || 'value'}
+              className="w-28 text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+            <button onClick={addMilestoneNow} className="px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex-shrink-0">Add</button>
+          </div>
+
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3 mt-5">Notes</p>
+          <textarea value={notes} onChange={e => setNotesVal(e.target.value)} onBlur={saveNotes} rows={2} placeholder="Anything worth remembering about this goal…"
+            className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500 resize-none" />
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">

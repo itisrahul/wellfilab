@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import {
-  getGoals, addGoal, GOAL_TYPE_META, type Goal, type GoalType,
+  getGoals, addGoal, GOAL_TYPE_META, type Goal, type GoalType, type GoalPriority,
 } from '@/lib/goalsStorage';
 import { syncScoreInputsFromAccount } from '@/lib/scoreInputs';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
@@ -38,6 +38,7 @@ export default function NewGoalPage() {
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
   const [targetDate, setTargetDate] = useState('');
+  const [priority, setPriority] = useState<GoalPriority>('medium');
   const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
 
   useEffect(() => {
@@ -105,9 +106,23 @@ export default function NewGoalPage() {
 
   const save = async () => {
     if (!type || !meta || target === '' || current === '' || existingTypes.has(type)) return;
-    await addGoal({ type, label: meta.label, target: +target, current: +current, targetDate: targetDate || undefined });
+    await addGoal({ type, label: meta.label, target: +target, current: +current, targetDate: targetDate || undefined, priority });
     goBack();
   };
+
+  const PrioritySelector = (
+    <div>
+      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Priority</label>
+      <div className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
+        {(['low', 'medium', 'high'] as GoalPriority[]).map(p => (
+          <button key={p} type="button" onClick={() => setPriority(p)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full capitalize transition-colors ${
+              priority === p ? 'bg-white dark:bg-gray-900 text-teal-600 dark:text-teal-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}>{p}</button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -166,6 +181,8 @@ export default function NewGoalPage() {
                 <GoalPathCalculator target={+target} current={liveNetWorth} targetDate={targetDate || undefined} />
               )}
 
+              {PrioritySelector}
+
               <div className="flex gap-2">
                 <button onClick={save} disabled={target === ''}
                   className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
@@ -216,6 +233,8 @@ export default function NewGoalPage() {
               {ACCUMULATION_GOAL_TYPES.includes(type) && target !== '' && current !== '' && !Number.isNaN(+target) && !Number.isNaN(+current) && +target > +current && (
                 <GoalPathCalculator target={+target} current={+current} targetDate={targetDate || undefined} />
               )}
+
+              {PrioritySelector}
 
               <div className="flex gap-2">
                 <button onClick={save} disabled={target === '' || current === '' || existingTypes.has(type)}

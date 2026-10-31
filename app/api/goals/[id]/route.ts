@@ -21,6 +21,12 @@ const patchGoalSchema = z.object({
   paused: z.boolean().optional(),
   target: z.number().optional(),
   targetDate: z.string().nullable().optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  milestones: z.array(z.object({
+    id: z.string(), label: z.string().min(1).max(200), value: z.number(),
+    targetDate: z.string().optional(), achievedDate: z.string().optional(),
+  })).optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -52,6 +58,9 @@ export async function PATCH(req: Request, { params }: Params) {
     if (body.targetDate !== undefined) {
       update.targetDate = body.targetDate ? new Date(body.targetDate) : null;
     }
+    if (body.priority !== undefined) update.priority = body.priority;
+    if (body.milestones !== undefined) update.milestones = body.milestones;
+    if (body.notes !== undefined) update.notes = body.notes;
 
     await db.update(goals).set(update).where(eq(goals.id, params.id));
     return NextResponse.json({ ok: true });

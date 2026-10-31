@@ -21,7 +21,7 @@
 
 import { pgTable, text, timestamp, doublePrecision, boolean, integer, jsonb, index, primaryKey } from 'drizzle-orm/pg-core';
 import type { WellFiScore, BodyInputs, FinanceInputs } from '../wellfilab-score';
-import type { GoalType, GoalHistoryPoint } from '../goalsStorage';
+import type { GoalType, GoalHistoryPoint, GoalPriority, GoalMilestone } from '../goalsStorage';
 import type { HoldingCategory, HoldingType, HoldingHistoryPoint } from '../holdingsStorage';
 import type { RoadmapChecks } from '../roadmapChecks';
 import type { PlanKind } from '../onboardingStorage';
@@ -49,6 +49,9 @@ export const goals = pgTable('goals', {
   lastUpdated: timestamp('last_updated', { withTimezone: true }).notNull(),
   paused: boolean('paused').notNull().default(false),
   history: jsonb('history').$type<GoalHistoryPoint[]>().notNull().default([]),
+  priority: text('priority').$type<GoalPriority>().notNull().default('medium'),
+  milestones: jsonb('milestones').$type<GoalMilestone[]>().notNull().default([]),
+  notes: text('notes'),
 }, (t) => [
   index('goals_user_id_idx').on(t.userId),
 ]);

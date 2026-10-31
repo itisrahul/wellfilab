@@ -18,6 +18,21 @@ export type GoalType =
 
 export interface GoalHistoryPoint { date: string; value: number }
 
+export type GoalPriority = 'low' | 'medium' | 'high';
+
+/** A real sub-target the user set on the way to the full goal — e.g. "₹25L
+ * by Dec 2026" on the way to a ₹1Cr net-worth goal. Marked achieved by the
+ * user, never auto-inferred from current crossing the value (crossing it on
+ * the way to a later milestone, or on a down-swing, shouldn't silently tick
+ * it off). */
+export interface GoalMilestone {
+  id: string;
+  label: string;
+  value: number;
+  targetDate?: string;
+  achievedDate?: string;
+}
+
 export interface Goal {
   id: string;
   type: GoalType;
@@ -37,6 +52,12 @@ export interface Goal {
    * below synthesizes a 2-point history (start → current) for those instead
    * of crashing or inventing points that were never actually recorded. */
   history?: GoalHistoryPoint[];
+  /** User-set importance — purely a sort/filter signal, never fed into the
+   * progress or probability math. Defaults to 'medium' server-side. */
+  priority?: GoalPriority;
+  /** Real sub-targets on the way to the goal, user-defined and user-marked. */
+  milestones?: GoalMilestone[];
+  notes?: string;
 }
 
 export const GOAL_TYPE_META: Record<GoalType, { label: string; icon: string; unit: string; category: 'wealth' | 'health' | 'score' }> = {
@@ -120,7 +141,7 @@ export async function getGoals(): Promise<Goal[]> {
   return readGoals();
 }
 
-export async function addGoal(input: { type: GoalType; label: string; target: number; current: number; targetDate?: string }): Promise<Goal> {
+export async function addGoal(input: { type: GoalType; label: string; target: number; current: number; targetDate?: string; priority?: GoalPriority; notes?: string }): Promise<Goal> {
   try {
     const res = await fetch('/api/goals', {
       method: 'POST',
@@ -141,6 +162,7 @@ export async function addGoal(input: { type: GoalType; label: string; target: nu
       current: input.current, startValue: input.current, startDate: now,
       targetDate: input.targetDate, lastUpdated: now,
       history: [{ date: now, value: input.current }],
+      priority: input.priority ?? 'medium', notes: input.notes,
     };
     writeGoals([...readGoals(), goal]);
     return goal;
@@ -180,6 +202,41 @@ export async function updateGoalTarget(id: string, target: number, targetDate?: 
   } catch { /* best-effort — local write below still applies */ }
 
   writeGoals(readGoals().map(g => g.id === id ? { ...g, target, targetDate } : g));
+}
+
+/** Priority, notes, and the full milestone list — grouped into one call
+ * since all three are plain metadata edited from the same "edit details"
+ * form, never auto-derived from progress updates. Pass only the fields
+ * that changed; omitted ones are left as-is both server- and client-side. */
+export async function updateGoalDetails(id: string, patch: { priority?: GoalPriority; notes?: string; milestones?: GoalMilestone[] }): Promise<void> {
+  try {
+    await fetch(`/api/goals/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  } catch { /* best-effort — local write below still applies */ }
+
+  writeGoals(readGoals().map(g => g.id === id ? { ...g, ...patch } : g));
+}
+
+/** Adds one milestone with a fresh id — the common case (append), so callers
+ * don't have to read the current list back just to push one entry. */
+export async function addMilestone(goal: Goal, label: string, value: number, targetDate?: string): Promise<void> {
+  const milestone: GoalMilestone = { id: genId(), label, value, targetDate };
+  await updateGoalDetails(goal.id, { milestones: [...(goal.milestones ?? []), milestone] });
+}
+
+/** Marks a milestone achieved (or un-marks it) — a real user action, never
+ * auto-ticked when `current` happens to cross the milestone's value. */
+export async function setMilestoneAchieved(goal: Goal, milestoneId: string, achieved: boolean): Promise<void> {
+  const now = new Date().toISOString();
+  const milestones = (goal.milestones ?? []).map(m => m.id === milestoneId ? { ...m, achievedDate: achieved ? now : undefined } : m);
+  await updateGoalDetails(goal.id, { milestones });
+}
+
+export async function removeMilestone(goal: Goal, milestoneId: string): Promise<void> {
+  await updateGoalDetails(goal.id, { milestones: (goal.milestones ?? []).filter(m => m.id !== milestoneId) });
 }
 
 export async function toggleGoalPause(id: string): Promise<void> {

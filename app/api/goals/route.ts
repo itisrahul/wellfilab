@@ -23,6 +23,9 @@ function toGoal(row: typeof goals.$inferSelect): Goal {
     lastUpdated: row.lastUpdated.toISOString(),
     paused: row.paused,
     history: row.history,
+    priority: row.priority,
+    milestones: row.milestones,
+    notes: row.notes ?? undefined,
   };
 }
 
@@ -60,6 +63,12 @@ const addGoalSchema = z.object({
   lastUpdated: z.string().optional(),
   paused: z.boolean().optional(),
   history: z.array(z.object({ date: z.string(), value: z.number() })).optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  milestones: z.array(z.object({
+    id: z.string(), label: z.string().min(1).max(200), value: z.number(),
+    targetDate: z.string().optional(), achievedDate: z.string().optional(),
+  })).optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 export async function POST(req: Request) {
@@ -86,6 +95,9 @@ export async function POST(req: Request) {
       lastUpdated: input.lastUpdated ? new Date(input.lastUpdated) : now,
       paused: input.paused ?? false,
       history: input.history ?? [{ date: now.toISOString(), value: input.current }],
+      priority: input.priority ?? 'medium',
+      milestones: input.milestones ?? [],
+      notes: input.notes,
     });
 
     const [row] = await db.select().from(goals).where(eq(goals.id, id));

@@ -209,6 +209,12 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           </div>
         </div>
         <div className="flex items-center gap-2.5 flex-shrink-0 ml-2">
+          {goal.priority === 'high' && <span title="High priority" className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400">High</span>}
+          {(goal.milestones?.length ?? 0) > 0 && (
+            <span title="Milestones" className="text-[10px] font-bold text-gray-400">
+              {goal.milestones!.filter(m => m.achievedDate).length}/{goal.milestones!.length} 🚩
+            </span>
+          )}
           <Link href={`/goals/${goal.id}`} title="Full page — view and edit" className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400"><ExternalLink size={15} /></Link>
           <button onClick={remove} title="Delete goal" className="text-gray-300 hover:text-red-500"><X size={16} /></button>
         </div>
