@@ -3,6 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  /* Tells the browser which palette to render *native* UI in — date/time
+   * pickers, <select> dropdown panels, scrollbars, number-input spinners,
+   * default checkbox/radio chrome. Without this, these always render with
+   * light-mode chrome (a white popup, a blue selected-date highlight)
+   * regardless of the page's own dark class, which is the jarring
+   * "stray dark blue box" look on an otherwise dark page. next-themes
+   * toggles the .dark class on <html> (attribute="class" in the provider),
+   * so this just needs to track that same class. */
+  :root { color-scheme: light; }
+  :root.dark { color-scheme: dark; }
+
   body {
     @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased;
     font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
