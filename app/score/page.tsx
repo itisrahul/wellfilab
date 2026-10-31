@@ -838,11 +838,14 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
         {/* The simple default path: who you are, what's weak, what to do,
             where to go next. Everything deeper is one click away below,
             not forced on a first-time view. */}
+
+        {/* SECTION 3: Archetype */}
+        <ArchetypeCard score={score} />
 
         {/* SECTION 5: 6 Dimensions */}
         <DimensionGrid dimensions={score.dimensions} />
@@ -851,7 +854,7 @@ function Results({ score, body, finance, history, onRetake }: ResultsProps) {
         {score.actions.length > 0 && (
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Do this next</p>
-            <div className="grid lg:grid-cols-3 gap-3">
+            <div className="space-y-3">
               {score.actions.map(a => (
                 <div key={a.rank} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                   <div className="flex items-start gap-3">
@@ -1380,6 +1383,32 @@ function WhatIfSimulator({ body, finance, baseline }: { body: BodyInputs; financ
 
 // ── Shared presentational pieces ─────────────────────────────────────────
 
+function ArchetypeCard({ score }: { score: WellFiScore }) {
+  const a = score.archetype;
+  return (
+    <div className={`rounded-2xl overflow-hidden bg-gradient-to-br ${a.color} p-7 text-white`}>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-4xl">{a.emoji}</span>
+        <div>
+          <h2 className="text-2xl font-extrabold leading-tight">{a.name}</h2>
+          <p className="text-sm text-white/80 font-semibold">{a.tagline}</p>
+        </div>
+      </div>
+      <p className="text-sm text-white/90 leading-relaxed mb-4">{a.description}</p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-white/10 rounded-xl p-3.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Strength</p>
+          <p className="text-xs text-white/90 leading-relaxed">{a.strength}</p>
+        </div>
+        <div className="bg-white/10 rounded-xl p-3.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Challenge</p>
+          <p className="text-xs text-white/90 leading-relaxed">{a.challenge}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TrajectoriesSection({ trajectories }: { trajectories: Trajectory[] }) {
   const style: Record<Trajectory['scenario'], string> = {
     current:  'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50',
@@ -1413,7 +1442,7 @@ function DimensionGrid({ dimensions }: { dimensions: Dimension[] }) {
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">The full breakdown</p>
-      <div className="grid sm:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {dimensions.map(d => (
           <div key={d.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
             <div className="flex items-center justify-between mb-2">

@@ -5,7 +5,7 @@ export type FlowStep = 'score' | 'roadmap' | 'goals' | 'dashboard';
 
 const STEPS: { id: FlowStep; label: string; href: string }[] = [
   { id: 'goals', label: 'Goals', href: '/goals' },
-  { id: 'score', label: 'Score', href: '/score' },
+  { id: 'score', label: 'Assessment', href: '/score' },
   { id: 'roadmap', label: 'Roadmap', href: '/roadmap' },
   { id: 'dashboard', label: 'Dashboard', href: '/dashboard' },
 ];

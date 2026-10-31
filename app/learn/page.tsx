@@ -31,14 +31,14 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       <div className="bg-gradient-to-b from-teal-50/50 to-white dark:from-teal-950/10 dark:to-gray-950 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Learn</p>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Understand the math, then the providers</h1>
           <p className="text-base text-gray-600 dark:text-gray-400 mt-2.5 max-w-xl">Every calculator has a matching guide. Where your roadmap points you at a real provider — a broker, an insurer, a bank — the comparisons here explain the real tradeoffs, not just a logo and a link.</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-14">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-14">
 
         {/* 4 ways to learn — the whole section at a glance */}
         <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5">

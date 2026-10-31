@@ -10,7 +10,7 @@ import { getRelevantAffiliates, type Affiliate } from '@/lib/affiliates';
 import { getGoals, GOAL_TYPE_META, type Goal, type GoalType } from '@/lib/goalsStorage';
 import { progressPct, fmtVal } from '@/lib/goalDisplay';
 import {
-  DUMMY_QUICK, fmtINR, getDimActions, HEALTH_TOOL_SLUGS, FINANCE_TOOL_SLUGS,
+  DUMMY_QUICK, fmtINR, getDimActions, DIM_CATEGORY_TITLE, HEALTH_TOOL_SLUGS, FINANCE_TOOL_SLUGS,
   BOOK_REC, howEasyTime,
 } from '@/lib/roadmapActions';
 import { getScoreFocus, setScoreFocus, dimMatchesFocus, type ScoreFocus } from '@/lib/scoreFocus';
@@ -94,6 +94,7 @@ export default function RoadmapPage() {
   const secondDim: Dimension | undefined = sortedDims[1];
   const thirdDim: Dimension | undefined = sortedDims[2];
 
+  const findDim = (id: string) => score.dimensions.find(d => d.id === id);
   const rBody = rawInputs?.body ?? null;
   const rFinance = rawInputs?.finance ?? null;
 
@@ -195,7 +196,7 @@ export default function RoadmapPage() {
       {/* SECTION 1: Header */}
       <div className="bg-[#0F2A27]">
         <FlowNav current="roadmap" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 border-t border-white/5">
           <div className="flex items-start justify-between flex-wrap gap-6">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Personalised Roadmap</p>
@@ -242,7 +243,7 @@ export default function RoadmapPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
         {/* Keep the flow moving before the detail below — this is a plan,
             not a dead end, so the next steps are visible immediately. */}
@@ -257,6 +258,9 @@ export default function RoadmapPage() {
           <p className="text-xs text-gray-400">Focus this roadmap on:</p>
           <FocusSelector focus={focus} onChange={handleFocusChange} />
         </div>
+
+        {/* SECTION 2: Root cause diagnosis */}
+        <RootCauseCard lowestDim={lowestDim} findDim={findDim} />
 
         {/* SECTION 2B: What completing this roadmap could do to your score */}
         {projectedScore && scoreGain > 0 && (
@@ -281,7 +285,7 @@ export default function RoadmapPage() {
         {/* SECTION 3: Dimension scores */}
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Your dimensions</p>
-          <div className="grid sm:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {score.dimensions.map(d => (
               <div key={d.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -425,6 +429,51 @@ export default function RoadmapPage() {
 }
 
 // ── Section 2: Root cause ────────────────────────────────────────────────
+
+function RootCauseCard({ lowestDim, findDim }: { lowestDim: Dimension; findDim: (id: string) => Dimension | undefined }) {
+  const category = ['sleep', 'movement'].includes(lowestDim.id) ? 'body' : lowestDim.id === 'stress' ? 'stress' : 'finance';
+  const title = DIM_CATEGORY_TITLE[lowestDim.id] ?? 'Your Starting Point';
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 border-l-4 border-l-teal-500 p-6">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">Your starting point</p>
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{title}</h2>
+        <span className="text-lg font-black" style={{ color: lowestDim.score >= 50 ? '#f59e0b' : '#ef4444' }}>{lowestDim.score}/100</span>
+      </div>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">{lowestDim.insight}</p>
+
+      {category === 'body' && (
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why this is your starting point:</p>
+          {findDim('stress') && <p>Sleep and stress reinforce each other — your stress score of {findDim('stress')!.score}/100 is worth watching as this improves.</p>}
+          <p>Fixing sleep first is usually the highest-leverage move — most other habits (movement, food choices, decision-making) get easier once it's under control.</p>
+        </div>
+      )}
+      {category === 'stress' && (
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why this is your starting point:</p>
+          <p>{lowestDim.insight} — stress and sleep quality tend to reinforce each other in both directions.</p>
+          <p>Bringing stress down first tends to make every other change on this roadmap easier to sustain.</p>
+        </div>
+      )}
+      {category === 'finance' && (
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+          <p className="font-bold text-gray-800 dark:text-gray-200">Why this is your starting point:</p>
+          <p>{lowestDim.insight}. Financial stability tends to remove a real source of background stress — worth watching your sleep and stress scores as this improves.</p>
+          <p>Your sleep score is {findDim('sleep')?.score ?? 'N/A'}/100 — building a real financial foundation often eases this too, without a separate effort.</p>
+        </div>
+      )}
+      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 leading-relaxed">
+        <strong className="text-gray-500 dark:text-gray-400">If this stays unaddressed:</strong>{' '}
+        {category === 'body' && 'nothing dramatic happens overnight — the cost compounds quietly, in energy, decisions, and the everyday cortisol load on your other scores, not in a single event.'}
+        {category === 'stress' && 'the connection to your sleep and spending tends to stay a closed loop, each one keeping the other from improving on its own.'}
+        {category === 'finance' && "the buffer stays thin, so the next unplanned expense lands as a shock instead of an inconvenience — that's the actual risk, not a specific number."}
+        {' '}This isn't urgent in a crisis sense — it's worth starting because it compounds, same as the fixes below.
+      </div>
+    </div>
+  );
+}
 
 // ── Section 4 pieces ──────────────────────────────────────────────────────
 

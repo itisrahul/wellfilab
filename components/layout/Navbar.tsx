@@ -243,7 +243,7 @@ type MegaKey = 'tools' | 'learn';
 const NAV: { href: string; label: string; mega?: MegaKey }[] = [
   { href:'/tools',   label:'Calculators', mega:'tools' },
   { href:'/goals',   label:'Goals' },
-  { href:'/score',   label:'Score' },
+  { href:'/score',   label:'Assessment' },
   { href:'/roadmap', label:'Roadmap' },
   { href:'/learn',   label:'Learn', mega:'learn' },
   ...(PLANS_ENABLED ? [{ href:'/plan', label:'Plans' }] : []),
