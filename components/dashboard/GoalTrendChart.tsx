@@ -36,8 +36,10 @@ export function GoalTrendChart({ history, target, unit, color = '#0d9488', empty
   const convertedTarget = target != null && isMoney ? convertFromINR(target) : target;
 
   if (points.length < 2) {
+    // A one-line message never needs the full chart height — real data
+    // shows a real 140px chart below; this is just "nothing to plot yet."
     return (
-      <div className="h-[140px] flex flex-col items-center justify-center text-center">
+      <div className="h-11 flex items-center justify-center text-center">
         <p className="text-xs text-gray-400">{emptyLabel}</p>
       </div>
     );

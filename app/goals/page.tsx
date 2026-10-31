@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import useSWR, { mutate } from 'swr';
-import { ExternalLink, Pencil, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { ExternalLink, X, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   getGoals, updateGoalProgress, deleteGoal, getGoalHistory,
   getGoalsSyncError, GOAL_TYPE_META, type Goal, type GoalType,
@@ -140,7 +140,11 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
   const [val, setVal] = useState(goal.current);
   const [justCompleted, setJustCompleted] = useState(false);
   const [showReport, setShowReport] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  // Starts collapsed — a grid of fully-expanded cards (chart, recommendation,
+  // holdings, advanced report) only ever shows one or two at a time; minimal
+  // by default so many goals are scannable at once, expand the ones you
+  // actually want detail on.
+  const [collapsed, setCollapsed] = useState(true);
   const { confirmDialog, dialog } = useConfirmDialog();
   const pct = progressPct(goal);
   const complete = isGoalComplete(goal);
@@ -188,8 +192,7 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           </div>
         </div>
         <div className="flex items-center gap-2.5 flex-shrink-0 ml-2">
-          <Link href={`/goals/${goal.id}`} title="Full page" className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400"><ExternalLink size={15} /></Link>
-          <Link href={`/goals/${goal.id}?edit=1`} title="Edit target & date" className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400"><Pencil size={15} /></Link>
+          <Link href={`/goals/${goal.id}`} title="Full page — view and edit" className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400"><ExternalLink size={15} /></Link>
           <button onClick={remove} title="Delete goal" className="text-gray-300 hover:text-red-500"><X size={16} /></button>
         </div>
       </div>
