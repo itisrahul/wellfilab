@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 
 export default function FDvsMFCalc() {
   const [curr,    setCurr]    = useState('INR');
@@ -12,7 +12,7 @@ export default function FDvsMFCalc() {
   const [taxSlab, setTaxSlab] = useState(30);
   const [monthly, setMonthly] = useState(0);
 
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   // FD: interest taxed every year at slab rate
   const calcFD = () => {
@@ -60,7 +60,6 @@ export default function FDvsMFCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Lump sum investment" value={amount} onChange={setAmount} sym={C.sym} step={50000}/>
       <MoneyIn label="Monthly top-up (optional)" value={monthly} onChange={setMonthly} sym={C.sym} step={1000}/>
       <div className="grid grid-cols-2 gap-3">

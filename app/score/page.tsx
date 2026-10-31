@@ -12,6 +12,8 @@ import { getLatestScore, getScoreHistory, saveScore } from '@/lib/scoreStorage';
 import { saveRawInputs, syncScoreInputsFromAccount, saveAge, loadAge } from '@/lib/scoreInputs';
 import { getSnapshots } from '@/lib/netWorthHistory';
 import { getHoldings, computeTotals } from '@/lib/holdingsStorage';
+import { fmtMoney } from '@/lib/currency';
+import { useCurrency } from '@/lib/useCurrency';
 
 /** The real holdings tracker is the current source of truth for net worth;
  * the older manual-snapshot mechanism (lib/netWorthHistory.ts) is kept only
@@ -40,12 +42,7 @@ const EMPTY_FINANCE: FinanceInputs = {
   monthlyInvestments: 0, hasEmergencyFund: false, hasInsurance: false,
 };
 
-function fmtINR(n: number): string {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
-  return `₹${Math.round(n).toLocaleString('en-IN')}`;
-}
+const fmtINR = fmtMoney;
 
 function useDebounced<T>(value: T, delay = 250): T {
   const [debounced, setDebounced] = useState(value);
@@ -760,6 +757,7 @@ interface ResultsProps {
 }
 
 function Results({ score, body, finance, history, onRetake }: ResultsProps) {
+  useCurrency(); // re-render when the global currency changes
   const { isSignedIn } = useUser();
   const animatedOverall = useCountUp(score.overall);
   const [whyOpen, setWhyOpen] = useState(false);

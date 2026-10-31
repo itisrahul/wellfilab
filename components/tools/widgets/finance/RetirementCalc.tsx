@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcRetirement, calcRetirementStepUp } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const SCENARIOS = [
@@ -18,7 +18,7 @@ export default function RetirementCalc() {
   const [epf, setEpf] = useState(0);
   const [otherIncome, setOtherIncome] = useState(0);
   const [view, setView]     = useState('table');
-  const C=useCurr(curr);
+  const C=useGlobalCurr();
 
   // "Other income at retirement" (rental, part-time work) reduces how much
   // corpus needs to cover — fed into the EXISTING calcRetirement as a net
@@ -50,7 +50,6 @@ export default function RetirementCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div className="grid grid-cols-2 gap-3">
         <NumIn label="Current age" value={age} onChange={setAge} min={18} max={60}/>
         <NumIn label="Retirement age" value={retAge} onChange={setRetAge} min={40} max={80}/>

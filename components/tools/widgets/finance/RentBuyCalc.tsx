@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 
 function calcRentVsBuy(params: {
   homePrice: number; downPct: number; loanRate: number;
@@ -75,7 +75,7 @@ export default function RentBuyCalc() {
   const [years, setYears]      = useState(15);
   const [maint, setMaint]      = useState(1);
 
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcRentVsBuy({ homePrice, downPct, loanRate, propAppreciation: propApp, rentMonthly: rent, rentIncrease: rentInc, investReturn: invest, years, maintenancePct: maint });
 
   const buyWins = r.last.propertyValue - r.last.totalCostBuy > 0;
@@ -83,7 +83,6 @@ export default function RentBuyCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Home price" value={homePrice} onChange={setHome} sym={C.sym} step={100000}/>
       <div className="grid grid-cols-2 gap-3">
         <PctIn label="Down payment %" value={downPct} onChange={setDown} step={5} hint={`${C.sym}${fmtFull(homePrice*downPct/100,0)}`}/>

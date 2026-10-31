@@ -2,14 +2,13 @@
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcInflation } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function InflationCalc() {
   const [curr,setCurr]=useState('INR'),[amount,setAmount]=useState(10000),[rate,setRate]=useState(6),[years,setYears]=useState(10),[dir,setDir]=useState<'future'|'past'>('future');
-  const C=useCurr(curr); const r=calcInflation(amount,rate,years,dir);
+  const C=useGlobalCurr(); const r=calcInflation(amount,rate,years,dir);
   const chart=Array.from({length:Math.min(years,30)},(_,i)=>({year:i+1,value:Math.round(calcInflation(amount,rate,i+1,dir).result)}));
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div className="flex overflow-hidden rounded-lg border-2 border-gray-300 dark:border-gray-600">
         <button onClick={()=>setDir('future')} className={`flex-1 py-2.5 text-xs font-bold transition-all ${dir==='future'?'bg-orange-500 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>Future cost</button>
         <button onClick={()=>setDir('past')}   className={`flex-1 py-2.5 text-xs font-bold transition-all ${dir==='past'?'bg-orange-500 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>Past value</button>

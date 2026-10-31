@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcStockAverage } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, NumIn, Stat, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, NumIn, Stat, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 interface Purchase { shares: number; price: number; }
@@ -11,7 +11,7 @@ export default function StockAverageCalc() {
   const [curr, setCurr] = useState('INR');
   const [purchases, setPurchases] = useState<Purchase[]>(DEFAULT_PURCHASES);
   const [marketPrice, setMarketPrice] = useState(220);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcStockAverage(purchases);
   const currentValue = r.totalShares * marketPrice;
@@ -32,7 +32,6 @@ export default function StockAverageCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div>
         <label className="calc-label">Purchases</label>
         <div className="space-y-2">

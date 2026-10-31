@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { CURRENCIES } from '@/lib/calc';
+import { setCurrentCurrencyCode } from '@/lib/currency';
 
 const KEY = 'wfl_currency_pref';
 
@@ -28,17 +29,22 @@ export function CurrencyProvider({ children }: { children?: React.ReactNode }) {
       const saved = localStorage.getItem(KEY);
       if (saved && CURRENCIES.find(c => c.code === saved)) {
         setCurrencyState(saved);
+        setCurrentCurrencyCode(saved);
       } else {
         // Detect from browser locale
         const locale = navigator.language || 'en-US';
         const detected = detectCurrencyFromLocale(locale);
-        if (detected) setCurrencyState(detected);
+        if (detected) { setCurrencyState(detected); setCurrentCurrencyCode(detected); }
       }
     } catch {}
   }, []);
 
+  // lib/currency.ts's plain formatters (fmtMoney, fmtINR, fmtVal, …) can't
+  // call this hook, so this mirrors every change into its module-level
+  // variable too — the one place that plain/React state has to stay synced.
   const setCurrency = useCallback((code: CurrencyCode) => {
     setCurrencyState(code);
+    setCurrentCurrencyCode(code);
     try { localStorage.setItem(KEY, code); } catch {}
   }, []);
 

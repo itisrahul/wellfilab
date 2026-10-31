@@ -261,7 +261,7 @@ export const CURRENCIES = [
   { code:'KRW', sym:'₩', flag:'🇰🇷', name:'South Korean Won' },
   { code:'ZAR', sym:'R', flag:'🇿🇦', name:'South African Rand' },
 ] as const;
-const FX: Record<string, number> = { USD:1,EUR:0.92,GBP:0.79,INR:83.5,JPY:157,AED:3.67,AUD:1.54,CAD:1.36,SGD:1.34,CHF:0.9,CNY:7.24,BRL:5.14,MYR:4.72,KRW:1370,ZAR:18.6 };
+export const FX: Record<string, number> = { USD:1,EUR:0.92,GBP:0.79,INR:83.5,JPY:157,AED:3.67,AUD:1.54,CAD:1.36,SGD:1.34,CHF:0.9,CNY:7.24,BRL:5.14,MYR:4.72,KRW:1370,ZAR:18.6 };
 export function calcCurrency(amount: number, from: string, to: string) {
   const r = (FX[to] ?? 1) / (FX[from] ?? 1);
   return { result: Math.round(amount * r * 100) / 100, rate: Math.round(r * 10000) / 10000 };

@@ -8,6 +8,8 @@ import {
   HOLDING_TYPES, HOLDING_TYPE_META, type HoldingCategory, type HoldingType,
 } from '@/lib/holdingsStorage';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { fmtMoney } from '@/lib/currency';
+import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 const GoalTrendChart = dynamic(
@@ -15,14 +17,7 @@ const GoalTrendChart = dynamic(
   { ssr: false, loading: () => <div className="h-[140px] animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" /> }
 );
 
-function fmtINR(n: number): string {
-  const sign = n < 0 ? '−' : '';
-  const abs = Math.abs(n);
-  if (abs >= 10000000) return `${sign}₹${(abs / 10000000).toFixed(2)}Cr`;
-  if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(1)}L`;
-  if (abs >= 1000) return `${sign}₹${(abs / 1000).toFixed(0)}K`;
-  return `${sign}₹${abs.toLocaleString('en-IN')}`;
-}
+const fmtINR = fmtMoney;
 
 /**
  * The real-holdings breakdown + history, self-contained (own SWR fetching)
@@ -33,6 +28,7 @@ function fmtINR(n: number): string {
  * parent goal card already shows current/target/progress.
  */
 export function AssetTrackerPanel({ compact = false }: { compact?: boolean }) {
+  useCurrency(); // re-render when the global currency changes
   const { data: holdings, isLoading: holdingsLoading, mutate: refreshHoldings } = useSWR(SWR_KEYS.holdings, getHoldings);
   const [showAdd, setShowAdd] = useState(false);
 

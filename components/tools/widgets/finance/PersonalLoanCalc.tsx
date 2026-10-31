@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcPersonalLoan } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function PersonalLoanCalc() {
@@ -12,7 +12,7 @@ export default function PersonalLoanCalc() {
   const [years, setYears] = useState(3);
   const [extra, setExtra] = useState(0);
   const [view, setView] = useState('table');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcPersonalLoan(principal, rate, years, extra);
   const base = calcPersonalLoan(principal, rate, years, 0);
   const saved = base.interest - r.interest;
@@ -29,7 +29,6 @@ export default function PersonalLoanCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Loan amount" value={principal} onChange={setPrincipal} sym={C.sym} step={10000}/>
         <PctIn label="Interest rate % p.a." value={rate} onChange={setRate} step={0.5}
           hint="Personal loans are unsecured — typically 10-24% depending on credit profile"/>

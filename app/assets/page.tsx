@@ -6,6 +6,8 @@ import { getGoals, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus } from '@/lib/goalPace';
 import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
+import { fmtMoney } from '@/lib/currency';
+import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 /**
@@ -17,6 +19,7 @@ import { SWR_KEYS } from '@/lib/swrKeys';
  * bookmark/link — same data, same component, not a second implementation.
  */
 export default function AssetsPage() {
+  useCurrency(); // re-render this page when the global currency changes
   const { data: holdings } = useSWR(SWR_KEYS.holdings, getHoldings);
   const { data: goals } = useSWR(SWR_KEYS.goals, getGoals);
 
@@ -43,7 +46,7 @@ export default function AssetsPage() {
         {netWorthGoal ? (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">
-              Path to your net worth goal — target {fmtINR(netWorthGoal.target)}
+              Path to your net worth goal — target {fmtMoney(netWorthGoal.target)}
             </p>
             <NetWorthGoalProgress goal={netWorthGoal} current={netWorthGoal.current} />
             <GoalPathCalculator target={netWorthGoal.target} current={netWorthGoal.current} targetDate={netWorthGoal.targetDate} />
@@ -63,13 +66,6 @@ export default function AssetsPage() {
   );
 }
 
-function fmtINR(n: number): string {
-  if (Math.abs(n) >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
-  if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (Math.abs(n) >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
-  return `₹${n.toLocaleString('en-IN')}`;
-}
-
 function NetWorthGoalProgress({ goal, current }: { goal: Goal; current: number }) {
   const eta = estimateGoalETA(goal);
   const pace = getGoalPaceStatus(goal);
@@ -81,7 +77,7 @@ function NetWorthGoalProgress({ goal, current }: { goal: Goal; current: number }
         <div className="h-full bg-teal-500 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-        <span className="font-bold text-gray-700 dark:text-gray-300">{Math.round(pct)}% there — {fmtINR(current)} of {fmtINR(goal.target)}</span>
+        <span className="font-bold text-gray-700 dark:text-gray-300">{Math.round(pct)}% there — {fmtMoney(current)} of {fmtMoney(goal.target)}</span>
         <div className="flex items-center gap-2">
           {pace && <span className={`font-bold px-2 py-0.5 rounded-full ${pace === 'ahead' ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400' : pace === 'behind' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{pace === 'ahead' ? 'Ahead' : pace === 'behind' ? 'Behind' : 'On track'}</span>}
           {eta && <span className="text-gray-400">{eta}</span>}

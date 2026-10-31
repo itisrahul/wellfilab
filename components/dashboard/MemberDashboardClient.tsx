@@ -14,6 +14,7 @@ import { dimMatchesFocus } from '@/lib/scoreFocus';
 import { syncRoadmapChecksFromAccount, toggleRoadmapCheck, type RoadmapChecks } from '@/lib/roadmapChecks';
 import { hasUnimportedLocalData } from '@/lib/accountImport';
 import { fmtINR } from '@/lib/roadmapActions';
+import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { RecentToolsBanner } from '@/components/ui/RecentToolsBanner';
 import { ImportLocalDataBanner } from './ImportLocalDataBanner';
@@ -63,6 +64,7 @@ function Metric({ label, value, pct, color, note }: { label: string; value: stri
  * detail a glance doesn't need here.
  */
 export function MemberDashboardClient({ userName, userImageUrl }: Props) {
+  useCurrency(); // re-render when the global currency changes
   const [showImportBanner, setShowImportBanner] = useState(false);
   const [roadmapStarted, setRoadmapStarted] = useState(false);
   const firstName = userName.split(' ')[0];

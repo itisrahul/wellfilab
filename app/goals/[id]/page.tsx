@@ -16,6 +16,7 @@ import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressRepo
 import { getHoldings, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 const ACCUMULATION_GOAL_TYPES = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
@@ -34,6 +35,7 @@ const GoalTrendChart = dynamic(
  * holding →" already uses on the dashboard to send people to /assets.
  */
 export default function GoalDetailPage() {
+  useCurrency(); // re-render when the global currency changes
   const params = useParams();
   const id = params.id as string;
 

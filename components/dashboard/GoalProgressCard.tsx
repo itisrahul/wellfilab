@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { GOAL_TYPE_META, getGoalHistory, type Goal } from '@/lib/goalsStorage';
 import { estimateGoalETA, getGoalPaceStatus, type GoalPaceStatus } from '@/lib/goalPace';
 import { fmtINR } from '@/lib/roadmapActions';
+import { useCurrency } from '@/lib/useCurrency';
 import type { ScoreFocus } from '@/lib/scoreFocus';
 import { LinkChip, LinkBar } from './LinkChip';
 
@@ -48,6 +49,7 @@ function progressPct(g: Goal): number {
 }
 
 export function GoalProgressCard({ goals, focus = 'both' }: { goals: Goal[]; focus?: ScoreFocus }) {
+  useCurrency(); // re-render when the global currency changes
   // 'score' category goals are cross-cutting (a WellFiLab Score target isn't
   // purely health or wealth) so they stay visible in either single-focus view.
   const active = goals.filter(g => !g.paused && (focus === 'both' || GOAL_TYPE_META[g.type].category === focus || GOAL_TYPE_META[g.type].category === 'score'));

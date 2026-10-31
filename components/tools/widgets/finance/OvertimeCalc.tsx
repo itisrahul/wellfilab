@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcOvertime } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, NumIn, Toggle, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, NumIn, Toggle, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const MULTIPLIERS = [1.25, 1.5, 2];
@@ -15,7 +15,7 @@ export default function OvertimeCalc() {
   const [customMult, setCustomMult] = useState(1.5);
   const [isCustom, setIsCustom] = useState(false);
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const effMult = isCustom ? customMult : multiplier;
   const r = calcOvertime(hourlyRate, regularHours, overtimeHours, effMult, period);
@@ -32,7 +32,6 @@ export default function OvertimeCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Regular hourly rate" value={hourlyRate} onChange={setHourlyRate} sym={C.sym} step={10}/>
       <div className="grid grid-cols-2 gap-3">
         <NumIn label="Regular hours" value={regularHours} onChange={setRegularHours} min={0} max={80}/>

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcMargin } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 type Mode = 'margin' | 'revenue' | 'cost';
@@ -12,7 +12,7 @@ export default function MarginCalc() {
   const [cost, setCost] = useState(600);
   const [revenue, setRevenue] = useState(1000);
   const [targetMargin, setTargetMargin] = useState(40);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   // Derive an effective cost/revenue pair for every mode so calcMargin can
   // always run the same way — revenue/cost modes just solve for the
@@ -33,7 +33,6 @@ export default function MarginCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div>
         <label className="calc-label">Mode</label>
         <div className="grid grid-cols-1 gap-1.5">

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcPayRaise } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Box, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Box, Table, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 type Period = 'annual' | 'monthly' | 'hourly';
@@ -14,7 +14,7 @@ export default function PayRaiseCalc() {
   const [raiseType, setRaiseType] = useState<'percent' | 'amount'>('percent');
   const [raisePct, setRaisePct] = useState(10);
   const [raiseAmt, setRaiseAmt] = useState(50000);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const raiseValue = raiseType === 'percent' ? raisePct : raiseAmt;
   const r = calcPayRaise(salary, raiseType, raiseValue, period, hoursPerWeek);
@@ -29,7 +29,6 @@ export default function PayRaiseCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Current salary" value={salary} onChange={setSalary} sym={C.sym} step={5000}/>
       <div>
         <label className="calc-label">Pay period</label>

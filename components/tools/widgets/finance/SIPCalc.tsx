@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcSIP, calcMonthlyNeeded, calcInflation } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Toggle, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Toggle, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const COMPARE_RATES = [8, 10, 12, 15];
@@ -18,7 +18,7 @@ export default function SIPCalc() {
   const [stepup, setStepup]   = useState(10);
   const [lump, setLump]       = useState(0);
   const [view, setView]       = useState('table');
-  const C    = useCurr(curr);
+  const C    = useGlobalCurr();
 
   const monthlyNeeded = Math.round(calcMonthlyNeeded(goalAmount, lump, yrs * 12, rate));
   const effectiveMonthly = goalMode ? monthlyNeeded : monthly;
@@ -41,7 +41,6 @@ export default function SIPCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div>
         <label className="calc-label">Mode</label>
         <Toggle v={goalMode} a="I invest ₹X" b="I want to reach ₹X" onA={() => setGoalMode(false)} onB={() => setGoalMode(true)}/>

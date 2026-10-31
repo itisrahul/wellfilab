@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcFIREAdvanced } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 type FireType = 'standard' | 'lean' | 'fat' | 'custom';
@@ -20,7 +20,7 @@ export default function FIRECalc() {
   const [fireType, setFireType] = useState<FireType>('standard');
   const [customMult, setCustomMult] = useState(25);
   const [view, setView] = useState('table');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const years = Math.max(1, targetAge - currentAge);
   const selectedMultiplier = fireType === 'custom' ? Math.max(1, customMult) : MULTIPLIER[fireType];
@@ -47,7 +47,6 @@ export default function FIRECalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div className="grid grid-cols-2 gap-3">
         <NumIn label="Current age" value={currentAge} onChange={setCurrentAge} min={16} max={70}/>
         <NumIn label="Target FIRE age" value={targetAge} onChange={setTargetAge} min={currentAge + 1} max={80}

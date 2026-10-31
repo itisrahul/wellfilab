@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcNetWorth } from '@/lib/calc';
-import { Shell, CurrPills, useCurr, fmtFull, fmtSmart } from '@/components/tools/shared';
+import { Shell, useCurr, useGlobalCurr, fmtFull, fmtSmart } from '@/components/tools/shared';
 import { mutate } from 'swr';
 import { getSnapshots, addSnapshot, deleteSnapshot, clearSnapshots, type NetWorthSnapshot } from '@/lib/netWorthHistory';
 import { getLatestScore } from '@/lib/scoreStorage';
@@ -19,7 +19,7 @@ export default function NetWorthCalc() {
   const [history, setHistory] = useState<NetWorthSnapshot[]>([]);
   const [saved, setSaved] = useState(false);
   const [score, setScore] = useState<WellFiScore | null>(null);
-  const C=useCurr(curr); const r=calcNetWorth(assets,liabs);
+  const C=useGlobalCurr(); const r=calcNetWorth(assets,liabs);
   const ua=(i:number,f:string,v:string|number)=>{const a=[...assets];(a[i] as Record<string,string|number>)[f]=v;setAssets(a);};
   const ul=(i:number,f:string,v:string|number)=>{const l=[...liabs];(l[i] as Record<string,string|number>)[f]=v;setLiabs(l);};
 
@@ -51,7 +51,6 @@ export default function NetWorthCalc() {
   return (
     <>
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <p className="calc-label">Assets (what you own)</p>
       {assets.map((a,i)=><div key={i} className="flex gap-2"><input type="text" value={a.label} onChange={e=>ua(i,'label',e.target.value)} className="flex-1 text-xs border-2 border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-orange-500"/><input type="number" value={a.value} onChange={e=>ua(i,'value',+e.target.value)} className="w-24 text-xs border-2 border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:border-orange-500" style={{fontFamily:"var(--font-mono,monospace)"}}/><button onClick={()=>setAssets(assets.filter((_,j)=>j!==i))} className="text-red-400 hover:text-red-600 text-xs">✕</button></div>)}
       <button onClick={()=>setAssets([...assets,{label:'New Asset',value:0}])} className="text-xs text-orange-500 font-semibold hover:underline">+ Add asset</button>

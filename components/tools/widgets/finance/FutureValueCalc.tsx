@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcFutureValue } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Toggle, Stat, Table, ViewToggle, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Toggle, Stat, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function FutureValueCalc() {
@@ -13,7 +13,7 @@ export default function FutureValueCalc() {
   const [pmt, setPmt] = useState(0);
   const [timing, setTiming] = useState<'end' | 'begin'>('end');
   const [view, setView] = useState('table');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcFutureValue(pv, rate, years, pmt, timing);
   const totalInvested = pv + pmt * years;
@@ -29,7 +29,6 @@ export default function FutureValueCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Present value" value={pv} onChange={setPv} sym={C.sym} step={10000}/>
       <PctIn label="Annual interest rate" value={rate} onChange={setRate} step={0.5}/>
       <NumIn label="Number of years" value={years} onChange={setYears} min={1} max={50}/>

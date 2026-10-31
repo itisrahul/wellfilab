@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcLeanFIRE } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function LeanFIRECalc() {
@@ -11,7 +11,7 @@ export default function LeanFIRECalc() {
   const [portfolio, setPortfolio] = useState(500000);
   const [monthly, setMonthly] = useState(30000);
   const [roi, setRoi] = useState(11);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcLeanFIRE(annualExp, leanPct, portfolio, monthly, roi);
 
   useEffect(() => {
@@ -25,7 +25,6 @@ export default function LeanFIRECalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Current annual expenses" value={annualExp} onChange={setAnnualExp} sym={C.sym} step={50000}/>
         <PctIn label="Lean cut % (vs current spending)" value={leanPct} onChange={setLeanPct} step={5}
           hint={`Lean target: ${C.sym}${fmtFull(annualExp*(1-leanPct/100),0)}/year`}/>

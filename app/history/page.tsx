@@ -8,6 +8,7 @@ import { getSnapshots } from '@/lib/netWorthHistory';
 import { getHoldings, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { syncRoadmapChecksFromAccount, checkedAt } from '@/lib/roadmapChecks';
 import { fmtINR } from '@/lib/roadmapActions';
+import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 interface TimelineEvent {
@@ -37,6 +38,7 @@ function labelRoadmapCheck(id: string): string {
 }
 
 export default function HistoryPage() {
+  useCurrency(); // re-render when the global currency changes
   const { isSignedIn } = useUser();
   const { data: scoreHistory, isLoading: scoreLoading } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
   const { data: rawGoals, isLoading: goalsLoading } = useSWR(SWR_KEYS.goals, getGoals);

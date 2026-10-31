@@ -1,13 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { calcMonthlyNeeded } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function InvGoalCalc() {
   const [curr,setCurr]=useState('INR'),[goal,setGoal]=useState(10000000),[current,setCurrent]=useState(100000),[rate,setRate]=useState(12),[months,setMonths]=useState(240);
-  const C=useCurr(curr); const needed=Math.round(calcMonthlyNeeded(goal,current,months,rate));
+  const C=useGlobalCurr(); const needed=Math.round(calcMonthlyNeeded(goal,current,months,rate));
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Investment goal" value={goal} onChange={setGoal} sym={C.sym} step={100000}/>
       <div className="flex flex-wrap gap-1.5">{[1000000,5000000,10000000].map(v=><button key={v} onClick={()=>setGoal(v)} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${goal===v?'bg-orange-500 text-white border-orange-500':'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 hover:border-orange-400'}`}>{C.sym+fmtFull(v/100000,0)}L</button>)}</div>
       <MoneyIn label="Already invested" value={current} onChange={setCurrent} sym={C.sym} step={10000}/>

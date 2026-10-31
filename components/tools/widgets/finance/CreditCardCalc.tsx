@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcCreditCard } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Box, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Box, Table, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function CreditCardCalc() {
@@ -10,7 +10,7 @@ export default function CreditCardCalc() {
   const [apr, setApr] = useState(36);
   const [minPct, setMinPct] = useState(5);
   const [fixedPayment, setFixedPayment] = useState(5000);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcCreditCard(balance, apr, minPct, fixedPayment);
   const costsMoreThanBalance = r.minResult.totalInterest > balance;
@@ -27,7 +27,6 @@ export default function CreditCardCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Current balance" value={balance} onChange={setBalance} sym={C.sym} step={5000}/>
       <PctIn label="Annual interest rate" value={apr} onChange={setApr} step={1} hint="Most Indian cards charge 36-42% APR"/>
       <PctIn label="Minimum payment %" value={minPct} onChange={setMinPct} step={0.5} hint="Typically floored at ₹200"/>

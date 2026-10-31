@@ -5,8 +5,8 @@ import {
 } from 'recharts';
 import { calcCompound } from '@/lib/calc';
 import {
-  Shell, CurrPills, MoneyIn, PctIn, NumIn, SelectIn,
-  Stat, Box, Table, ViewToggle, useCurr, fmtFull, TC, CopyBtn,
+  Shell, MoneyIn, PctIn, NumIn, SelectIn,
+  Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, TC, CopyBtn,
 } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
@@ -88,7 +88,7 @@ export default function CompoundCalc() {
   }, [p, rate, yrs, freq, monthly]);
   const [inflation, setInflation] = useState(6);  // default 6% for India
 
-  const C   = useCurr(curr);
+  const C   = useGlobalCurr();
   const r   = calcCompound(p, rate, yrs, freq, monthly, topup, stepup);
   const flat = calcCompound(p, rate, yrs, freq, monthly, 0, 0);
   const ear = +((Math.pow(1 + rate / 100 / freq, freq) - 1) * 100).toFixed(2);
@@ -132,7 +132,6 @@ export default function CompoundCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr} />
         <MoneyIn label="Initial investment" value={p} onChange={setP} sym={C.sym} step={10000}
           hint={`${C.sym} ${fmtFull(p, 2)}`} />
         <PctIn label="Interest rate (per year)" value={rate} onChange={setRate} step={0.1} />

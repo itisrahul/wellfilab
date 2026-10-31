@@ -1,16 +1,15 @@
 'use client';
 import { useState } from 'react';
 import { calcSavingsGoal, calcMonthlyNeeded } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function SavingsGoalCalc() {
   const [curr,setCurr]=useState('INR'),[goal,setGoal]=useState(1000000),[current,setCurrent]=useState(50000),[monthly,setMonthly]=useState(5000),[rate,setRate]=useState(6);
   const [mode,setMode]=useState<'howlong'|'howmuch'>('howlong'),[targetMonths,setTargetMonths]=useState(60);
-  const C=useCurr(curr);
+  const C=useGlobalCurr();
   const rL=calcSavingsGoal(goal,current,monthly,rate);
   const rM=Math.round(calcMonthlyNeeded(goal,current,targetMonths,rate));
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div className="flex overflow-hidden rounded-lg border-2 border-gray-300 dark:border-gray-600">
         <button onClick={()=>setMode('howlong')} className={`flex-1 py-2.5 text-xs font-bold transition-all ${mode==='howlong'?'bg-orange-500 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>⏳ How long?</button>
         <button onClick={()=>setMode('howmuch')} className={`flex-1 py-2.5 text-xs font-bold transition-all ${mode==='howmuch'?'bg-orange-500 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>💰 How much/mo?</button>

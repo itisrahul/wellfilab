@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcSalaryHourly } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, NumIn, Stat, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, NumIn, Stat, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 type Period = 'annual' | 'monthly' | 'weekly' | 'daily';
@@ -12,7 +12,7 @@ export default function SalaryHourlyCalc() {
   const [period, setPeriod] = useState<Period>('annual');
   const [hoursPerWeek, setHoursPerWeek] = useState(40);
   const [weeksPerYear, setWeeksPerYear] = useState(52);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcSalaryHourly(salary, period, hoursPerWeek, weeksPerYear);
 
@@ -26,7 +26,6 @@ export default function SalaryHourlyCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Salary amount" value={salary} onChange={setSalary} sym={C.sym} step={5000}/>
       <div>
         <label className="calc-label">Salary period</label>

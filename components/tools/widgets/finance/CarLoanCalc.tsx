@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcCarLoan } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function CarLoanCalc() {
@@ -13,7 +13,7 @@ export default function CarLoanCalc() {
   const [years, setYears] = useState(5);
   const [extra, setExtra] = useState(0);
   const [view, setView] = useState('table');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcCarLoan(price, downPct, rate, years, extra);
   const base = calcCarLoan(price, downPct, rate, years, 0);
   const saved = base.interest - r.interest;
@@ -30,7 +30,6 @@ export default function CarLoanCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Car price (on-road)" value={price} onChange={setPrice} sym={C.sym} step={50000}/>
         <PctIn label="Down payment %" value={downPct} onChange={setDownPct} step={5}
           hint={`= ${C.sym}${fmtFull(r.downPayment,0)} upfront`}/>

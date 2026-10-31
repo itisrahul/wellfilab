@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calcLoan } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 
 export default function LoanCalc() {
   const [curr, setCurr] = useState('INR');
@@ -11,14 +11,13 @@ export default function LoanCalc() {
   const [yrs, setYrs]   = useState(20);
   const [extra, setExtra] = useState(0);
   const [view, setView]   = useState('table');
-  const C    = useCurr(curr);
+  const C    = useGlobalCurr();
   const r    = calcLoan(p, rate, yrs * 12, extra);
   const base = calcLoan(p, rate, yrs * 12, 0);
   const saved    = base.interest - r.interest;
   const moSaved  = base.totalMonths - r.totalMonths;
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Loan amount" value={p} onChange={setP} sym={C.sym} step={100000}/>
       <div className="grid grid-cols-2 gap-3">
         <PctIn label="Annual interest %" value={rate} onChange={setRate} step={0.05}/>

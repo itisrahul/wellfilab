@@ -6,14 +6,12 @@
  */
 import type { Goal } from './goalsStorage';
 import type { GoalPaceStatus } from './goalPace';
+import { fmtMoney } from './currency';
 
 export function fmtVal(n: number, unit: string): string {
-  if (unit === '₹' || unit === '₹/month' || unit === '₹ remaining') {
-    if (Math.abs(n) >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
-    if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-    if (Math.abs(n) >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
-    return `₹${n.toLocaleString('en-IN')}`;
-  }
+  if (unit === '₹') return fmtMoney(n, 2);
+  if (unit === '₹/month') return `${fmtMoney(n, 2)}/month`;
+  if (unit === '₹ remaining') return `${fmtMoney(n, 2)} remaining`;
   return `${n.toLocaleString('en-IN')}${unit ? ' ' + unit : ''}`;
 }
 

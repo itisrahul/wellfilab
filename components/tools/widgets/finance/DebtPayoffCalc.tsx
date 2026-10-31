@@ -1,17 +1,16 @@
 'use client';
 import { useState } from 'react';
 import { calcDebtPayoff } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, Box, useCurr, fmtFull } from '@/components/tools/shared';
+import { Shell, MoneyIn, Box, useCurr, useGlobalCurr, fmtFull } from '@/components/tools/shared';
 export default function DebtPayoffCalc() {
   const [curr,setCurr]=useState('INR');
   const [debts,setDebts]=useState([{name:'Credit Card',balance:80000,rate:36,minPayment:1600},{name:'Car Loan',balance:500000,rate:10,minPayment:10000},{name:'Personal Loan',balance:200000,rate:18,minPayment:5000}]);
   const [extra,setExtra]=useState(5000);
-  const C=useCurr(curr); const {avalanche,snowball}=calcDebtPayoff(debts,extra);
+  const C=useGlobalCurr(); const {avalanche,snowball}=calcDebtPayoff(debts,extra);
   const saved=snowball.totalInterest-avalanche.totalInterest;
   const upd=(i:number,f:string,v:string|number)=>{const d=[...debts];(d[i] as Record<string,string|number>)[f]=v;setDebts(d);};
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <p className="calc-label">Your Debts</p>
       {debts.map((d,i)=>(
         <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 p-3 space-y-2">

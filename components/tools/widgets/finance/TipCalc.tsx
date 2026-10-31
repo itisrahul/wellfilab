@@ -1,20 +1,19 @@
 'use client';
 import { useState } from 'react';
 import { calcTip } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 
 export default function TipCalc() {
   const [curr, setCurr] = useState('USD');
   const [bill, setBill] = useState(80);
   const [tipPct, setTipPct] = useState(18);
   const [people, setPeople] = useState(2);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcTip(bill, tipPct, people);
 
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Bill total" value={bill} onChange={setBill} sym={C.sym} step={5}/>
         <div>
           <label className="calc-label">Tip percentage</label>

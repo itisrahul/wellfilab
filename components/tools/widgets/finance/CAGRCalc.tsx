@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcCAGR } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, NumIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function CAGRCalc() {
@@ -11,7 +11,7 @@ export default function CAGRCalc() {
   const [endVal, setEndVal] = useState(250000);
   const [years, setYears] = useState(5);
   const [view, setView] = useState('table');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcCAGR(Math.max(1, startVal), endVal, Math.max(1, years));
   const oneL = (yrs: number) => Math.round(100000 * Math.pow(1 + r.cagr / 100, yrs));
@@ -26,7 +26,6 @@ export default function CAGRCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Initial value" value={startVal} onChange={setStartVal} sym={C.sym} step={10000}/>
       <MoneyIn label="Final value" value={endVal} onChange={setEndVal} sym={C.sym} step={10000}/>
       <NumIn label="Number of years" value={years} onChange={setYears} min={1} max={50}/>

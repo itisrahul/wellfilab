@@ -20,6 +20,7 @@ import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressRepo
 import { getHoldings, computeTotals, syncNetWorthGoalFromHoldings } from '@/lib/holdingsStorage';
 import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_STYLE, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { FlowNav } from '@/components/ui/FlowNav';
 
@@ -37,6 +38,7 @@ const GoalTrendChart = dynamic(
 const ACCUMULATION_GOAL_TYPES: GoalType[] = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
 
 export default function GoalsPage() {
+  useCurrency(); // re-render when the global currency changes
   const { data: goals, isLoading: goalsLoading, mutate: refresh } = useSWR(SWR_KEYS.goals, getGoals);
   const { data: holdingsForSync } = useSWR(SWR_KEYS.holdings, getHoldings);
   const { data: history } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);

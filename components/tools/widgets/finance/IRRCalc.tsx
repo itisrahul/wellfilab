@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcIRR, calcNPV } from '@/lib/calc';
-import { Shell, MoneyIn, CurrPills, Stat, Box, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, Stat, Box, Table, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const DEFAULT_FLOWS = [-500000, 80000, 100000, 120000, 150000, 200000];
@@ -10,7 +10,7 @@ const DISCOUNT_RATES = [8, 10, 12, 15];
 export default function IRRCalc() {
   const [curr, setCurr] = useState('INR');
   const [flows, setFlows] = useState<number[]>(DEFAULT_FLOWS);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const irr = calcIRR(flows);
   const paybackMonth = (() => {
@@ -36,7 +36,6 @@ export default function IRRCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div>
         <label className="calc-label">Cashflows (Year 0 = initial investment, negative)</label>
         <div className="space-y-2">

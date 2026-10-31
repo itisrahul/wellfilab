@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcSimpleInterest, calcCompound } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function SimpleInterestCalc() {
@@ -9,7 +9,7 @@ export default function SimpleInterestCalc() {
   const [principal, setPrincipal] = useState(100000);
   const [rate, setRate] = useState(10);
   const [years, setYears] = useState(5);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcSimpleInterest(principal, rate, years);
   const compound = calcCompound(principal, rate, years, 1, 0, 0, 0);
 
@@ -24,7 +24,6 @@ export default function SimpleInterestCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Principal amount" value={principal} onChange={setPrincipal} sym={C.sym} step={10000}/>
         <PctIn label="Interest rate % p.a." value={rate} onChange={setRate} step={0.5}/>
         <NumIn label="Time period (years)" value={years} onChange={setYears} min={1} max={30}/>

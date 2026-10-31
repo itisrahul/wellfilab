@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcRD } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const TAX_SLABS = [0, 5, 10, 15, 20, 30];
@@ -13,7 +13,7 @@ export default function RDCalc() {
   const [rate, setRate] = useState(6.7);
   const [months, setMonths] = useState(24);
   const [taxSlab, setTaxSlab] = useState(0);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcRD(monthly, rate, months);
   const taxOnInterest = Math.round(r.interest * taxSlab / 100);
   const postTaxInterest = r.interest - taxOnInterest;
@@ -30,7 +30,6 @@ export default function RDCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Monthly deposit" value={monthly} onChange={setMonthly} sym={C.sym} step={500}/>
         <PctIn label="Interest rate % p.a." value={rate} onChange={setRate} step={0.05}/>
         <NumIn label="Tenure (months)" value={months} onChange={setMonths} min={6} max={120}/>

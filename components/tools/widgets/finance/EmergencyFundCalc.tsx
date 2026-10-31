@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcEmergencyFund } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const STABILITY = [
@@ -16,7 +16,7 @@ export default function EmergencyFundCalc() {
   const [expenses, setExpenses] = useState(40000);
   const [stability, setStability] = useState(6);
   const [current, setCurrent] = useState(50000);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcEmergencyFund(expenses, stability, current);
 
   useEffect(() => {
@@ -30,7 +30,6 @@ export default function EmergencyFundCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Essential monthly expenses" value={expenses} onChange={setExpenses} sym={C.sym} step={2000}
           hint="Rent/EMI, utilities, groceries, insurance, minimum debt payments — not discretionary spending"/>
         <div>

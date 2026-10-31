@@ -1,13 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { calcSalary } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Table, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function SalaryCalc() {
   const [curr,setCurr]=useState('USD'),[gross,setGross]=useState(75000),[tax,setTax]=useState(22),[pension,setPension]=useState(5),[other,setOther]=useState(3);
-  const C=useCurr(curr); const r=calcSalary(gross,tax,pension,other);
+  const C=useGlobalCurr(); const r=calcSalary(gross,tax,pension,other);
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Annual gross salary" value={gross} onChange={setGross} sym={C.sym} step={5000}/>
       <PctIn label="Effective tax rate" value={tax} onChange={setTax} step={1}/>
       <PctIn label="Pension / retirement %" value={pension} onChange={setPension} step={0.5}/>

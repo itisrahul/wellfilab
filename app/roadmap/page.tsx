@@ -17,10 +17,12 @@ import { syncRoadmapChecksFromAccount, toggleRoadmapCheck, type RoadmapChecks } 
 import { SWR_KEYS } from '@/lib/swrKeys';
 import { PLANS_ENABLED } from '@/config/site';
 import { FlowNav } from '@/components/ui/FlowNav';
+import { useCurrency } from '@/lib/useCurrency';
 
 const START_KEY = 'wfl_roadmap_start';
 
 export default function RoadmapPage() {
+  useCurrency(); // re-render when the global currency changes
   const { data: history, isLoading: historyLoading } = useSWR(SWR_KEYS.scoreHistory, getScoreHistory);
   const { data: rawInputs, isLoading: inputsLoading } = useSWR(SWR_KEYS.scoreInputs, syncScoreInputsFromAccount);
   const { data: cachedChecks, isLoading: checksLoading, mutate: mutateChecks } = useSWR(SWR_KEYS.roadmapChecks, syncRoadmapChecksFromAccount);

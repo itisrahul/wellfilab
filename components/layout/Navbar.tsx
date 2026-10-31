@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs';
 import { useClerkAppearance } from '@/lib/clerkAppearance';
+import { GlobalCurrencySelector } from '@/lib/useCurrency';
 import { CALCULATORS, getGroups, type Category } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { PLANS_ENABLED } from '@/config/site';
@@ -302,6 +303,9 @@ export function Navbar() {
               <kbd className="text-[10px] text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 font-sans">⌘K</kbd>
             </button>
 
+            {/* Currency — global, replaces the per-calculator picker */}
+            <div className="hidden sm:block"><GlobalCurrencySelector /></div>
+
             {/* Mobile search */}
             <button onClick={() => { setShowSrch(s=>!s); setMobile(false); }} aria-label="Search"
               className="md:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
@@ -358,6 +362,10 @@ export function Navbar() {
       {/* Mobile menu */}
       {mobile && (
         <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 max-h-[80vh] overflow-y-auto">
+          <div className="flex items-center justify-between px-4 pt-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Currency</span>
+            <GlobalCurrencySelector />
+          </div>
           <nav aria-label="Mobile navigation" className="p-3 space-y-0.5">
             {NAV.map(item => (
               <Link key={item.href} href={item.href} onClick={() => setMobile(false)}

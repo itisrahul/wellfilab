@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { calcMortgage } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const TERMS = [10, 15, 20, 25, 30];
@@ -17,7 +17,7 @@ export default function MortgageCalc() {
   const [taxRate, setTaxRate] = useState(1);
   const [insurance, setInsurance] = useState(15000);
   const [view, setView] = useState('table');
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcMortgage(price, downPct, rate, years, taxRate, insurance);
   const totalCost = price + r.totalInterest;
@@ -40,7 +40,6 @@ export default function MortgageCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Property price" value={price} onChange={setPrice} sym={C.sym} step={100000}/>
       <PctIn label="Down payment %" value={downPct} onChange={setDownPct} step={1}
         hint={`Down payment: ${C.sym}${fmtFull(r.downPayment,0)} · Loan: ${C.sym}${fmtFull(r.principal,0)}`}/>

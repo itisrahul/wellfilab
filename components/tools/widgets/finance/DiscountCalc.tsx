@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcDiscount } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function DiscountCalc() {
@@ -9,7 +9,7 @@ export default function DiscountCalc() {
   const [price, setPrice] = useState(2000);
   const [discount1, setDiscount1] = useState(20);
   const [discount2, setDiscount2] = useState(0);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcDiscount(price, discount1, discount2);
 
   useEffect(() => {
@@ -23,7 +23,6 @@ export default function DiscountCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Original price" value={price} onChange={setPrice} sym={C.sym} step={100}/>
         <PctIn label="Discount %" value={discount1} onChange={setDiscount1} step={5}/>
         <PctIn label="Additional discount % (optional, stacked)" value={discount2} onChange={setDiscount2} step={5}

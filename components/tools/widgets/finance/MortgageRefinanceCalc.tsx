@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcRefinance } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function MortgageRefinanceCalc() {
@@ -12,7 +12,7 @@ export default function MortgageRefinanceCalc() {
   const [newRate, setNewRate] = useState(8.2);
   const [newYears, setNewYears] = useState(15);
   const [closingCosts, setClosingCosts] = useState(50000);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcRefinance(balance, currentRate, monthsLeft, newRate, newYears, closingCosts);
 
@@ -34,7 +34,6 @@ export default function MortgageRefinanceCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Current loan balance" value={balance} onChange={setBalance} sym={C.sym} step={50000}/>
       <PctIn label="Current interest rate" value={currentRate} onChange={setCurrentRate} step={0.1}/>
       <NumIn label="Months remaining" value={monthsLeft} onChange={setMonthsLeft} min={1} max={480}/>

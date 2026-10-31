@@ -1,13 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { calcBudget } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function BudgetCalc() {
   const [curr,setCurr]=useState('INR'),[income,setIncome]=useState(50000),[custom,setCustom]=useState(false),[needs,setNeeds]=useState(50),[wants,setWants]=useState(30);
-  const C=useCurr(curr); const savings=Math.max(0,100-needs-wants); const r=calcBudget(income);
+  const C=useGlobalCurr(); const savings=Math.max(0,100-needs-wants); const r=calcBudget(income);
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Monthly take-home income" value={income} onChange={setIncome} sym={C.sym} step={5000}/>
       <div className="flex overflow-hidden rounded-lg border-2 border-gray-300 dark:border-gray-600">
         <button onClick={()=>setCustom(false)} className={`flex-1 py-2.5 text-xs font-bold transition-all ${!custom?'bg-orange-500 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>50/30/20 Standard</button>

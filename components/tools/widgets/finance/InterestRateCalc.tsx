@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcInterestRate } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, NumIn, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, NumIn, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const BENCHMARKS = [
@@ -16,7 +16,7 @@ export default function InterestRateCalc() {
   const [fv, setFv] = useState(200000);
   const [years, setYears] = useState(5);
   const [pmt, setPmt] = useState(0);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcInterestRate(pv, fv, Math.max(1, years), pmt);
   const doublingYears = r.annualRate > 0 ? +(72 / r.annualRate).toFixed(1) : null;
@@ -31,7 +31,6 @@ export default function InterestRateCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Present value" value={pv} onChange={setPv} sym={C.sym} step={10000}/>
       <MoneyIn label="Future value (goal)" value={fv} onChange={setFv} sym={C.sym} step={10000}/>
       <NumIn label="Time in years" value={years} onChange={setYears} min={1} max={50}/>

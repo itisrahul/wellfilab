@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from 'recharts';
 import { calcGovSchemeCompare } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, NumIn, Box, useCurr, fmtFull, fmtSmart, TC, Stat } from '@/components/tools/shared';
+import { Shell, MoneyIn, NumIn, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC, Stat } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const TAX_SLABS = [10, 20, 30];
@@ -13,7 +13,7 @@ export default function GovSchemeCompareCalc() {
   const [years, setYears] = useState(15);
   const [age, setAge] = useState(30);
   const [taxSlab, setTaxSlab] = useState(20);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcGovSchemeCompare(monthly, years, taxSlab);
 
   const schemes = [
@@ -42,7 +42,6 @@ export default function GovSchemeCompareCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Monthly investment" value={monthly} onChange={setMonthly} sym={C.sym} step={500}/>
       <NumIn label="Years" value={years} onChange={setYears} min={1} max={40}/>
       <NumIn label="Current age" value={age} onChange={setAge} min={18} max={65}/>

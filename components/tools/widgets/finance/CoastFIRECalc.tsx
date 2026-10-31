@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcCoastFIRE } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function CoastFIRECalc() {
@@ -10,7 +10,7 @@ export default function CoastFIRECalc() {
   const [target, setTarget] = useState(15000000);
   const [years, setYears] = useState(20);
   const [roi, setRoi] = useState(10);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcCoastFIRE(portfolio, target, years, roi);
 
   useEffect(() => {
@@ -24,7 +24,6 @@ export default function CoastFIRECalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Current portfolio" value={portfolio} onChange={setPortfolio} sym={C.sym} step={100000}/>
         <MoneyIn label="Your target FIRE number" value={target} onChange={setTarget} sym={C.sym} step={500000}
           hint="Use the FIRE Calculator first if you don't know this number"/>

@@ -1,4 +1,5 @@
 import { fmtVal } from '@/lib/goalDisplay';
+import { useCurrency } from '@/lib/useCurrency';
 import type { buildGoalProgressReport } from '@/lib/goalProgressReport';
 
 const REPORT_STATUS_STYLE: Record<string, { label: string; color: string }> = {
@@ -16,6 +17,7 @@ export function GoalProgressReportPanel({ report, meta, bordered = true }: {
   meta: { unit: string };
   bordered?: boolean;
 }) {
+  useCurrency(); // re-render when the global currency changes
   const statusStyle = REPORT_STATUS_STYLE[report.status];
 
   return (

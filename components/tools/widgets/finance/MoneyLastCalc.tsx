@@ -2,14 +2,13 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcMoneyLast } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Box, Table, ViewToggle, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Box, Table, ViewToggle, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function MoneyLastCalc() {
   const [curr,setCurr]=useState('INR'),[savings,setSavings]=useState(5000000),[wd,setWd]=useState(25000),[rate,setRate]=useState(8),[inf,setInf]=useState(6),[view,setView]=useState('table');
-  const C=useCurr(curr); const r=calcMoneyLast(savings,wd,rate,inf);
+  const C=useGlobalCurr(); const r=calcMoneyLast(savings,wd,rate,inf);
   const wdRate=+(wd*12/savings*100).toFixed(2);
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Total savings" value={savings} onChange={setSavings} sym={C.sym} step={100000}/>
       <MoneyIn label="Monthly withdrawal" value={wd} onChange={setWd} sym={C.sym} step={1000} hint={wdRate+"% annual withdrawal rate"}/>
       <PctIn label="Investment return rate" value={rate} onChange={setRate} step={0.5}/>

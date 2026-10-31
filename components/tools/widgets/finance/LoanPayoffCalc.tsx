@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcLoan } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Table, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Table, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 /** Remaining term implied by balance + rate + the EMI already being paid —
@@ -25,7 +25,7 @@ export default function LoanPayoffCalc() {
   const [rate, setRate] = useState(9);
   const [emi, setEmi] = useState(18000);
   const [lumpSum, setLumpSum] = useState(200000);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const months = deriveMonths(balance, rate, emi);
 
@@ -50,7 +50,6 @@ export default function LoanPayoffCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Loan balance" value={balance} onChange={setBalance} sym={C.sym} step={50000}/>
       <PctIn label="Interest rate" value={rate} onChange={setRate} step={0.1}/>
       <MoneyIn label="Current EMI" value={emi} onChange={setEmi} sym={C.sym} step={500} hint={`Implied remaining term: ${fmtTime(months)}`}/>

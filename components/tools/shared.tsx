@@ -11,17 +11,26 @@
 'use client';
 import { useState, useCallback, type ReactNode, type InputHTMLAttributes, type SelectHTMLAttributes } from 'react';
 import { CURRENCIES } from '@/lib/calc';
+import { useCurrency } from '@/lib/useCurrency';
 export { CURRENCIES };
 
 // ── Number formatting ─────────────────────────────────────────────────────────
 
 /** Full number — en-IN locale gives ₹5,00,000.00 format */
-// Smart formatter: shows short form (₹64.16L) for large numbers
+// Smart formatter: shows short form for large numbers — Lakh/Crore only
+// for the rupee symbol (that notation only means anything in INR); every
+// other currency gets the international K/M/B/T scale instead.
 export function fmtSmart(n: number, sym = ''): string {
   const abs = Math.abs(n);
+  if (sym === '₹') {
+    if (abs >= 1e7)  return sym + (n / 1e7).toFixed(2) + 'Cr';
+    if (abs >= 1e5)  return sym + (n / 1e5).toFixed(2) + 'L';
+    if (abs >= 1000) return sym + (n / 1000).toFixed(2) + 'K';
+    return sym + n.toFixed(2);
+  }
   if (abs >= 1e12) return sym + (n / 1e12).toFixed(2) + 'T';
-  if (abs >= 1e7)  return sym + (n / 1e7).toFixed(2) + 'Cr';
-  if (abs >= 1e5)  return sym + (n / 1e5).toFixed(2) + 'L';
+  if (abs >= 1e9)  return sym + (n / 1e9).toFixed(2) + 'B';
+  if (abs >= 1e6)  return sym + (n / 1e6).toFixed(2) + 'M';
   if (abs >= 1000) return sym + (n / 1000).toFixed(2) + 'K';
   return sym + n.toFixed(2);
 }
@@ -44,8 +53,22 @@ export function fmtPct(n: number, decimals = 2): string {
 }
 
 // ── Currency hook ─────────────────────────────────────────────────────────────
+// Takes an explicit code — used only by the handful of calculators for a
+// specific country's financial instrument (GST, HRA, Capital Gains, Indian
+// insurance products, …) where the currency is never a user choice; they
+// pass a literal 'INR' regardless of the global preference.
 export function useCurr(code: string) {
   const c = CURRENCIES.find(x => x.code === code) ?? CURRENCIES[0];
+  const fmt  = (n: number, dec = 2) => fmtCurrency(n, c.sym, dec);
+  const full = (n: number, dec = 2) => c.sym + fmtFull(n, dec);
+  return { ...c, fmt, full };
+}
+
+/** Every other calculator — the generic ones where "pick a currency" was a
+ * real per-page control before — reads the one global preference (set via
+ * the selector in the navbar) instead. */
+export function useGlobalCurr() {
+  const c = useCurrency();
   const fmt  = (n: number, dec = 2) => fmtCurrency(n, c.sym, dec);
   const full = (n: number, dec = 2) => c.sym + fmtFull(n, dec);
   return { ...c, fmt, full };

@@ -1,13 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { calcGST } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, Stat, Box, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 export default function GSTCalc() {
   const [curr,setCurr]=useState('INR'),[amount,setAmount]=useState(10000),[rate,setRate]=useState(18),[type,setType]=useState<'add'|'remove'>('add');
-  const C=useCurr(curr); const r=calcGST(amount,rate,type);
+  const C=useGlobalCurr(); const r=calcGST(amount,rate,type);
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Amount" value={amount} onChange={setAmount} sym={C.sym} step={100}/>
       <div>
         <label className="calc-label">Tax rate</label>

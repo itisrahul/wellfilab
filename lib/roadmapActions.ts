@@ -8,16 +8,17 @@
  */
 
 import type { Dimension, BodyInputs, FinanceInputs, QuickInputs } from './wellfilab-score';
+import { fmtMoney } from './currency';
 
 // QuickInputs is accepted but ignored by calculateFullScore once real body/finance
 // data exists — this placeholder exists only to satisfy the function signature.
 export const DUMMY_QUICK: QuickInputs = { healthFeeling: 3, financeFeeling: 3, stressFeeling: 3 };
 
+/** Every real, INR-stored amount in the app (roadmap projections, goals,
+ * net worth) is formatted through here — so it follows the one global
+ * currency preference (lib/currency.ts) instead of always showing ₹. */
 export function fmtINR(n: number): string {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(0)}K`;
-  return `₹${n.toLocaleString('en-IN')}`;
+  return fmtMoney(n, 1);
 }
 
 export interface RoadmapAction {

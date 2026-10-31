@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcAPY } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const FREQUENCIES = [
@@ -19,7 +19,7 @@ export default function APYCalc() {
   const [freq, setFreq] = useState(365);
   const [principal, setPrincipal] = useState(100000);
   const [years, setYears] = useState(5);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const r = calcAPY(apr, freq);
   const finalAmount = Math.round(principal * Math.pow(1 + r.apy / 100, years));
@@ -35,7 +35,6 @@ export default function APYCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <PctIn label="APR %" value={apr} onChange={setApr} step={0.1}/>
       <div>
         <label className="calc-label">Compounding frequency</label>

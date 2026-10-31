@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function GoalCalc() {
@@ -12,7 +12,7 @@ export default function GoalCalc() {
   const [years,   setYears]   = useState(15);
   const [inflation, setInflation] = useState(0); // optional inflation-adjust target
 
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   // Inflation-adjusted target
   const realTarget = inflation > 0
@@ -61,7 +61,6 @@ export default function GoalCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <MoneyIn label="Your target amount" value={target} onChange={setTarget} sym={C.sym} step={500000}
         hint={`= ${C.sym}${fmtFull(target,0)}`}/>
       <MoneyIn label="Already saved (current corpus)" value={current} onChange={setCurrent} sym={C.sym} step={50000}/>

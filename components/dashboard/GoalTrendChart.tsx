@@ -1,14 +1,14 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import { formatCurrencyAmount, convertFromINR } from '@/lib/currency';
+import { useCurrency } from '@/lib/useCurrency';
 
 interface TrendPoint { date: string; value: number }
 
+// n arrives already converted to the display currency (the component
+// converts history/target once, up front) — this just applies the right
+// notation (Lakh/Crore for INR, K/M/B elsewhere) without converting again.
 function fmtCompact(n: number, unit: string): string {
-  if (unit.startsWith('₹')) {
-    if (Math.abs(n) >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-    if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-    if (Math.abs(n) >= 1000) return `₹${Math.round(n / 1000)}K`;
-    return `₹${Math.round(n)}`;
-  }
+  if (unit.startsWith('₹')) return formatCurrencyAmount(n, 1);
   if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return `${Math.round(n * 10) / 10}`;
 }
@@ -24,10 +24,16 @@ function fmtCompact(n: number, unit: string): string {
 export function GoalTrendChart({ history, target, unit, color = '#0d9488', emptyLabel = 'Update this a couple more times to see a real trend here.' }: {
   history: TrendPoint[]; target?: number; unit: string; color?: string; emptyLabel?: string;
 }) {
+  useCurrency(); // re-render (and re-convert) when the global currency changes
+  const isMoney = unit.startsWith('₹');
+  // history/target always arrive as real INR numbers — converted here, once,
+  // to the selected display currency so the axis, tooltip, and reference
+  // line all agree instead of just relabeling the symbol on an INR value.
   const points = history.map(h => ({
     date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    value: h.value,
+    value: isMoney ? convertFromINR(h.value) : h.value,
   }));
+  const convertedTarget = target != null && isMoney ? convertFromINR(target) : target;
 
   if (points.length < 2) {
     return (
@@ -37,7 +43,7 @@ export function GoalTrendChart({ history, target, unit, color = '#0d9488', empty
     );
   }
 
-  const values = target != null ? [...points.map(p => p.value), target] : points.map(p => p.value);
+  const values = convertedTarget != null ? [...points.map(p => p.value), convertedTarget] : points.map(p => p.value);
   const min = Math.min(...values), max = Math.max(...values);
   const pad = Math.max((max - min) * 0.15, max * 0.02, 1);
 
@@ -57,8 +63,8 @@ export function GoalTrendChart({ history, target, unit, color = '#0d9488', empty
         <Tooltip
           contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 11 }}
           formatter={(v: number) => [fmtCompact(v, unit), 'Value']} />
-        {target != null && (
-          <ReferenceLine y={target} stroke={color} strokeDasharray="4 3" strokeOpacity={0.6}
+        {convertedTarget != null && (
+          <ReferenceLine y={convertedTarget} stroke={color} strokeDasharray="4 3" strokeOpacity={0.6}
             label={{ value: 'Target', position: 'insideTopRight', fontSize: 9, fill: color }} />
         )}
         <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2.5}

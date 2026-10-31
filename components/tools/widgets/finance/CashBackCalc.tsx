@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { calcCashBack } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Field, useCurr, fmtFull, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Field, useCurr, useGlobalCurr, fmtFull, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 const CATEGORIES = ['groceries', 'dining', 'fuel', 'travel', 'online', 'other'] as const;
@@ -21,7 +21,7 @@ export default function CashBackCalc() {
   const [curr, setCurr] = useState('INR');
   const [spend, setSpend] = useState<Record<string, number>>(DEFAULT_SPEND);
   const [cards, setCards] = useState<Card[]>(DEFAULT_CARDS);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
 
   const results = cards.map(card => ({ ...card, ...calcCashBack(spend, card.rates, card.fee) }));
   const bestIdx = results.reduce((best, r, i) => r.netAnnual > results[best].netAnnual ? i : best, 0);
@@ -40,7 +40,6 @@ export default function CashBackCalc() {
 
   return (
     <Shell left={<>
-      <CurrPills val={curr} onChange={setCurr}/>
       <div>
         <label className="calc-label">Monthly spend by category</label>
         <div className="space-y-2">

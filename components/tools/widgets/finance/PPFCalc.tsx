@@ -2,14 +2,14 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcPPF } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 
 export default function PPFCalc() {
   const [curr, setCurr] = useState('INR');
   const [yearly, setYearly] = useState(150000);
   const [rate, setRate] = useState(7.1);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcPPF(yearly, rate, 15);
 
   useEffect(() => {
@@ -23,7 +23,6 @@ export default function PPFCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Yearly deposit" value={yearly} onChange={setYearly} sym={C.sym} step={5000}
           hint="PPF annual deposit limit is ₹1,50,000"/>
         <PctIn label="Interest rate % p.a." value={rate} onChange={setRate} step={0.1}

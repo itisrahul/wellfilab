@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calcFD } from '@/lib/calc';
-import { Shell, CurrPills, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
+import { Shell, MoneyIn, PctIn, NumIn, Stat, Box, useCurr, useGlobalCurr, fmtFull, fmtSmart, TC } from '@/components/tools/shared';
 import { saveHistory } from '@/components/ui/CalcHistory';
 import { useEffect } from 'react';
 
@@ -14,7 +14,7 @@ export default function FDCalc() {
   const [rate, setRate] = useState(7.1);
   const [years, setYears] = useState(5);
   const [taxSlab, setTaxSlab] = useState(0);
-  const C = useCurr(curr);
+  const C = useGlobalCurr();
   const r = calcFD(principal, rate, years);
   const taxOnInterest = Math.round(r.interest * taxSlab / 100);
   const postTaxInterest = r.interest - taxOnInterest;
@@ -32,7 +32,6 @@ export default function FDCalc() {
   return (
     <Shell
       left={<>
-        <CurrPills val={curr} onChange={setCurr}/>
         <MoneyIn label="Deposit amount" value={principal} onChange={setPrincipal} sym={C.sym} step={10000}/>
         <PctIn label="Interest rate % p.a." value={rate} onChange={setRate} step={0.05}
           hint="Quarterly compounding — standard for Indian bank FDs"/>
