@@ -130,7 +130,7 @@ function buildWelcomeEmail({ email }: { email: string }) {
         <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6">
           You're receiving this because you signed up at <a href="${siteUrl}" style="color:#0d9488">${siteUrl}</a>.
           <br>
-          <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(email)}" style="color:#9ca3af">Unsubscribe</a>
+          <a href="mailto:hello@wellfilab.com?subject=Unsubscribe&body=Please unsubscribe ${encodeURIComponent(email)}" style="color:#9ca3af">Unsubscribe</a>
         </p>
       </div>
     </div>
