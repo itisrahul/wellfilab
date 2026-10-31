@@ -8,6 +8,7 @@ import { useClerkAppearance } from '@/lib/clerkAppearance';
 import { GlobalCurrencySelector } from '@/lib/useCurrency';
 import { CALCULATORS, getGroups, type Category } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
+import { COMPARISONS } from '@/lib/comparisons';
 import { PLANS_ENABLED } from '@/config/site';
 
 type Hit =
@@ -208,14 +209,45 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
   );
 });
 
-const NAV = [
-  { href:'/tools',   label:'Calculators', hasMega:true  },
-  { href:'/goals',   label:'Goals',   hasMega:false },
-  { href:'/score',   label:'Score',   hasMega:false },
-  { href:'/roadmap', label:'Roadmap', hasMega:false },
-  { href:'/learn',   label:'Learn',   hasMega:false },
-  ...(PLANS_ENABLED ? [{ href:'/plan', label:'Plans', hasMega:false }] : []),
-  { href:'/about',   label:'About',   hasMega:false },
+const LearnMegaMenu = memo(function LearnMegaMenu({ onClose }: { onClose: () => void }) {
+  const items = [
+    { href: '/learn/paths', icon: '🧭', label: 'Learning Paths', desc: 'Guided, step-by-step sequences — beginner to advanced.' },
+    { href: '/guides', icon: '📖', label: 'Guides', desc: `${ALL_POSTS.length} sourced, no-fluff articles behind every calculator.` },
+    { href: '/learn/best', icon: '🏆', label: 'Comparisons & Best Picks', desc: `${COMPARISONS.length} rated, goal-driven provider comparisons.` },
+    { href: '/learn/reviews', icon: '🔍', label: 'Reviews', desc: 'Single-provider deep dives.' },
+  ];
+  return (
+    <div className="absolute inset-x-0 top-full z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-2xl" onMouseLeave={onClose}>
+      <div className="max-w-7xl mx-auto px-6 py-7">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {items.map(it => (
+            <Link key={it.href} href={it.href} onClick={onClose}
+              className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-teal-300 dark:hover:border-teal-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <span className="text-xl">{it.icon}</span>
+              <p className="font-bold text-gray-900 dark:text-white text-sm mt-2">{it.label}</p>
+              <p className="text-xs text-gray-400 mt-1 leading-relaxed">{it.desc}</p>
+            </Link>
+          ))}
+        </div>
+        <div className="flex items-center justify-between pt-4 mt-5 border-t border-gray-100 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Rated on a <Link href="/learn/best/methodology" onClick={onClose} className="underline hover:text-teal-600 dark:hover:text-teal-400">published, 3-axis rubric</Link> — never pay-to-rank.</p>
+          <Link href="/learn" onClick={onClose} className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:underline">Browse all of Learn →</Link>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+type MegaKey = 'tools' | 'learn';
+
+const NAV: { href: string; label: string; mega?: MegaKey }[] = [
+  { href:'/tools',   label:'Calculators', mega:'tools' },
+  { href:'/goals',   label:'Goals' },
+  { href:'/score',   label:'Score' },
+  { href:'/roadmap', label:'Roadmap' },
+  { href:'/learn',   label:'Learn', mega:'learn' },
+  ...(PLANS_ENABLED ? [{ href:'/plan', label:'Plans' }] : []),
+  { href:'/about',   label:'About' },
 ];
 
 export function Navbar() {
@@ -223,23 +255,23 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const clerkAppearance = useClerkAppearance();
   const [mounted,   setMounted]   = useState(false);
-  const [showTools, setShowTools] = useState(false);
+  const [openMega,  setOpenMega]  = useState<MegaKey | null>(null);
   const [showSrch,  setShowSrch]  = useState(false);
   const [mobile,    setMobile]    = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { setShowTools(false); setShowSrch(false); setMobile(false); }, [pathname]);
+  useEffect(() => { setOpenMega(null); setShowSrch(false); setMobile(false); }, [pathname]);
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
-      if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); setShowSrch(s=>!s); setShowTools(false); setMobile(false); }
+      if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); setShowSrch(s=>!s); setOpenMega(null); setMobile(false); }
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
   }, []);
   useEffect(() => {
     const fn = (e: MouseEvent) => {
-      if (!headerRef.current?.contains(e.target as Node)) { setShowTools(false); setShowSrch(false); }
+      if (!headerRef.current?.contains(e.target as Node)) { setOpenMega(null); setShowSrch(false); }
     };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
@@ -247,7 +279,7 @@ export function Navbar() {
 
   const isActive = (href: string) => href==='/' ? pathname==='/' : !!pathname?.startsWith(href);
   const closeSearch = useCallback(() => setShowSrch(false), []);
-  const closeMega   = useCallback(() => setShowTools(false), []);
+  const closeMega   = useCallback(() => setOpenMega(null), []);
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
@@ -257,18 +289,18 @@ export function Navbar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-0.5 flex-1" aria-label="Main navigation">
-            {NAV.map(item => item.hasMega ? (
+            {NAV.map(item => item.mega ? (
               <Link key={item.href} href={item.href}
-                onMouseEnter={() => { setShowTools(true); setShowSrch(false); }}
-                onClick={() => { setShowTools(false); setShowSrch(false); }}
-                aria-haspopup="true" aria-expanded={showTools}
+                onMouseEnter={() => { setOpenMega(item.mega!); setShowSrch(false); }}
+                onClick={() => { setOpenMega(null); setShowSrch(false); }}
+                aria-haspopup="true" aria-expanded={openMega === item.mega}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  showTools || isActive(item.href)
+                  openMega === item.mega || isActive(item.href)
                     ? 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60'
                     : 'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}>
                 {item.label}
-                <svg className={`w-3.5 h-3.5 opacity-50 transition-transform ${showTools ? 'rotate-180' : ''}`}
+                <svg className={`w-3.5 h-3.5 opacity-50 transition-transform ${openMega === item.mega ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
@@ -288,7 +320,7 @@ export function Navbar() {
           {/* Right controls */}
           <div className="flex items-center gap-1.5 ml-auto">
             {/* Search pill — desktop */}
-            <button onClick={() => { setShowSrch(s=>!s); setShowTools(false); }}
+            <button onClick={() => { setShowSrch(s=>!s); setOpenMega(null); }}
               aria-label="Search"
               className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm w-44 transition-all ${
                 showSrch
@@ -344,7 +376,7 @@ export function Navbar() {
             </SignedIn>
 
             {/* Mobile hamburger */}
-            <button onClick={() => { setMobile(m=>!m); setShowSrch(false); setShowTools(false); }}
+            <button onClick={() => { setMobile(m=>!m); setShowSrch(false); setOpenMega(null); }}
               aria-label={mobile ? 'Close menu' : 'Open menu'} aria-expanded={mobile}
               className="md:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               {mobile
@@ -356,8 +388,9 @@ export function Navbar() {
         </div>
       </div>
 
-      {showSrch  && <SearchOverlay onClose={closeSearch} />}
-      {showTools && !showSrch && <ToolsMegaMenu onClose={closeMega} />}
+      {showSrch && <SearchOverlay onClose={closeSearch} />}
+      {!showSrch && openMega === 'tools' && <ToolsMegaMenu onClose={closeMega} />}
+      {!showSrch && openMega === 'learn' && <LearnMegaMenu onClose={closeMega} />}
 
       {/* Mobile menu */}
       {mobile && (

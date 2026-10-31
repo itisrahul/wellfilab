@@ -13,7 +13,10 @@ export type GoalType =
   | 'net-worth' | 'sip-target' | 'emergency-fund' | 'debt-freedom' | 'fire-corpus'
   | 'home-down-payment' | 'education-fund' | 'vacation-fund' | 'vehicle-fund'
   | 'life-insurance-cover' | 'credit-score' | 'monthly-budget'
+  | 'retirement-corpus' | 'wedding-fund' | 'health-insurance-cover' | 'tax-saving'
+  | 'home-renovation' | 'gold-fund' | 'business-fund' | 'charity-fund'
   | 'weight' | 'sleep' | 'fitness' | 'hydration' | 'steps' | 'body-fat' | 'screen-time'
+  | 'protein-intake' | 'meditation-minutes'
   | 'wellfilab-score' | 'custom';
 
 export interface GoalHistoryPoint { date: string; value: number }
@@ -73,6 +76,14 @@ export const GOAL_TYPE_META: Record<GoalType, { label: string; icon: string; uni
   'life-insurance-cover': { label: 'Life insurance cover', icon: '🛡️', unit: '₹', category: 'wealth' },
   'credit-score':    { label: 'Credit score target',  icon: '📊', unit: 'pts',    category: 'wealth' },
   'monthly-budget':  { label: 'Monthly expense budget', icon: '💸', unit: '₹/month', category: 'wealth' },
+  'retirement-corpus': { label: 'Retirement corpus',  icon: '🏖️', unit: '₹',        category: 'wealth' },
+  'wedding-fund':    { label: 'Wedding fund',         icon: '💍', unit: '₹',        category: 'wealth' },
+  'health-insurance-cover': { label: 'Health insurance cover', icon: '🏥', unit: '₹', category: 'wealth' },
+  'tax-saving':      { label: 'Tax-saving investment (80C)', icon: '🧾', unit: '₹', category: 'wealth' },
+  'home-renovation': { label: 'Home renovation fund', icon: '🛠️', unit: '₹',       category: 'wealth' },
+  'gold-fund':       { label: 'Gold / jewellery fund', icon: '🪙', unit: '₹',       category: 'wealth' },
+  'business-fund':   { label: 'Business / startup fund', icon: '💼', unit: '₹',     category: 'wealth' },
+  'charity-fund':    { label: 'Charity / giving fund', icon: '❤️', unit: '₹',       category: 'wealth' },
   'weight':          { label: 'Weight target',       icon: '⚖️', unit: 'kg',       category: 'health' },
   'sleep':           { label: 'Sleep target',        icon: '😴', unit: 'hrs/night', category: 'health' },
   'fitness':         { label: 'Fitness target',      icon: '🏃', unit: 'days/week', category: 'health' },
@@ -80,6 +91,8 @@ export const GOAL_TYPE_META: Record<GoalType, { label: string; icon: string; uni
   'steps':           { label: 'Daily steps',         icon: '👟', unit: 'steps/day', category: 'health' },
   'body-fat':        { label: 'Body fat %',          icon: '📉', unit: '%',        category: 'health' },
   'screen-time':     { label: 'Screen time',         icon: '📱', unit: 'hrs/day',  category: 'health' },
+  'protein-intake':  { label: 'Protein intake',      icon: '🍗', unit: 'g/day',    category: 'health' },
+  'meditation-minutes': { label: 'Meditation',       icon: '🧘', unit: 'min/day',  category: 'health' },
   'wellfilab-score': { label: 'WellFiLab Score target', icon: '⭐', unit: 'pts',   category: 'score' },
   custom:            { label: 'Custom goal',         icon: '🎯', unit: '',         category: 'wealth' },
 };

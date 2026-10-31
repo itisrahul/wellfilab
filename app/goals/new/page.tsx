@@ -14,11 +14,16 @@ import { fmtVal, ACCUMULATION_GOAL_TYPES } from '@/lib/goalDisplay';
 import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
-const TYPE_OPTIONS: GoalType[] = [
-  'net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus',
-  'home-down-payment', 'education-fund', 'vacation-fund', 'vehicle-fund',
-  'life-insurance-cover', 'credit-score', 'monthly-budget',
-  'weight', 'sleep', 'fitness', 'hydration', 'steps', 'body-fat', 'screen-time', 'wellfilab-score',
+// Every real GoalType, grouped by GOAL_TYPE_META's own category — derived,
+// not a hand-maintained parallel list, so a new type added to the meta
+// object shows up here automatically instead of silently never appearing
+// in the picker (the exact bug class the API route's own GOAL_TYPES already
+// guards against server-side).
+const ALL_TYPES = Object.keys(GOAL_TYPE_META) as GoalType[];
+const TYPE_GROUPS: { category: 'wealth' | 'health' | 'score'; label: string; icon: string; types: GoalType[] }[] = [
+  { category: 'wealth', label: 'Wealth goals', icon: '💰', types: ALL_TYPES.filter(t => t !== 'custom' && GOAL_TYPE_META[t].category === 'wealth') },
+  { category: 'health', label: 'Health goals', icon: '💪', types: ALL_TYPES.filter(t => GOAL_TYPE_META[t].category === 'health') },
+  { category: 'score',  label: 'Score goals',  icon: '⭐', types: ALL_TYPES.filter(t => GOAL_TYPE_META[t].category === 'score') },
 ];
 
 /**
@@ -39,6 +44,7 @@ export default function NewGoalPage() {
   const [current, setCurrent] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [priority, setPriority] = useState<GoalPriority>('medium');
+  const [customLabel, setCustomLabel] = useState('');
   const [prefill, setPrefill] = useState<{ type: GoalType; current: number; target?: number } | null>(null);
 
   useEffect(() => {
@@ -68,7 +74,10 @@ export default function NewGoalPage() {
 
   const meta = type ? GOAL_TYPE_META[type] : null;
   const isNetWorth = type === 'net-worth' && !prefill;
-  const existingTypes = new Set((existing ?? []).map(g => g.type));
+  // 'custom' is deliberately excluded — it's the free-form fallback type,
+  // so unlike every other (single-instance) type, having one custom goal
+  // must never block adding a second one with a different label.
+  const existingTypes = new Set((existing ?? []).filter(g => g.type !== 'custom').map(g => g.type));
 
   const liveNetWorth = holdings != null ? computeTotals(holdings).netWorth : 0;
   useEffect(() => {
@@ -106,7 +115,9 @@ export default function NewGoalPage() {
 
   const save = async () => {
     if (!type || !meta || target === '' || current === '' || existingTypes.has(type)) return;
-    await addGoal({ type, label: meta.label, target: +target, current: +current, targetDate: targetDate || undefined, priority });
+    if (type === 'custom' && !customLabel.trim()) return;
+    const label = type === 'custom' ? customLabel.trim() : meta.label;
+    await addGoal({ type, label, target: +target, current: +current, targetDate: targetDate || undefined, priority });
     goBack();
   };
 
@@ -136,18 +147,36 @@ export default function NewGoalPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
           {!type ? (
-            <div className="grid sm:grid-cols-3 gap-2.5">
-              {TYPE_OPTIONS.map(t => {
-                const blocked = existingTypes.has(t);
-                return (
-                  <button key={t} disabled={blocked} onClick={() => !blocked && setType(t)}
-                    className={`p-3.5 rounded-xl border-2 text-center transition-all ${blocked ? 'border-gray-100 dark:border-gray-800 opacity-40 cursor-not-allowed' : 'border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600'}`}>
-                    <span className="text-2xl">{GOAL_TYPE_META[t].icon}</span>
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">{GOAL_TYPE_META[t].label}</p>
-                    {blocked && <p className="text-[9px] font-bold text-teal-600 dark:text-teal-400 mt-1">✓ Already tracking</p>}
-                  </button>
-                );
-              })}
+            <div className="space-y-6">
+              {TYPE_GROUPS.map(group => (
+                <div key={group.category}>
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5 flex items-center gap-1.5">
+                    <span>{group.icon}</span>{group.label}
+                  </p>
+                  <div className="grid sm:grid-cols-3 gap-2.5">
+                    {group.types.map(t => {
+                      const blocked = existingTypes.has(t);
+                      return (
+                        <button key={t} disabled={blocked} onClick={() => !blocked && setType(t)}
+                          className={`p-3.5 rounded-xl border-2 text-center transition-all ${blocked ? 'border-gray-100 dark:border-gray-800 opacity-40 cursor-not-allowed' : 'border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600'}`}>
+                          <span className="text-2xl">{GOAL_TYPE_META[t].icon}</span>
+                          <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">{GOAL_TYPE_META[t].label}</p>
+                          {blocked && <p className="text-[9px] font-bold text-teal-600 dark:text-teal-400 mt-1">✓ Already tracking</p>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2.5">🎯 Something else</p>
+                <button onClick={() => setType('custom')}
+                  className="w-full p-3.5 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 text-center transition-all">
+                  <span className="text-2xl">{GOAL_TYPE_META.custom.icon}</span>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1.5">Custom goal — set your own label</p>
+                </button>
+              </div>
             </div>
           ) : isNetWorth ? (
             <div className="space-y-5">
@@ -195,7 +224,7 @@ export default function NewGoalPage() {
             <div className="space-y-3 max-w-sm">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xl">{meta!.icon}</span>
-                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{meta!.label}</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{type === 'custom' && customLabel.trim() ? customLabel : meta!.label}</p>
                 <button onClick={() => setType(null)} className="text-xs text-gray-400 hover:underline ml-auto">Change type</button>
               </div>
               {prefill && (
@@ -212,6 +241,13 @@ export default function NewGoalPage() {
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2.5 py-1.5">
                   You're already tracking a {meta!.label.toLowerCase()} goal — delete it first if you want to replace it, rather than adding a second one you can't tell apart from the first.
                 </p>
+              )}
+              {type === 'custom' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">What's this goal called?</label>
+                  <input value={customLabel} onChange={e => setCustomLabel(e.target.value)} placeholder="e.g. New laptop fund" maxLength={200}
+                    className="w-full text-sm border-2 border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:border-teal-500" />
+                </div>
               )}
               <div>
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
@@ -237,7 +273,7 @@ export default function NewGoalPage() {
               {PrioritySelector}
 
               <div className="flex gap-2">
-                <button onClick={save} disabled={target === '' || current === '' || existingTypes.has(type)}
+                <button onClick={save} disabled={target === '' || current === '' || existingTypes.has(type) || (type === 'custom' && !customLabel.trim())}
                   className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
                   Save goal
                 </button>

@@ -17,6 +17,7 @@ import { fmtMoney } from './currency';
 // never drift apart on which types get a path calculator.
 export const ACCUMULATION_GOAL_TYPES: GoalType[] = [
   'net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund', 'vehicle-fund',
+  'retirement-corpus', 'wedding-fund', 'home-renovation', 'gold-fund', 'business-fund', 'charity-fund',
 ];
 
 /**
@@ -37,6 +38,8 @@ export const ACCUMULATION_GOAL_TYPES: GoalType[] = [
 const ABSOLUTE_PROGRESS_TYPES = new Set<GoalType>([
   'net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund',
   'vacation-fund', 'vehicle-fund', 'life-insurance-cover', 'credit-score', 'wellfilab-score',
+  'retirement-corpus', 'wedding-fund', 'health-insurance-cover', 'tax-saving',
+  'home-renovation', 'gold-fund', 'business-fund', 'charity-fund',
 ]);
 
 /** The real reference point "progress" is measured from — 0 for absolute-
