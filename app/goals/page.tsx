@@ -105,7 +105,24 @@ export default function GoalsPage() {
           </div>
         )}
 
-        {visibleGoals.length === 0 ? (
+        {visibleGoals.length > 0 && focus === 'both' ? (
+          <>
+            {(['wealth', 'health', 'score'] as const).map(cat => {
+              const inCat = visibleGoals.filter(g => GOAL_TYPE_META[g.type].category === cat);
+              if (inCat.length === 0) return null;
+              return (
+                <div key={cat}>
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+                    {cat === 'wealth' ? '💰 Wealth goals' : cat === 'health' ? '💪 Health goals' : '⭐ Score goals'}
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                    {inCat.map(g => <GoalCard key={g.id} goal={g} score={score} onChange={refresh} />)}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ) : visibleGoals.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
             <p className="text-4xl mb-4">🎯</p>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{goals.length === 0 ? 'No goals yet' : `No ${focus} goals yet`}</h2>

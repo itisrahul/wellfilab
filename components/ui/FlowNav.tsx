@@ -4,18 +4,18 @@ import { Check } from 'lucide-react';
 export type FlowStep = 'score' | 'roadmap' | 'goals' | 'dashboard';
 
 const STEPS: { id: FlowStep; label: string; href: string }[] = [
+  { id: 'goals', label: 'Goals', href: '/goals' },
   { id: 'score', label: 'Score', href: '/score' },
   { id: 'roadmap', label: 'Roadmap', href: '/roadmap' },
-  { id: 'goals', label: 'Goals', href: '/goals' },
   { id: 'dashboard', label: 'Dashboard', href: '/dashboard' },
 ];
 
 /**
  * A consistent "you are here" stepper shown on every page in the core
  * flow, so a first-time user always sees the same 4 steps and where they
- * stand — the single biggest fix for "customer feels lost": Score,
- * Roadmap, and Goals previously never linked to each other or to the
- * Dashboard at all.
+ * stand. Ordered to match the product's own mental model — set a goal,
+ * see where you stand, get a plan, track it — not the order these
+ * features happened to ship in.
  */
 export function FlowNav({ current }: { current: FlowStep }) {
   const currentIdx = STEPS.findIndex(s => s.id === current);
