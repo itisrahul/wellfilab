@@ -213,7 +213,7 @@ const NAV = [
   { href:'/goals',   label:'Goals',   hasMega:false },
   { href:'/score',   label:'Score',   hasMega:false },
   { href:'/roadmap', label:'Roadmap', hasMega:false },
-  { href:'/guides',  label:'Learn',   hasMega:false },
+  { href:'/learn',   label:'Learn',   hasMega:false },
   ...(PLANS_ENABLED ? [{ href:'/plan', label:'Plans', hasMega:false }] : []),
   { href:'/about',   label:'About',   hasMega:false },
 ];

@@ -1,5 +1,6 @@
 import { CALCULATORS, getAllSlugs } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
+import { COMPARISONS } from '@/lib/comparisons';
 import { SITE_URL } from '@/config/site';
 const UPD = new Date();
 export default function sitemap() {
@@ -7,6 +8,8 @@ export default function sitemap() {
     { url: SITE_URL, changeFrequency: 'weekly' as const, priority: 1.0, lastModified: UPD },
     { url: `${SITE_URL}/tools`, changeFrequency: 'monthly' as const, priority: 0.9, lastModified: UPD },
     { url: `${SITE_URL}/guides`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: UPD },
+    { url: `${SITE_URL}/learn`, changeFrequency: 'weekly' as const, priority: 0.8, lastModified: UPD },
+    { url: `${SITE_URL}/learn/best`, changeFrequency: 'weekly' as const, priority: 0.7, lastModified: UPD },
     { url: `${SITE_URL}/score`, changeFrequency: 'monthly' as const, priority: 0.9, lastModified: UPD },
     { url: `${SITE_URL}/score/methodology`, changeFrequency: 'monthly' as const, priority: 0.5, lastModified: new Date() },
     { url: `${SITE_URL}/roadmap`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: new Date() },
@@ -24,6 +27,10 @@ export default function sitemap() {
     ...ALL_POSTS.map(p => ({
       url: `${SITE_URL}/guides/${p.slug}`,
       changeFrequency: 'monthly' as const, priority: 0.7, lastModified: new Date(p.date),
+    })),
+    ...COMPARISONS.map(c => ({
+      url: `${SITE_URL}/learn/best/${c.slug}`,
+      changeFrequency: 'monthly' as const, priority: 0.7, lastModified: new Date(c.lastVerified),
     })),
   ];
 }
