@@ -168,21 +168,6 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
       <div className="max-w-7xl mx-auto px-6 py-7 max-h-[calc(100vh-5rem)] overflow-y-auto">
         <div className="grid grid-cols-2 gap-10">
 
-          {/* Health */}
-          <div>
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
-              <span className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400">Health Tools</span>
-              <Link href="/tools/health" onClick={onClose} className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
-                All {CALCULATORS.filter(c=>c.category==='health').length} →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-x-8">
-              {Object.entries(hGroups).map(([group, calcs]) => (
-                <MegaGroup key={group} group={group} calcs={calcs} category="health" accentDot="#2dd4bf" onClose={onClose}/>
-              ))}
-            </div>
-          </div>
-
           {/* Finance */}
           <div>
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
@@ -194,6 +179,21 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
             <div className="grid grid-cols-3 gap-x-6">
               {Object.entries(fGroups).map(([group, calcs]) => (
                 <MegaGroup key={group} group={group} calcs={calcs} category="finance" accentDot="#fbbf24" onClose={onClose}/>
+              ))}
+            </div>
+          </div>
+
+          {/* Health */}
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+              <span className="text-xs font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400">Health Tools</span>
+              <Link href="/tools/health" onClick={onClose} className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+                All {CALCULATORS.filter(c=>c.category==='health').length} →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-x-8">
+              {Object.entries(hGroups).map(([group, calcs]) => (
+                <MegaGroup key={group} group={group} calcs={calcs} category="health" accentDot="#2dd4bf" onClose={onClose}/>
               ))}
             </div>
           </div>
@@ -209,11 +209,11 @@ const ToolsMegaMenu = memo(function ToolsMegaMenu({ onClose }: { onClose: () => 
 });
 
 const NAV = [
-  { href:'/tools',   label:'Tools',   hasMega:true  },
-  { href:'/guides',  label:'Guides',  hasMega:false },
+  { href:'/tools',   label:'Calculators', hasMega:true  },
+  { href:'/goals',   label:'Goals',   hasMega:false },
   { href:'/score',   label:'Score',   hasMega:false },
   { href:'/roadmap', label:'Roadmap', hasMega:false },
-  { href:'/goals',   label:'Goals',   hasMega:false },
+  { href:'/guides',  label:'Learn',   hasMega:false },
   ...(PLANS_ENABLED ? [{ href:'/plan', label:'Plans', hasMega:false }] : []),
   { href:'/about',   label:'About',   hasMega:false },
 ];

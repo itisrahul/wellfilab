@@ -2,8 +2,8 @@
 import type { ScoreFocus } from '@/lib/scoreFocus';
 
 const OPTIONS: { value: ScoreFocus; label: string; icon: string }[] = [
-  { value: 'health', label: 'Health', icon: '💪' },
   { value: 'wealth', label: 'Wealth', icon: '💰' },
+  { value: 'health', label: 'Health', icon: '💪' },
   { value: 'both',   label: 'Both',   icon: '⚖️' },
 ];
 

@@ -328,8 +328,8 @@ export default function ScorePage() {
 
 function FocusChooser({ onChoose }: { onChoose: (f: ScoreFocus) => void }) {
   const options: { value: ScoreFocus; icon: string; title: string; body: string; time: string }[] = [
-    { value: 'health', icon: '💪', title: 'Health only', body: 'Sleep, movement, stress, diet — no finance questions at all.', time: '~2 minutes' },
     { value: 'wealth', icon: '💰', title: 'Wealth only', body: 'Income, savings, debt, investing — no health questions at all.', time: '~2 minutes' },
+    { value: 'health', icon: '💪', title: 'Health only', body: 'Sleep, movement, stress, diet — no finance questions at all.', time: '~2 minutes' },
     { value: 'both', icon: '⚖️', title: 'Health + Wealth', body: 'The full picture — how they connect, one combined score.', time: '~4 minutes' },
   ];
   return (

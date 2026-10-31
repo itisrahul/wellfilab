@@ -4,10 +4,10 @@ import { ScoreRing } from '@/components/ui/ScoreRing';
 import { scoreColor } from '@/lib/wellfilab-score';
 
 const FRAMES = [
-  { title: 'Take your score', body: '2 minutes, real numbers — sleep, income, savings, debt. See exactly why you scored what you scored.' },
+  { title: 'Set a goal', body: 'Pick a real target — ₹1 crore, financial freedom, a home down payment — not just a vague "save more."' },
+  { title: 'See where you stand', body: '2 minutes, real numbers — income, savings, debt, investing. See exactly why you scored what you scored.' },
   { title: 'Get your roadmap', body: 'Your weakest areas become a phased plan. Step 2 only unlocks after Step 1 — never a 40-item list on day one.' },
-  { title: 'Set a goal', body: 'Turn any target — a score, a net worth number, a sleep goal — into something you can actually track.' },
-  { title: 'Watch your dashboard', body: 'Update your goals as you go. Watch your real score move over real time, not a one-time snapshot.' },
+  { title: 'Track real progress', body: 'Update your goals as you go. Watch your real score and net worth move over real time, not a one-time snapshot.' },
 ];
 
 const FRAME_MS = 4200;
@@ -23,7 +23,7 @@ function ScoreVisual() {
         <div className="absolute inset-0 flex items-center justify-center font-mono tabular-nums font-black text-2xl" style={{ color }}>{pct}</div>
       </div>
       <div className="grid gap-2.5 flex-1">
-        {['Sleep', 'Exercise', 'Stress'].map((l, i) => (
+        {['Savings', 'Investing', 'Debt'].map((l, i) => (
           <div key={l}>
             <div className="flex justify-between text-[11px] text-gray-400 mb-1"><span>{l}</span></div>
             <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -94,7 +94,7 @@ function DashboardVisual() {
   );
 }
 
-const VISUALS = [ScoreVisual, RoadmapVisual, GoalVisual, DashboardVisual];
+const VISUALS = [GoalVisual, ScoreVisual, RoadmapVisual, DashboardVisual];
 
 /**
  * A self-playing 4-frame product tour — the homepage's main "explain what

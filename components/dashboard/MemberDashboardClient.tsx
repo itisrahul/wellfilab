@@ -20,6 +20,7 @@ import { ImportLocalDataBanner } from './ImportLocalDataBanner';
 import { RiskAlertsCard } from './RiskAlertsCard';
 import { GoalProgressCard } from './GoalProgressCard';
 import { NextStepsCard } from './NextStepsCard';
+import { MonthlyReviewBand } from './MonthlyReviewBand';
 
 // recharts is heavy — load it only on the client, same pattern every
 // calculator widget already uses.
@@ -159,7 +160,7 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
                risk alerts, and key numbers below don't depend on having a
                score — a goal set before ever taking the score must still
                show up here, not get hidden behind a "take your score" wall. ── */}
-          <div className="bg-[#0F2A27] rounded-xl p-6 flex flex-wrap justify-between items-center gap-5">
+          <div id="top" className="bg-[#0F2A27] rounded-xl p-6 flex flex-wrap justify-between items-center gap-5">
             <div className="flex items-center gap-3">
               {userImageUrl ? (
                 <img src={userImageUrl} alt="" className="w-11 h-11 rounded-xl object-cover border border-white/20 flex-shrink-0" />
@@ -205,6 +206,9 @@ export function MemberDashboardClient({ userName, userImageUrl }: Props) {
             </div>
           ) : (
             <>
+              {/* ── Monthly review cadence — last check-in, next one due, streak ── */}
+              <MonthlyReviewBand score={score} />
+
               {/* ── Score, every month ── */}
               <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">

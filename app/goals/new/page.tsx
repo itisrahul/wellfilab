@@ -52,6 +52,16 @@ export default function NewGoalPage() {
       setType(p.type);
       setCurrent(String(p.current));
       if (p.target != null) setTarget(String(p.target));
+      return;
+    }
+    // Lighter deep link from the homepage's "Popular Goals" row — just
+    // preselects the type (no known current value yet), straight into the
+    // same manual-entry form a type picked from the grid below would reach.
+    const bareType = params.get('type') as GoalType | null;
+    const bareTarget = params.get('target');
+    if (bareType && GOAL_TYPE_META[bareType]) {
+      setType(bareType);
+      if (bareTarget != null && !Number.isNaN(+bareTarget)) setTarget(bareTarget);
     }
   }, []);
 

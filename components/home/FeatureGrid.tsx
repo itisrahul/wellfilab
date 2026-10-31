@@ -147,13 +147,12 @@ function StatTile({ href, value, label, body }: { href: string; value: React.Rea
 const CURRENCY_FLAGS = ['🇮🇳', '🇺🇸', '🇪🇺', '🇬🇧', '🇯🇵', '🇦🇪'];
 
 /**
- * The homepage's "here's everything you actually get" section — one card
- * per real feature, each with a live scroll-triggered visual instead of a
- * stock icon, so the claim is demonstrated, not just stated. Health and
- * finance calculators sit in the same grid as Score/Goals/Roadmap/
- * Dashboard rather than in a separate section further down — this is
- * meant to be the one place that shows the whole product at a glance,
- * calculators included, not a dashboard-only preview.
+ * The homepage's "here's everything you actually get" section — ordered to
+ * match the product's own mental model (Goal → Position → Plan → Progress):
+ * Goals first, then Score ("where do I stand"), then Roadmap ("what's
+ * next"), then Dashboard/Finance/Health. One card per real feature, each
+ * with a live scroll-triggered visual instead of a stock icon, so the claim
+ * is demonstrated, not just stated.
  */
 export function FeatureGrid({ healthPreview, financePreview, guideCount, calcCount }: {
   healthPreview: { label: string; value: string }[];
@@ -165,17 +164,17 @@ export function FeatureGrid({ healthPreview, financePreview, guideCount, calcCou
     <div className="grid gap-5">
       <div className="grid lg:grid-cols-3 gap-5">
         <Reveal as="div">
-          <Tile href="/score" eyebrow="WellFiLab Score" eyebrowColor="text-teal-700 dark:text-teal-400" title="One score for everything"
-            body="Body, mind, wealth and life — one real number, recalculated every time you check in."
-            visual={<ScoreTileVisual />} />
-        </Reveal>
-        <Reveal as="div" delayMs={70}>
-          <Tile href="/goals" eyebrow="Goals & Net Worth" eyebrowColor="text-amber-700 dark:text-amber-400" title="Goals that track themselves"
-            body="20 goal types. Net worth updates itself from the real holdings you add — never a manual snapshot."
+          <Tile href="/goals" eyebrow="Goals & Net Worth" eyebrowColor="text-amber-700 dark:text-amber-400" title="Set a real target"
+            body="Build ₹1 crore, financial freedom, a home down payment. Net worth updates itself from the real holdings you add."
             visual={<GoalTileVisual />} />
         </Reveal>
+        <Reveal as="div" delayMs={70}>
+          <Tile href="/score" eyebrow="WellFiLab Score" eyebrowColor="text-teal-700 dark:text-teal-400" title="See where you stand"
+            body="One real number, recalculated every time you check in — wealth-only, health-only, or both."
+            visual={<ScoreTileVisual />} />
+        </Reveal>
         <Reveal as="div" delayMs={140}>
-          <Tile href="/roadmap" eyebrow="Roadmap" eyebrowColor="text-teal-700 dark:text-teal-400" title="A plan, not a list"
+          <Tile href="/roadmap" eyebrow="Roadmap" eyebrowColor="text-amber-700 dark:text-amber-400" title="Know what to do next"
             body="Your weakest areas become a phased roadmap. Step 2 only unlocks after step 1."
             visual={<RoadmapTileVisual />} />
         </Reveal>
@@ -183,19 +182,19 @@ export function FeatureGrid({ healthPreview, financePreview, guideCount, calcCou
 
       <div className="grid lg:grid-cols-3 gap-5">
         <Reveal as="div" delayMs={70}>
-          <Tile href="/dashboard" eyebrow="Dashboard" eyebrowColor="text-amber-700 dark:text-amber-400" title="Everything, in one place"
+          <Tile href="/dashboard" eyebrow="Dashboard" eyebrowColor="text-amber-700 dark:text-amber-400" title="Track real progress"
             body="Score, roadmap, goals and net worth together — not five different apps and a spreadsheet."
             visual={<div className="pt-1"><AnimatedTrendChart /></div>} />
         </Reveal>
         <Reveal as="div" delayMs={140}>
-          <Tile href="/tools/health" eyebrow="Health calculators" eyebrowColor="text-teal-700 dark:text-teal-400" title="BMI, sleep, calories, body fat"
-            body="Understand your body with real numbers, not guesswork."
-            visual={<MiniPreview rows={healthPreview} accent="text-teal-700 dark:text-teal-400" />} />
-        </Reveal>
-        <Reveal as="div" delayMs={210}>
           <Tile href="/tools/finance" eyebrow="Finance calculators" eyebrowColor="text-amber-700 dark:text-amber-400" title="SIP, EMI, FIRE, retirement"
             body="Make smarter money decisions with tools built for real numbers."
             visual={<MiniPreview rows={financePreview} accent="text-amber-700 dark:text-amber-400" />} />
+        </Reveal>
+        <Reveal as="div" delayMs={210}>
+          <Tile href="/tools/health" eyebrow="Health calculators" eyebrowColor="text-teal-700 dark:text-teal-400" title="BMI, sleep, calories, body fat"
+            body="Understand your body with real numbers, not guesswork."
+            visual={<MiniPreview rows={healthPreview} accent="text-teal-700 dark:text-teal-400" />} />
         </Reveal>
       </div>
 
