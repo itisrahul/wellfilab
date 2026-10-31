@@ -155,10 +155,11 @@ const CURRENCY_FLAGS = ['🇮🇳', '🇺🇸', '🇪🇺', '🇬🇧', '🇯�
  * meant to be the one place that shows the whole product at a glance,
  * calculators included, not a dashboard-only preview.
  */
-export function FeatureGrid({ healthPreview, financePreview, guideCount }: {
+export function FeatureGrid({ healthPreview, financePreview, guideCount, calcCount }: {
   healthPreview: { label: string; value: string }[];
   financePreview: { label: string; value: string }[];
   guideCount: number;
+  calcCount: number;
 }) {
   return (
     <div className="grid gap-5">
@@ -198,18 +199,22 @@ export function FeatureGrid({ healthPreview, financePreview, guideCount }: {
         </Reveal>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-5">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Reveal as="div" delayMs={60}>
+          <StatTile href="/tools" value={<CountUp value={calcCount} suffix="+" />} label="Calculators"
+            body="Health and finance, in one place." />
+        </Reveal>
+        <Reveal as="div" delayMs={120}>
           <StatTile href="/guides" value={<CountUp value={guideCount} />} label="Guides"
             body="The math behind every calculator, explained." />
         </Reveal>
-        <Reveal as="div" delayMs={120}>
-          <StatTile href="/tools/finance/currency" value={<CountUp value={15} />} label="Currencies"
-            body={`See every number in yours, instantly — ${CURRENCY_FLAGS.join(' ')}`} />
-        </Reveal>
         <Reveal as="div" delayMs={180}>
+          <StatTile href="/tools/finance/currency" value={<CountUp value={15} />} label="Currencies"
+            body={`See every number in yours — ${CURRENCY_FLAGS.join(' ')}`} />
+        </Reveal>
+        <Reveal as="div" delayMs={240}>
           <StatTile href="/tools" value="🔒" label="Private by default"
-            body="Calculators run in your browser. Sign in only if you want history saved." />
+            body="Runs in your browser, instantly. Sign in only if you want history saved." />
         </Reveal>
       </div>
     </div>

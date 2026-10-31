@@ -23,22 +23,6 @@
     font-size: 1.125rem;
     line-height: 1.9;
   }
-
-  /* A slow colour drift for the homepage hero's gradient wash — moves
-   * *where* the existing teal/amber gradient sits, not a blur or a glow,
-   * so the hero never sits perfectly still. Off entirely under
-   * prefers-reduced-motion. */
-  @keyframes hero-drift {
-    0%, 100% { background-position: 0% 0%; }
-    50%      { background-position: 100% 100%; }
-  }
-  .hero-gradient {
-    background-size: 200% 200%;
-    animation: hero-drift 22s ease-in-out infinite;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .hero-gradient { animation: none; }
-  }
 }
 
 @layer components {

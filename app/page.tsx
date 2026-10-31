@@ -6,7 +6,6 @@ import { PostCard } from '@/components/ui/PostCard';
 import { NewsletterSignup } from '@/components/ui/NewsletterSignup';
 import { calcBMI, calcCalories, calcBedtime, calcBodyFat, calcSIP, calcLoan, calcFIRE, calcRetirement } from '@/lib/calc';
 import { fmtINR } from '@/lib/roadmapActions';
-import { CountUp } from '@/components/home/CountUp';
 import { Reveal } from '@/components/home/Reveal';
 import { ProductTour } from '@/components/home/ProductTour';
 import { FeatureGrid } from '@/components/home/FeatureGrid';
@@ -22,14 +21,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-
-const FAQ = [
-  { q: 'Is there a cost to use the calculators?', a: 'No. Every calculator and guide is open to use, with no signup. Optional paid plans exist for people who want a personal plan built from their numbers.' },
-  { q: 'Do you store the numbers I type?', a: 'Calculators run in your browser and your inputs are not sent to our servers. If you sign in, your score history and goals are saved to your account so they follow you across devices.' },
-  { q: 'How accurate are the results?', a: 'The math is standard and every formula is shown on each calculator page. Results are estimates: investment returns, inflation and health outcomes vary from person to person.' },
-  { q: 'What is the WellFiLab Score?', a: 'An optional five-minute assessment. You enter real numbers such as sleep, weight, income and savings, and get a score with a breakdown of how it was calculated, plus a roadmap of what to fix first.' },
-  { q: 'Do I need an account?', a: 'Not to use the calculators. An account adds a dashboard where your score history, goals and real holdings are saved and tracked over time.' },
-];
 
 // Sample outputs for the two-path section — real formulas (lib/calc.ts) run
 // against one representative set of inputs, the same way LiveCalcHero does.
@@ -55,59 +46,29 @@ const FINANCE_PREVIEW = [
   { label: 'FIRE number', value: fmtINR(fireEx.fireNum) },
   { label: 'Retirement corpus', value: fmtINR(retirementEx.corpus) },
 ];
-const STATS = [
-  { value: CALCULATORS.length, suffix: '+', label: 'calculators' },
-  { value: ALL_POSTS.length, suffix: '', label: 'step-by-step guides' },
-  { value: 0, suffix: '', label: 'accounts needed to calculate' },
-  { label: 'results', word: 'Instant' },
-] as const;
-
 export default function HomePage() {
   const latest = [...ALL_POSTS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
 
   return (
     <div className="bg-white dark:bg-gray-950">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        '@context': 'https://schema.org', '@type': 'FAQPage',
-        mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-      }) }} />
 
       {/* ══════════════════════════════════════════════
-          TOP — the feature grid itself IS the hero. A soft two-tone wash
-          (teal/amber, the site's own two categories) with a slow drift,
-          no blur or glass, and straight into the real product — what you
-          actually get, demonstrated with live visuals, not a pitch first.
+          TOP — the feature grid itself IS the hero. Flat background, no
+          wash, no drift — straight into the real product, one line of
+          intro, then what you actually get, demonstrated with live
+          visuals instead of a pitch.
       ══════════════════════════════════════════════ */}
-      <section className="hero-gradient relative overflow-hidden bg-gradient-to-br from-teal-50/80 via-white to-amber-50/50 dark:from-teal-950/25 dark:via-gray-950 dark:to-amber-950/10 border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-20 md:pt-16 md:pb-24">
-          <Reveal className="max-w-2xl mb-10 md:mb-12">
-            <p className="text-xs font-bold tracking-[0.15em] uppercase text-teal-700 dark:text-teal-400 mb-4">
-              Health + finance, one place
-            </p>
-            <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight text-gray-900 dark:text-white leading-[1.1] text-balance">
-              Everything you actually get
+      <section className="border-b border-gray-100 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-16 md:pt-12 md:pb-20">
+          <Reveal className="mb-8 md:mb-10">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Everything you actually get —{' '}
+              <span className="font-normal text-gray-500 dark:text-gray-400">
+                real score, real plan, goals that track themselves.
+              </span>
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mt-4 max-w-xl">
-              Not just a calculator directory — a real score, a real plan, and goals that track themselves. {CALCULATORS.length}+ calculators. No signup needed.
-            </p>
           </Reveal>
-          <FeatureGrid healthPreview={HEALTH_PREVIEW} financePreview={FINANCE_PREVIEW} guideCount={ALL_POSTS.length} />
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          STATS — a plain divided row.
-      ══════════════════════════════════════════════ */}
-      <section className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800">
-          {STATS.map(s => (
-            <div key={s.label} className="py-7 px-4 sm:px-6 text-center sm:text-left">
-              <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">
-                {'word' in s ? s.word : <><CountUp value={s.value} />{s.suffix}</>}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">{s.label}</p>
-            </div>
-          ))}
+          <FeatureGrid healthPreview={HEALTH_PREVIEW} financePreview={FINANCE_PREVIEW} guideCount={ALL_POSTS.length} calcCount={CALCULATORS.length} />
         </div>
       </section>
 
@@ -162,27 +123,9 @@ export default function HomePage() {
         )}
 
         {/* ══════════════════════════════════════════════
-            FAQ
-        ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20 border-t border-gray-100 dark:border-gray-800">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-8">Questions people ask</h2>
-          <div className="max-w-2xl">
-            {FAQ.map((item, i) => (
-              <details key={i} className="group border-b border-gray-100 dark:border-gray-800 py-4">
-                <summary className="flex items-center justify-between gap-4 font-semibold text-[16px] text-gray-900 dark:text-white cursor-pointer list-none">
-                  {item.q}
-                  <span className="text-gray-400 text-xl font-light group-open:rotate-45 transition-transform flex-shrink-0">+</span>
-                </summary>
-                <p className="text-gray-600 dark:text-gray-400 mt-2.5 text-[15px] leading-relaxed">{item.a}</p>
-              </details>
-            ))}
-          </div>
-        </Reveal>
-
-        {/* ══════════════════════════════════════════════
             NEWSLETTER
         ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="pb-20">
+        <Reveal as="section" className="py-20 border-t border-gray-100 dark:border-gray-800">
           <NewsletterSignup source="homepage" />
         </Reveal>
       </div>
