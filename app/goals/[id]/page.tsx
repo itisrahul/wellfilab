@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -41,13 +41,25 @@ export default function GoalDetailPage() {
   const { data: holdingsForSync } = useSWR(SWR_KEYS.holdings, getHoldings);
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(0);
-  const [editingTarget, setEditingTarget] = useState(false);
+  // ?edit=1 (from the pencil icon on the goal's card) opens straight into
+  // edit mode instead of landing on the page and making you click again.
+  const [editingTarget, setEditingTarget] = useState(
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('edit') === '1'
+  );
   const [targetVal, setTargetVal] = useState('');
   const [targetDateVal, setTargetDateVal] = useState('');
   const { confirmDialog, dialog } = useConfirmDialog();
 
   const rawGoal = (goals ?? []).find(g => g.id === id);
   const goal = rawGoal ? syncNetWorthGoalFromHoldings(rawGoal, holdingsForSync ?? []) : null;
+
+  useEffect(() => {
+    if (goal && editingTarget && targetVal === '') {
+      setTargetVal(String(goal.target));
+      setTargetDateVal(goal.targetDate ? goal.targetDate.slice(0, 10) : '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goal]);
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
@@ -100,14 +112,14 @@ export default function GoalDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {dialog}
       <div className="bg-[#0F2A27]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5">
           <Link href="/goals" className="text-xs font-bold text-teal-300 hover:underline">← Back to your goals</Link>
-          <div className="flex items-center justify-between gap-3 mt-3">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{meta.icon}</span>
+          <div className="flex items-center justify-between gap-3 mt-2">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">{meta.icon}</span>
               <div>
-                <h1 className="text-2xl font-extrabold text-white leading-tight">{goal.label}</h1>
-                {goal.targetDate && <p className="text-sm text-white/50">Target date: {new Date(goal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
+                <h1 className="text-lg font-extrabold text-white leading-tight">{goal.label}</h1>
+                {goal.targetDate && <p className="text-xs text-white/50">Target date: {new Date(goal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>}
               </div>
             </div>
             <button onClick={startEditTarget} title="Edit target & date" className="text-white/50 hover:text-white flex-shrink-0"><Pencil size={16} /></button>

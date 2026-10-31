@@ -2,10 +2,11 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
+import { Pencil } from 'lucide-react';
 import {
   getHoldings, addHolding, updateHolding, deleteHolding, computeTotals, computeBreakdown, computeMonthOverMonthChanges,
   computeMonthlyNetWorthHistory, computeMonthlyGainHistory, getHoldingsSyncError,
-  HOLDING_TYPES, HOLDING_TYPE_META, type HoldingCategory, type HoldingType,
+  HOLDING_TYPES, HOLDING_TYPE_META, type HoldingCategory, type HoldingType, type Holding,
 } from '@/lib/holdingsStorage';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { fmtMoney } from '@/lib/currency';
@@ -183,8 +184,8 @@ function CategoryBlock({ cat, onChange }: { cat: ReturnType<typeof computeBreakd
               <span className="font-mono tabular-nums font-semibold text-gray-500 dark:text-gray-400">{fmtINR(t.total)}</span>
             </div>
             <div className="space-y-1 pl-5">
-              {t.rows.map(r => (
-                <HoldingRow key={r.id} id={r.id} subType={r.subType} value={r.value} onChange={onChange} />
+              {t.rows.map(h => (
+                <HoldingRow key={h.id} holding={h} onChange={onChange} />
               ))}
             </div>
           </div>
@@ -194,29 +195,17 @@ function CategoryBlock({ cat, onChange }: { cat: ReturnType<typeof computeBreakd
   );
 }
 
-function HoldingRow({ id, subType, value, onChange }: { id: string; subType: string; value: number; onChange: () => void }) {
+function HoldingRow({ holding, onChange }: { holding: Holding; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(String(value));
   const { confirmDialog, dialog } = useConfirmDialog();
 
-  const remove = async () => { if (await confirmDialog(`Delete "${subType}"? This can't be undone.`)) { await deleteHolding(id); onChange(); } };
-  const save = async () => {
-    const n = +val;
-    if (val !== '' && !Number.isNaN(n)) await updateHolding(id, { currentValue: Math.abs(n) });
-    setEditing(false);
-    onChange();
-  };
+  const remove = async () => { if (await confirmDialog(`Delete "${holding.subType}"? This can't be undone.`)) { await deleteHolding(holding.id); onChange(); } };
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1.5 text-xs">
-        <span className="truncate flex-1 text-gray-500 dark:text-gray-400">{subType}</span>
-        <input type="number" autoFocus value={val} onChange={e => setVal(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setVal(String(value)); } }}
-          className="w-24 text-xs border border-teal-400 rounded px-1.5 py-0.5 bg-white dark:bg-gray-800 focus:outline-none" />
-        <button onClick={save} className="text-teal-600 dark:text-teal-400 font-bold">✓</button>
-        <button onClick={() => { setEditing(false); setVal(String(value)); }} className="text-gray-400">✕</button>
-      </div>
+      <HoldingForm existing={holding} compact
+        onSaved={() => { setEditing(false); onChange(); }}
+        onCancel={() => setEditing(false)} />
     );
   }
 
@@ -224,12 +213,13 @@ function HoldingRow({ id, subType, value, onChange }: { id: string; subType: str
     <>
       {dialog}
       <div className="group flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span className="truncate">{subType}</span>
+        <span className="truncate">{holding.subType}</span>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="font-mono tabular-nums hover:text-teal-600 dark:hover:text-teal-400 hover:underline" title="Update this month's value">
-            {fmtINR(value)}
+          <span className="font-mono tabular-nums">{fmtINR(holding.currentValue)}</span>
+          <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-opacity" title="Edit this holding">
+            <Pencil size={11} />
           </button>
-          <button onClick={remove} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity">✕</button>
+          <button onClick={remove} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity" title="Delete this holding">✕</button>
         </div>
       </div>
     </>
@@ -237,26 +227,41 @@ function HoldingRow({ id, subType, value, onChange }: { id: string; subType: str
 }
 
 function AddHoldingForm({ onAdded }: { onAdded: () => void }) {
-  const [category, setCategory] = useState<HoldingCategory>('asset');
-  const [type, setType] = useState<HoldingType>('Equity');
-  const [subType, setSubType] = useState('');
-  const [currentValue, setCurrentValue] = useState('');
-  const [investedAmount, setInvestedAmount] = useState('');
-  const [monthlyContribution, setMonthlyContribution] = useState('');
+  return <HoldingForm onSaved={onAdded} />;
+}
+
+/**
+ * One form for both adding a holding and editing an existing one — editing
+ * used to be a bare "type a new number" inline input, so changing a
+ * holding's name, type, invested amount, or monthly SIP/EMI meant deleting
+ * it and re-adding from scratch. Same fields either way; `existing` just
+ * pre-fills them and switches the save to an update instead of a create.
+ */
+function HoldingForm({ existing, onSaved, onCancel, compact = false }: {
+  existing?: Holding; onSaved: () => void; onCancel?: () => void; compact?: boolean;
+}) {
+  const [category, setCategory] = useState<HoldingCategory>(existing?.category ?? 'asset');
+  const [type, setType] = useState<HoldingType>(existing?.type ?? 'Equity');
+  const [subType, setSubType] = useState(existing?.subType ?? '');
+  const [currentValue, setCurrentValue] = useState(existing ? String(existing.currentValue) : '');
+  const [investedAmount, setInvestedAmount] = useState(existing?.investedAmount != null ? String(existing.investedAmount) : '');
+  const [monthlyContribution, setMonthlyContribution] = useState(existing?.monthlyContribution != null ? String(existing.monthlyContribution) : '');
 
   const save = async () => {
     if (!subType.trim() || currentValue === '') return;
-    await addHolding({
+    const payload = {
       category, type, subType: subType.trim(),
       currentValue: Math.abs(+currentValue),
       investedAmount: investedAmount !== '' ? Math.abs(+investedAmount) : undefined,
       monthlyContribution: monthlyContribution !== '' ? Math.abs(+monthlyContribution) : undefined,
-    });
-    onAdded();
+    };
+    if (existing) await updateHolding(existing.id, payload);
+    else await addHolding(payload);
+    onSaved();
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 space-y-3">
+    <div className={`bg-gray-50 dark:bg-gray-800/40 rounded-xl space-y-3 ${compact ? 'p-3' : 'p-4'}`}>
       <div>
         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">This is a...</label>
         <div className="inline-flex items-center gap-1 bg-white dark:bg-gray-900 rounded-full p-1">
@@ -299,10 +304,17 @@ function AddHoldingForm({ onAdded }: { onAdded: () => void }) {
         </div>
       </div>
 
-      <button onClick={save} disabled={!subType.trim() || currentValue === ''}
-        className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
-        Save holding
-      </button>
+      <div className="flex gap-2">
+        <button onClick={save} disabled={!subType.trim() || currentValue === ''}
+          className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
+          {existing ? 'Save changes' : 'Save holding'}
+        </button>
+        {onCancel && (
+          <button onClick={onCancel} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400">
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -19,6 +19,33 @@ export const ACCUMULATION_GOAL_TYPES: GoalType[] = [
   'net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund', 'vehicle-fund',
 ];
 
+/**
+ * Goal types where "how far along am I" genuinely means current/target —
+ * you don't start a net-worth or emergency-fund journey at zero the day
+ * you happen to set a target in this app, you already have whatever real
+ * wealth or score you have. Debt-freedom, monthly-budget, and every health
+ * goal are the opposite: real "progress since I started tracking this"
+ * types, where the value at creation is the meaningful baseline (you
+ * genuinely start a weight-loss goal at today's weight).
+ *
+ * This also makes raising a target later (updateGoalTarget) behave
+ * sanely — without it, editing a ₹90L net-worth goal's target up to ₹2Cr
+ * would flash the goal back to "0% complete" even though the ₹90L itself
+ * didn't move, because startValue (frozen at goal-creation time) suddenly
+ * sits right next to current with almost the entire new span still ahead.
+ */
+const ABSOLUTE_PROGRESS_TYPES = new Set<GoalType>([
+  'net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund',
+  'vacation-fund', 'vehicle-fund', 'life-insurance-cover', 'credit-score', 'wellfilab-score',
+]);
+
+/** The real reference point "progress" is measured from — 0 for absolute-
+ * target types (see ABSOLUTE_PROGRESS_TYPES), the goal's own recorded
+ * startValue for every journey-since-tracking type. */
+export function effectiveStartValue(g: Goal): number {
+  return ABSOLUTE_PROGRESS_TYPES.has(g.type) ? 0 : g.startValue;
+}
+
 export function fmtVal(n: number, unit: string): string {
   if (unit === '₹') return fmtMoney(n, 2);
   if (unit === '₹/month') return `${fmtMoney(n, 2)}/month`;
@@ -27,13 +54,15 @@ export function fmtVal(n: number, unit: string): string {
 }
 
 export function progressPct(g: Goal): number {
-  const span = g.target - g.startValue;
+  const start = effectiveStartValue(g);
+  const span = g.target - start;
   if (span === 0) return g.current === g.target ? 100 : 0;
-  return Math.max(0, Math.min(100, ((g.current - g.startValue) / span) * 100));
+  return Math.max(0, Math.min(100, ((g.current - start) / span) * 100));
 }
 
 export function isGoalComplete(g: Goal): boolean {
-  const span = g.target - g.startValue;
+  const start = effectiveStartValue(g);
+  const span = g.target - start;
   if (span === 0) return g.current === g.target;
   return span > 0 ? g.current >= g.target : g.current <= g.target;
 }

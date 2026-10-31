@@ -296,8 +296,11 @@ export function computeMonthlyGainHistory(monthly: MonthlyNetWorthPoint[]): Mont
   });
 }
 
-export interface BreakdownSubRow { subType: string; value: number; id: string }
-export interface BreakdownTypeRow { type: HoldingType; total: number; rows: BreakdownSubRow[] }
+// Rows carry the full Holding (not a trimmed {id, subType, value}) so the
+// UI can open a real edit form pre-filled with every field — category,
+// type, invested amount, monthly contribution — not just the bare current
+// value, without a second fetch to look the rest up by id.
+export interface BreakdownTypeRow { type: HoldingType; total: number; rows: Holding[] }
 export interface BreakdownCategory { category: HoldingCategory; total: number; types: BreakdownTypeRow[] }
 
 /** The Category → Type → Sub-type pivot — same shape as a typical personal
@@ -309,7 +312,7 @@ export function computeBreakdown(holdings: Holding[]): BreakdownCategory[] {
     for (const h of inCategory) typeMap.set(h.type, [...(typeMap.get(h.type) ?? []), h]);
     const types: BreakdownTypeRow[] = [...typeMap.entries()].map(([type, hs]) => ({
       type, total: hs.reduce((s, h) => s + h.currentValue, 0),
-      rows: hs.map(h => ({ id: h.id, subType: h.subType, value: h.currentValue })),
+      rows: hs,
     })).sort((a, b) => b.total - a.total);
     return { category, total: inCategory.reduce((s, h) => s + h.currentValue, 0), types };
   });

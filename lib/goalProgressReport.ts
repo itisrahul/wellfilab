@@ -11,6 +11,7 @@
 
 import { getGoalHistory, GOAL_TYPE_META, type Goal } from './goalsStorage';
 import { fmtMoney } from './currency';
+import { effectiveStartValue } from './goalDisplay';
 
 export interface MonthlyBreakdownPoint {
   monthLabel: string;
@@ -62,9 +63,15 @@ export function buildGoalProgressReport(g: Goal): GoalProgressReport {
   const monthlyBreakdown = bucketByMonth(history);
 
   const span = g.target - g.startValue;
-  const pctComplete = span === 0
+  // pctComplete is the static "how far along" number — uses the same
+  // absolute-vs-since-tracking rule as the card's own progress bar
+  // (lib/goalDisplay.ts's progressPct), unlike the real-pace numbers below
+  // which deliberately stay tied to the goal's actual recorded movement.
+  const absStart = effectiveStartValue(g);
+  const absSpan = g.target - absStart;
+  const pctComplete = absSpan === 0
     ? (g.current === g.target ? 100 : 0)
-    : Math.max(0, Math.min(100, ((g.current - g.startValue) / span) * 100));
+    : Math.max(0, Math.min(100, ((g.current - absStart) / absSpan) * 100));
 
   const now = Date.now();
   const startTime = new Date(g.startDate).getTime();

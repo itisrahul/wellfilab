@@ -45,7 +45,7 @@ export default function WeightLossCalc() {
         ))}
       </div>
       <Box icon="⚠️ Safety note" text="Never eat below 1,200 kcal/day (women) or 1,500 kcal/day (men). Combine with strength training to preserve muscle." color="orange"/>
-      <Link href={`/goals?prefill=weight&current=${currentKg.toFixed(1)}&target=${goalKg.toFixed(1)}`} className="block text-center text-xs font-bold text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline">
+      <Link href={`/goals/new?prefill=weight&current=${currentKg.toFixed(1)}&target=${goalKg.toFixed(1)}`} className="block text-center text-xs font-bold text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 underline">
         Track this weight goal →
       </Link>
     </>}/>

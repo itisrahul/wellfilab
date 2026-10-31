@@ -12,6 +12,11 @@ import type { Goal } from './goalsStorage';
 
 const MIN_DAYS_FOR_PACE = 3;
 
+// Deliberately NOT lib/goalDisplay.ts's effectiveStartValue (which treats
+// net-worth-style goals as starting at 0 for an honest absolute progress
+// bar) — pace/ETA measure real *movement*, so they need the real value
+// the goal started at. Using 0 here would fabricate a rate out of wealth
+// the user already had before ever tracking it, not progress they made.
 export function estimateGoalETA(g: Goal): string | null {
   const span = g.target - g.startValue;
   if (span === 0) return null;

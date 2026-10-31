@@ -8,6 +8,7 @@ import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { fmtMoney } from '@/lib/currency';
 import { useCurrency } from '@/lib/useCurrency';
+import { progressPct } from '@/lib/goalDisplay';
 import { SWR_KEYS } from '@/lib/swrKeys';
 
 /**
@@ -29,14 +30,13 @@ export default function AssetsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="bg-[#0F2A27]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-teal-300 mb-2">Asset Tracker</p>
-          <h1 className="text-3xl font-extrabold text-white mb-2">Your Net Worth, Broken Down</h1>
-          <p className="text-sm text-white/50">Real holdings, real monthly contributions — by category, not one lump number.</p>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
+          <h1 className="text-lg font-extrabold text-white">Your Net Worth, Broken Down</h1>
+          <p className="text-xs text-white/50 mt-0.5">Real holdings, real monthly contributions — by category, not one lump number.</p>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <div className="flex items-center gap-3 flex-wrap text-xs">
           <Link href="/goals" className="font-bold text-teal-600 dark:text-teal-400 hover:underline">← Your goals</Link>
           <span className="text-gray-300 dark:text-gray-700">·</span>
@@ -69,8 +69,7 @@ export default function AssetsPage() {
 function NetWorthGoalProgress({ goal, current }: { goal: Goal; current: number }) {
   const eta = estimateGoalETA(goal);
   const pace = getGoalPaceStatus(goal);
-  const span = goal.target - goal.startValue;
-  const pct = span === 0 ? 100 : Math.max(0, Math.min(100, ((current - goal.startValue) / span) * 100));
+  const pct = progressPct(goal);
   return (
     <div className="mb-4">
       <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
