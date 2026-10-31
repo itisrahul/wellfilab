@@ -11,8 +11,9 @@
 
 export type GoalType =
   | 'net-worth' | 'sip-target' | 'emergency-fund' | 'debt-freedom' | 'fire-corpus'
-  | 'home-down-payment' | 'education-fund' | 'vacation-fund'
-  | 'weight' | 'sleep' | 'fitness' | 'hydration' | 'steps'
+  | 'home-down-payment' | 'education-fund' | 'vacation-fund' | 'vehicle-fund'
+  | 'life-insurance-cover' | 'credit-score' | 'monthly-budget'
+  | 'weight' | 'sleep' | 'fitness' | 'hydration' | 'steps' | 'body-fat' | 'screen-time'
   | 'wellfilab-score' | 'custom';
 
 export interface GoalHistoryPoint { date: string; value: number }
@@ -47,11 +48,17 @@ export const GOAL_TYPE_META: Record<GoalType, { label: string; icon: string; uni
   'home-down-payment': { label: 'Home down payment', icon: '🏠', unit: '₹',       category: 'wealth' },
   'education-fund':  { label: 'Education fund',      icon: '🎓', unit: '₹',        category: 'wealth' },
   'vacation-fund':   { label: 'Vacation fund',       icon: '✈️', unit: '₹',        category: 'wealth' },
+  'vehicle-fund':    { label: 'Vehicle purchase fund', icon: '🚗', unit: '₹',      category: 'wealth' },
+  'life-insurance-cover': { label: 'Life insurance cover', icon: '🛡️', unit: '₹', category: 'wealth' },
+  'credit-score':    { label: 'Credit score target',  icon: '📊', unit: 'pts',    category: 'wealth' },
+  'monthly-budget':  { label: 'Monthly expense budget', icon: '💸', unit: '₹/month', category: 'wealth' },
   'weight':          { label: 'Weight target',       icon: '⚖️', unit: 'kg',       category: 'health' },
   'sleep':           { label: 'Sleep target',        icon: '😴', unit: 'hrs/night', category: 'health' },
   'fitness':         { label: 'Fitness target',      icon: '🏃', unit: 'days/week', category: 'health' },
   'hydration':       { label: 'Hydration',           icon: '💧', unit: 'L/day',    category: 'health' },
   'steps':           { label: 'Daily steps',         icon: '👟', unit: 'steps/day', category: 'health' },
+  'body-fat':        { label: 'Body fat %',          icon: '📉', unit: '%',        category: 'health' },
+  'screen-time':     { label: 'Screen time',         icon: '📱', unit: 'hrs/day',  category: 'health' },
   'wellfilab-score': { label: 'WellFiLab Score target', icon: '⭐', unit: 'pts',   category: 'score' },
   custom:            { label: 'Custom goal',         icon: '🎯', unit: '',         category: 'wealth' },
 };

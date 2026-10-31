@@ -9,7 +9,8 @@
  * modeled, nothing assumed, no invented compounding return.
  */
 
-import { getGoalHistory, type Goal } from './goalsStorage';
+import { getGoalHistory, GOAL_TYPE_META, type Goal } from './goalsStorage';
+import { fmtMoney } from './currency';
 
 export interface MonthlyBreakdownPoint {
   monthLabel: string;
@@ -110,8 +111,11 @@ function buildRecommendation(
   g: Goal, status: GoalProgressReport['status'], monthlyGap: number | null,
   requiredMonthlyPace: number | null, daysRemaining: number | null
 ): string {
-  const isMoney = g.type !== 'wellfilab-score' && g.type !== 'sleep' && g.type !== 'fitness' && g.type !== 'hydration' && g.type !== 'weight';
-  const fmt = (n: number) => isMoney ? fmtNumberINR(Math.abs(n)) : `${Math.abs(n).toFixed(1)}`;
+  // Derived from the goal type's own unit rather than a hand-maintained
+  // type list — the exact bug class (a stale parallel list silently
+  // missing new types) this project has already fixed elsewhere.
+  const isMoney = GOAL_TYPE_META[g.type].unit.startsWith('₹');
+  const fmt = (n: number) => isMoney ? fmtMoney(Math.abs(n)) : `${Math.abs(n).toFixed(1)}`;
 
   switch (status) {
     case 'no-target':
@@ -130,11 +134,4 @@ function buildRecommendation(
     default:
       return '';
   }
-}
-
-function fmtNumberINR(n: number): string {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
-  return `₹${Math.round(n).toLocaleString('en-IN')}`;
 }

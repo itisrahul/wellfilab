@@ -14,12 +14,10 @@ import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
 import { getHoldings, syncNetWorthGoalFromHoldings, deleteAllHoldings } from '@/lib/holdingsStorage';
-import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
+import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_CHART_COLOR, ACCUMULATION_GOAL_TYPES } from '@/lib/goalDisplay';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
-
-const ACCUMULATION_GOAL_TYPES = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
 
 const GoalTrendChart = dynamic(
   () => import('@/components/dashboard/GoalTrendChart').then(m => m.GoalTrendChart),

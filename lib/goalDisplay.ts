@@ -4,9 +4,20 @@
  * (app/goals/[id]/page.tsx) — kept in one place so the two don't drift the
  * way the pace calculation itself once did (see lib/goalPace.ts's history).
  */
-import type { Goal } from './goalsStorage';
+import type { Goal, GoalType } from './goalsStorage';
 import type { GoalPaceStatus } from './goalPace';
 import { fmtMoney } from './currency';
+
+// Lump-sum money goals where "invest X/month, let it compound" is a real
+// question — excludes sip-target/monthly-budget (already monthly amounts,
+// not lump targets), debt-freedom (decreasing, needs payoff math not
+// growth math), life-insurance-cover (a policy you buy, not accumulate),
+// credit-score/health/score goals (not monetary), and custom (unknown
+// unit). Shared by the goal card grid and the full-page view so the two
+// never drift apart on which types get a path calculator.
+export const ACCUMULATION_GOAL_TYPES: GoalType[] = [
+  'net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund', 'vehicle-fund',
+];
 
 export function fmtVal(n: number, unit: string): string {
   if (unit === '₹') return fmtMoney(n, 2);

@@ -18,7 +18,7 @@ import { GoalPathCalculator } from '@/components/dashboard/GoalPathCalculator';
 import { AssetTrackerPanel } from '@/components/dashboard/AssetTrackerPanel';
 import { GoalProgressReportPanel } from '@/components/dashboard/GoalProgressReportPanel';
 import { getHoldings, computeTotals, syncNetWorthGoalFromHoldings, deleteAllHoldings } from '@/lib/holdingsStorage';
-import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_STYLE, CATEGORY_CHART_COLOR } from '@/lib/goalDisplay';
+import { fmtVal, progressPct, isGoalComplete, PACE_LABEL, CATEGORY_STYLE, CATEGORY_CHART_COLOR, ACCUMULATION_GOAL_TYPES } from '@/lib/goalDisplay';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrency } from '@/lib/useCurrency';
 import { SWR_KEYS } from '@/lib/swrKeys';
@@ -30,12 +30,6 @@ const GoalTrendChart = dynamic(
   () => import('@/components/dashboard/GoalTrendChart').then(m => m.GoalTrendChart),
   { ssr: false, loading: () => <div className="h-[140px] animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-xl" /> }
 );
-
-// Lump-sum money goals where "invest X/month, let it compound" is a real
-// question — excludes sip-target (already a monthly amount, not a lump
-// target), debt-freedom (decreasing, needs payoff math not growth math),
-// health/score goals (not monetary), and custom (unknown unit).
-const ACCUMULATION_GOAL_TYPES: GoalType[] = ['net-worth', 'emergency-fund', 'fire-corpus', 'home-down-payment', 'education-fund', 'vacation-fund'];
 
 export default function GoalsPage() {
   useCurrency(); // re-render when the global currency changes
@@ -326,8 +320,9 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
 
 const TYPE_OPTIONS: GoalType[] = [
   'net-worth', 'sip-target', 'emergency-fund', 'debt-freedom', 'fire-corpus',
-  'home-down-payment', 'education-fund', 'vacation-fund',
-  'weight', 'sleep', 'fitness', 'hydration', 'steps', 'wellfilab-score',
+  'home-down-payment', 'education-fund', 'vacation-fund', 'vehicle-fund',
+  'life-insurance-cover', 'credit-score', 'monthly-budget',
+  'weight', 'sleep', 'fitness', 'hydration', 'steps', 'body-fat', 'screen-time', 'wellfilab-score',
 ];
 
 function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => void; onAdded: () => void; prefill?: { type: GoalType; current: number; target?: number } | null; existing: Goal[] }) {
@@ -338,11 +333,12 @@ function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => v
 
   const meta = type ? GOAL_TYPE_META[type] : null;
   const isNetWorth = type === 'net-worth' && !prefill;
-  // Net worth is a single global number derived from one shared holdings
-  // tracker — a second net-worth goal would just embed the same tracker
-  // twice under two different targets, so it's blocked at the type picker
-  // rather than allowed and left confusing.
-  const hasNetWorthGoal = existing.some(g => g.type === 'net-worth');
+  // Every goal type gets a fixed, non-editable label straight from
+  // GOAL_TYPE_META — a second goal of the same type would be genuinely
+  // indistinguishable from the first in the UI (same icon, same label),
+  // not just redundant, so each type is blocked at the picker once one
+  // already exists.
+  const existingTypes = new Set(existing.map(g => g.type));
 
   // Net worth's "current value" is never typed in — it's the live sum of
   // real holdings, computed right here so the form is the actual place to
@@ -356,7 +352,7 @@ function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => v
   }, [isNetWorth, liveNetWorth]);
 
   const save = async () => {
-    if (!type || !meta || target === '' || current === '') return;
+    if (!type || !meta || target === '' || current === '' || existingTypes.has(type)) return;
     await addGoal({ type, label: meta.label, target: +target, current: +current, targetDate: targetDate || undefined });
     onAdded();
   };
@@ -371,7 +367,7 @@ function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => v
       {!type ? (
         <div className="grid sm:grid-cols-3 gap-2.5">
           {TYPE_OPTIONS.map(t => {
-            const blocked = t === 'net-worth' && hasNetWorthGoal;
+            const blocked = existingTypes.has(t);
             return (
               <button key={t} disabled={blocked} onClick={() => !blocked && setType(t)}
                 className={`p-3.5 rounded-xl border-2 text-center transition-all ${blocked ? 'border-gray-100 dark:border-gray-800 opacity-40 cursor-not-allowed' : 'border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600'}`}>
@@ -431,6 +427,11 @@ function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => v
               ✓ Current value filled in from your calculator result — just set a target.
             </p>
           )}
+          {type && existingTypes.has(type) && (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2.5 py-1.5">
+              You're already tracking a {meta!.label.toLowerCase()} goal — delete it first if you want to replace it, rather than adding a second one you can't tell apart from the first.
+            </p>
+          )}
           <div>
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Target ({meta!.unit || 'value'})</label>
             <input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 10000000"
@@ -451,7 +452,7 @@ function AddGoalForm({ onClose, onAdded, prefill, existing }: { onClose: () => v
             <GoalPathCalculator target={+target} current={+current} targetDate={targetDate || undefined} />
           )}
 
-          <button onClick={save} disabled={target === '' || current === ''}
+          <button onClick={save} disabled={target === '' || current === '' || (!!type && existingTypes.has(type))}
             className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 text-white font-bold text-sm transition-all">
             Save goal
           </button>
