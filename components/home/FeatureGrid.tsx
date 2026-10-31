@@ -30,6 +30,7 @@ function ScoreTileVisual() {
   );
 }
 
+/** Re-plays its fill every time it scrolls into view, same as AnimatedRing. */
 function GoalBar({ label, pct, note, delayMs }: { label: string; pct: number; note: string; delayMs: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -37,14 +38,13 @@ function GoalBar({ label, pct, note, delayMs }: { label: string; pct: number; no
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setWidth(pct); return; }
     const el = ref.current;
     if (!el) return;
+    let t: ReturnType<typeof setTimeout>;
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      observer.disconnect();
-      const t = setTimeout(() => setWidth(pct), delayMs);
-      return () => clearTimeout(t);
+      if (entry.isIntersecting) { t = setTimeout(() => setWidth(pct), delayMs); }
+      else { clearTimeout(t); setWidth(0); }
     }, { threshold: 0.3 });
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => { clearTimeout(t); observer.disconnect(); };
   }, [pct, delayMs]);
   return (
     <div ref={ref}>
@@ -68,6 +68,7 @@ function GoalTileVisual() {
   );
 }
 
+/** Ticks its checklist off every time it scrolls into view. */
 function RoadmapTileVisual() {
   const items = ['Build a 3-month emergency fund', 'Sleep 7+ hours nightly', 'Start a ₹5,000 SIP'];
   const [checked, setChecked] = useState(-1);
@@ -76,13 +77,17 @@ function RoadmapTileVisual() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setChecked(items.length); return; }
     const el = ref.current;
     if (!el) return;
+    let timers: ReturnType<typeof setTimeout>[] = [];
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      observer.disconnect();
-      items.forEach((_, i) => setTimeout(() => setChecked(c => Math.max(c, i)), 300 + i * 550));
+      timers.forEach(clearTimeout);
+      if (entry.isIntersecting) {
+        timers = items.map((_, i) => setTimeout(() => setChecked(i), 300 + i * 550));
+      } else {
+        setChecked(-1);
+      }
     }, { threshold: 0.3 });
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => { timers.forEach(clearTimeout); observer.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
@@ -99,29 +104,39 @@ function RoadmapTileVisual() {
   );
 }
 
-const CALC_ICONS = ['⚖️', '📈', '😴', '🏠', '🔥', '💳', '🧮', '💧'];
-const CURRENCY_FLAGS = ['🇮🇳', '🇺🇸', '🇪🇺', '🇬🇧', '🇯🇵', '🇦🇪'];
+function MiniPreview({ rows, accent }: { rows: { label: string; value: string }[]; accent: string }) {
+  return (
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+      {rows.map(r => (
+        <div key={r.label} className="flex justify-between gap-2">
+          <dt className="text-gray-400">{r.label}</dt>
+          <dd className={`font-mono tabular-nums font-bold ${accent}`}>{r.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
-function Tile({ href, eyebrow, title, body, visual, className = '' }: {
-  href: string; eyebrow: string; title: string; body: string; visual: React.ReactNode; className?: string;
+function Tile({ href, eyebrow, eyebrowColor, title, body, visual }: {
+  href: string; eyebrow: string; eyebrowColor: string; title: string; body: string; visual: React.ReactNode;
 }) {
   return (
     <Link href={href}
-      className={`group relative flex flex-col justify-between rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 transition-all hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_8px_30px_-12px_rgba(15,23,42,0.12)] dark:hover:shadow-none ${className}`}>
+      className="group relative flex flex-col justify-between rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 transition-all hover:border-gray-200 dark:hover:border-gray-700 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-14px_rgba(15,23,42,0.16)] dark:hover:shadow-none">
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400 mb-2">{eyebrow}</p>
+        <p className={`text-[11px] font-bold uppercase tracking-widest mb-2 ${eyebrowColor}`}>{eyebrow}</p>
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5">{title}</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-5 max-w-sm">{body}</p>
       </div>
       <div className="mt-auto">{visual}</div>
-      <span className="absolute top-6 right-6 text-gray-300 dark:text-gray-600 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors text-sm font-bold">→</span>
+      <span className="absolute top-6 right-6 text-gray-300 dark:text-gray-600 group-hover:text-teal-600 dark:group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all text-sm font-bold">→</span>
     </Link>
   );
 }
 
 function StatTile({ href, value, label, body }: { href: string; value: React.ReactNode; label: string; body: string }) {
   return (
-    <Link href={href} className="group rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 transition-all hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-[0_8px_30px_-12px_rgba(15,23,42,0.12)] dark:hover:shadow-none">
+    <Link href={href} className="group rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 transition-all hover:border-gray-200 dark:hover:border-gray-700 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-14px_rgba(15,23,42,0.16)] dark:hover:shadow-none">
       <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white tabular-nums">{value}</p>
       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-1">{label}</p>
       <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">{body}</p>
@@ -129,53 +144,70 @@ function StatTile({ href, value, label, body }: { href: string; value: React.Rea
   );
 }
 
+const CURRENCY_FLAGS = ['🇮🇳', '🇺🇸', '🇪🇺', '🇬🇧', '🇯🇵', '🇦🇪'];
+
 /**
  * The homepage's "here's everything you actually get" section — one card
  * per real feature, each with a live scroll-triggered visual instead of a
- * stock icon, so the claim is demonstrated, not just stated. Replaces the
- * old standalone "dashboard preview" mock (its content is now one tile
- * here, not a whole section) so every major feature — including Goals,
- * net worth, and the global currency picker, none of which had dedicated
- * homepage space before — gets equal billing.
+ * stock icon, so the claim is demonstrated, not just stated. Health and
+ * finance calculators sit in the same grid as Score/Goals/Roadmap/
+ * Dashboard rather than in a separate section further down — this is
+ * meant to be the one place that shows the whole product at a glance,
+ * calculators included, not a dashboard-only preview.
  */
-export function FeatureGrid({ calcCount, guideCount }: { calcCount: number; guideCount: number }) {
+export function FeatureGrid({ healthPreview, financePreview, guideCount }: {
+  healthPreview: { label: string; value: string }[];
+  financePreview: { label: string; value: string }[];
+  guideCount: number;
+}) {
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
-      <Reveal as="div">
-        <Tile href="/score" eyebrow="WellFiLab Score" title="One score for everything"
-          body="Body, mind, wealth and life — one real number, recalculated every time you check in. No invented formula; every point is explained."
-          visual={<ScoreTileVisual />} />
-      </Reveal>
-      <Reveal as="div" delayMs={80}>
-        <Tile href="/goals" eyebrow="Goals & Net Worth" title="Goals that track themselves"
-          body="20 goal types for health and money. Net worth updates itself from the real holdings you add — never a manual snapshot."
-          visual={<GoalTileVisual />} />
-      </Reveal>
-      <Reveal as="div" delayMs={160}>
-        <Tile href="/roadmap" eyebrow="Roadmap" title="A plan, not a list"
-          body="Your weakest areas become a phased roadmap. Step 2 only unlocks after step 1 — never 40 things thrown at you on day one."
-          visual={<RoadmapTileVisual />} />
-      </Reveal>
-      <Reveal as="div" delayMs={240}>
-        <Tile href="/dashboard" eyebrow="Dashboard" title="Everything, in one place"
-          body="Score, roadmap, goals and net worth together — the whole real picture, not five different apps and a spreadsheet."
-          visual={<div className="pt-1"><AnimatedTrendChart /></div>} />
-      </Reveal>
-
-      <div className="lg:col-span-2 grid sm:grid-cols-4 gap-4">
-        <Reveal as="div" delayMs={60}>
-          <StatTile href="/tools" value={<><CountUp value={calcCount} suffix="+" /></>} label="Calculators"
-            body={`${CALC_ICONS.join(' ')}`} />
+    <div className="grid gap-4">
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Reveal as="div">
+          <Tile href="/score" eyebrow="WellFiLab Score" eyebrowColor="text-teal-700 dark:text-teal-400" title="One score for everything"
+            body="Body, mind, wealth and life — one real number, recalculated every time you check in."
+            visual={<ScoreTileVisual />} />
         </Reveal>
-        <Reveal as="div" delayMs={120}>
+        <Reveal as="div" delayMs={70}>
+          <Tile href="/goals" eyebrow="Goals & Net Worth" eyebrowColor="text-amber-700 dark:text-amber-400" title="Goals that track themselves"
+            body="20 goal types. Net worth updates itself from the real holdings you add — never a manual snapshot."
+            visual={<GoalTileVisual />} />
+        </Reveal>
+        <Reveal as="div" delayMs={140}>
+          <Tile href="/roadmap" eyebrow="Roadmap" eyebrowColor="text-teal-700 dark:text-teal-400" title="A plan, not a list"
+            body="Your weakest areas become a phased roadmap. Step 2 only unlocks after step 1."
+            visual={<RoadmapTileVisual />} />
+        </Reveal>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Reveal as="div" delayMs={70}>
+          <Tile href="/dashboard" eyebrow="Dashboard" eyebrowColor="text-amber-700 dark:text-amber-400" title="Everything, in one place"
+            body="Score, roadmap, goals and net worth together — not five different apps and a spreadsheet."
+            visual={<div className="pt-1"><AnimatedTrendChart /></div>} />
+        </Reveal>
+        <Reveal as="div" delayMs={140}>
+          <Tile href="/tools/health" eyebrow="Health calculators" eyebrowColor="text-teal-700 dark:text-teal-400" title="BMI, sleep, calories, body fat"
+            body="Understand your body with real numbers, not guesswork."
+            visual={<MiniPreview rows={healthPreview} accent="text-teal-700 dark:text-teal-400" />} />
+        </Reveal>
+        <Reveal as="div" delayMs={210}>
+          <Tile href="/tools/finance" eyebrow="Finance calculators" eyebrowColor="text-amber-700 dark:text-amber-400" title="SIP, EMI, FIRE, retirement"
+            body="Make smarter money decisions with tools built for real numbers."
+            visual={<MiniPreview rows={financePreview} accent="text-amber-700 dark:text-amber-400" />} />
+        </Reveal>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Reveal as="div" delayMs={60}>
           <StatTile href="/guides" value={<CountUp value={guideCount} />} label="Guides"
             body="The math behind every calculator, explained." />
         </Reveal>
-        <Reveal as="div" delayMs={180}>
+        <Reveal as="div" delayMs={120}>
           <StatTile href="/tools/finance/currency" value={<CountUp value={15} />} label="Currencies"
             body={`See every number in yours, instantly — ${CURRENCY_FLAGS.join(' ')}`} />
         </Reveal>
-        <Reveal as="div" delayMs={240}>
+        <Reveal as="div" delayMs={180}>
           <StatTile href="/tools" value="🔒" label="Private by default"
             body="Calculators run in your browser. Sign in only if you want history saved." />
         </Reveal>

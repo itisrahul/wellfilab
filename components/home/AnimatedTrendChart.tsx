@@ -16,10 +16,12 @@ function pointsFor(values: number[]): string {
 }
 
 /**
- * Draws itself left-to-right the first time it scrolls into view — the
- * single clearest way to show "your score moves over time" instead of just
- * stating it. Same illustrative sample (58 -> 81) used in the homepage's
- * other example visuals, clearly a trend demo, not claimed real data.
+ * Draws itself left-to-right every time it scrolls into view — replays on
+ * each re-entry instead of once ever, so it's never just a static line
+ * after the first scroll past. The single clearest way to show "your
+ * score moves over time" instead of just stating it. Same illustrative
+ * sample (58 -> 81) used elsewhere on the homepage, clearly a trend demo,
+ * not claimed real data.
  */
 export function AnimatedTrendChart() {
   const ref = useRef<SVGPolylineElement>(null);
@@ -32,9 +34,8 @@ export function AnimatedTrendChart() {
     const el = wrapRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      observer.disconnect();
-      requestAnimationFrame(() => setDrawn(true));
+      if (entry.isIntersecting) requestAnimationFrame(() => setDrawn(true));
+      else setDrawn(false);
     }, { threshold: 0.4 });
     observer.observe(el);
     return () => observer.disconnect();

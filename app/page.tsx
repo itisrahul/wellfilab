@@ -85,7 +85,7 @@ export default function HomePage() {
           categories) instead of a flat white field, no blur or glass —
           just color. Text left, the real interactive calculator right.
       ══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-50/80 via-white to-amber-50/50 dark:from-teal-950/25 dark:via-gray-950 dark:to-amber-950/10">
+      <section className="hero-gradient relative overflow-hidden bg-gradient-to-br from-teal-50/80 via-white to-amber-50/50 dark:from-teal-950/25 dark:via-gray-950 dark:to-amber-950/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-24">
           <div className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-16 items-center">
             <Reveal>
@@ -136,56 +136,19 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ══════════════════════════════════════════════
+          FEATURE GRID — every real feature, calculators included, each
+          with a live scroll-triggered demo instead of a stock icon. The
+          "what do I actually get" section, right up top where it's seen
+          first — not a dashboard-only preview buried further down.
+      ══════════════════════════════════════════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-
-        {/* ══════════════════════════════════════════════
-            TWO PATHS
-        ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20 grid md:grid-cols-2 gap-5">
-          <div className="rounded-2xl bg-teal-50/70 dark:bg-teal-950/20 p-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Health calculators</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-[15px] leading-relaxed mb-6">BMI, calories, sleep cycles, body fat, heart rate zones, hydration — understand your body with real numbers, not guesswork.</p>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mb-7 text-sm">
-              {HEALTH_PREVIEW.map(p => (
-                <div key={p.label} className="flex justify-between gap-2 border-b border-teal-900/10 dark:border-teal-100/10 py-1.5">
-                  <dt className="text-gray-500 dark:text-gray-400">{p.label}</dt>
-                  <dd className="font-semibold text-gray-900 dark:text-white tabular-nums">{p.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <Link href="/tools/health" className="text-sm font-semibold text-teal-700 dark:text-teal-400 hover:underline">
-              Browse health tools →
-            </Link>
-          </div>
-
-          <div className="rounded-2xl bg-amber-50/70 dark:bg-amber-950/10 p-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Finance calculators</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-[15px] leading-relaxed mb-6">SIP, EMI, FIRE, retirement, income tax, compound interest — make smarter money decisions with tools built for real numbers.</p>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mb-7 text-sm">
-              {FINANCE_PREVIEW.map(p => (
-                <div key={p.label} className="flex justify-between gap-2 border-b border-amber-900/10 dark:border-amber-100/10 py-1.5">
-                  <dt className="text-gray-500 dark:text-gray-400">{p.label}</dt>
-                  <dd className="font-semibold text-gray-900 dark:text-white tabular-nums">{p.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <Link href="/tools/finance" className="text-sm font-semibold text-amber-700 dark:text-amber-400 hover:underline">
-              Browse finance tools →
-            </Link>
-          </div>
-        </Reveal>
-
-        {/* ══════════════════════════════════════════════
-            FEATURE GRID — every real feature, each with a live
-            scroll-triggered demo instead of a stock icon. This is the
-            "what do I actually get" section.
-        ══════════════════════════════════════════════ */}
-        <Reveal as="section" className="py-20 border-t border-gray-100 dark:border-gray-800">
+        <Reveal as="section" className="py-20">
           <div className="max-w-xl mb-10">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Everything you actually get</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2.5">Not just a calculator directory — a real score, a real plan, and goals that track themselves.</p>
           </div>
-          <FeatureGrid calcCount={CALCULATORS.length} guideCount={ALL_POSTS.length} />
+          <FeatureGrid healthPreview={HEALTH_PREVIEW} financePreview={FINANCE_PREVIEW} guideCount={ALL_POSTS.length} />
         </Reveal>
       </div>
 
