@@ -7,7 +7,7 @@ const FRAMES = [
   { title: 'Take your score', body: '2 minutes, real numbers — sleep, income, savings, debt. See exactly why you scored what you scored.' },
   { title: 'Get your roadmap', body: 'Your weakest areas become a phased plan. Step 2 only unlocks after Step 1 — never a 40-item list on day one.' },
   { title: 'Set a goal', body: 'Turn any target — a score, a net worth number, a sleep goal — into something you can actually track.' },
-  { title: 'Watch your dashboard', body: 'Check in daily. Watch your real score move over real time, not a one-time snapshot.' },
+  { title: 'Watch your dashboard', body: 'Update your goals as you go. Watch your real score move over real time, not a one-time snapshot.' },
 ];
 
 const FRAME_MS = 4200;

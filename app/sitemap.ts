@@ -1,7 +1,7 @@
 import { CALCULATORS, getAllSlugs } from '@/config/tools';
 import { ALL_POSTS } from '@/lib/posts';
 import { SITE_URL } from '@/config/site';
-const UPD = new Date('2025-06-18');
+const UPD = new Date();
 export default function sitemap() {
   return [
     { url: SITE_URL, changeFrequency: 'weekly' as const, priority: 1.0, lastModified: UPD },

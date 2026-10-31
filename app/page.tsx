@@ -31,7 +31,7 @@ const FAQ = [
   { q: 'Do you store the numbers I type?', a: 'Calculators run in your browser and your inputs are not sent to our servers. If you sign in, your score history and goals are saved to your account so they follow you across devices.' },
   { q: 'How accurate are the results?', a: 'The math is standard and every formula is shown on each calculator page. Results are estimates: investment returns, inflation and health outcomes vary from person to person.' },
   { q: 'What is the WellFiLab Score?', a: 'An optional five-minute assessment. You enter real numbers such as sleep, weight, income and savings, and get a score with a breakdown of how it was calculated, plus a roadmap of what to fix first.' },
-  { q: 'Do I need an account?', a: 'Not to use the calculators. An account adds a dashboard where your score history, goals and daily check-ins are saved.' },
+  { q: 'Do I need an account?', a: 'Not to use the calculators. An account adds a dashboard where your score history, goals and real holdings are saved and tracked over time.' },
 ];
 
 const REASONS = [
@@ -223,10 +223,10 @@ export default function HomePage() {
       <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
           <Reveal>
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">A dashboard you will actually open every day</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-3 mb-6 text-[15px] leading-relaxed">Log sleep, water, movement and spending in under a minute. See your trends, tick off today's actions, and keep your goals in one place.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">One dashboard, the whole real picture</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-3 mb-6 text-[15px] leading-relaxed">Retake your score whenever you want, tick off today's roadmap actions, and track every goal — net worth included, computed from the real holdings you add, not a number you type in once and forget.</p>
             <ul className="grid gap-2.5 mb-7 text-[15px] text-gray-700 dark:text-gray-300">
-              {['Daily check-in with weekly trend charts', 'Roadmap actions with estimated impact', 'Goals for weight, savings, score and more', 'Net worth tracker, ready for broker connections'].map(li => (
+              {['Your real score, tracked across every retake — not a one-time snapshot', 'Roadmap actions ranked by real impact on your score', '20 goal types for health and money, each with real progress tracking', 'Net worth that updates itself from your real holdings'].map(li => (
                 <li key={li} className="flex items-start gap-2.5">
                   <span className="text-teal-600 dark:text-teal-400 flex-shrink-0">—</span>{li}
                 </li>

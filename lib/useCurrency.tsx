@@ -15,13 +15,16 @@ interface CurrencyContextValue {
   name: string;
 }
 
+// INR, not USD — matches lib/currency.ts's own default (see its comment);
+// the two must agree or server-rendered money figures (that module) and
+// this context's initial client render disagree on first paint.
 const DEFAULT_CTX: CurrencyContextValue = {
-  currency: 'USD', setCurrency: () => {}, sym: '$', flag: '🇺🇸', name: 'US Dollar',
+  currency: 'INR', setCurrency: () => {}, sym: '₹', flag: '🇮🇳', name: 'Indian Rupee',
 };
 const CurrencyContext = createContext<CurrencyContextValue>(DEFAULT_CTX);
 
 export function CurrencyProvider({ children }: { children?: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>('USD');
+  const [currency, setCurrencyState] = useState<CurrencyCode>('INR');
 
   // Load from localStorage on mount
   useEffect(() => {

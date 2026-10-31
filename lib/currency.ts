@@ -20,7 +20,12 @@
  */
 import { CURRENCIES, FX } from './calc';
 
-let currentCode: string = 'USD'; // matches lib/useCurrency.tsx's own default before detection runs
+// INR, not a generic default — every server-rendered page (the homepage's
+// illustrative SIP/EMI/FIRE numbers, and the brief pre-hydration paint of
+// every client page before CurrencyProvider's locale detection runs)
+// renders with this value, and this product's content — lakh/crore
+// notation, ₹-denominated pricing and examples throughout — is India-first.
+let currentCode: string = 'INR'; // matches lib/useCurrency.tsx's own default before detection runs
 
 /** Called only by lib/useCurrency.tsx's CurrencyProvider. */
 export function setCurrentCurrencyCode(code: string): void {
