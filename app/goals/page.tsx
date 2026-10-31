@@ -199,9 +199,6 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
       {dialog}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <button onClick={() => setCollapsed(c => !c)} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
-            {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-          </button>
           <span className="text-2xl flex-shrink-0">{meta.icon}</span>
           <div className="min-w-0">
             <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{goal.label}</p>
@@ -238,6 +235,11 @@ function GoalCard({ goal, score, onChange }: { goal: Goal; score: WellFiScore | 
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${pace.tone === 'ahead' ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400' : pace.tone === 'behind' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{pace.label}</span>
         )}
       </div>
+
+      <button onClick={() => setCollapsed(c => !c)}
+        className="w-full flex items-center justify-center gap-1.5 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs font-bold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300">
+        {collapsed ? <>Show details <ChevronDown size={14} /></> : <>Hide details <ChevronRight size={14} className="-rotate-90" /></>}
+      </button>
 
       {!collapsed && (
       <>

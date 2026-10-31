@@ -59,8 +59,11 @@ export function GoalPathCalculator({ target, current, targetDate }: { target: nu
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">
         Path to your goal <span className="normal-case font-normal">— a projection based on a return rate you set, not a promise</span>
+      </p>
+      <p className="text-[11px] text-gray-400 mb-3">
+        This assumes growth at the rate below, so it won't exactly match the "required pace" above — that figure is your real contribution pace alone, with no return assumed.
       </p>
 
       <div className="grid gap-3 mb-3">

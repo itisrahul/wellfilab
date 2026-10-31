@@ -14,6 +14,11 @@ export interface RiskAlert {
   icon: string;
   label: string;
   detail: string;
+  /** lib/affiliates.ts id of a genuinely matching real product, if one
+   * exists — only set where the match is real (an emergency-fund gap really
+   * is what Fi Money's auto-save account is for), never forced onto an
+   * alert with no honest match (e.g. high debt load, equity allocation). */
+  affiliateId?: string;
 }
 
 export function getRiskAlerts(body: BodyInputs | null, finance: FinanceInputs | null): RiskAlert[] {
@@ -25,6 +30,7 @@ export function getRiskAlerts(body: BodyInputs | null, finance: FinanceInputs | 
       alerts.push({
         icon: '🛡️', label: 'No emergency fund',
         detail: `A job loss or medical event would force borrowing — you'd need about ${fmtINR(need)} (3 months of your own expenses) to self-fund one instead.`,
+        affiliateId: 'fi-money',
       });
     }
     const debtToIncome = finance.totalDebt / ((finance.monthlyIncome * 12) || 1);
@@ -38,12 +44,14 @@ export function getRiskAlerts(body: BodyInputs | null, finance: FinanceInputs | 
       alerts.push({
         icon: '🏥', label: 'No health insurance',
         detail: 'An estimated ₹3–15L exposure per hospitalization in India without cover — an industry range, not calculated from your own numbers.',
+        affiliateId: 'policybazaar',
       });
     }
     if (finance.hasLifeInsurance === false) {
       alerts.push({
         icon: '👪', label: 'No life insurance',
         detail: 'Anyone who depends on your income has no financial protection if something happens to you — a term plan is typically the cheapest way to close this gap.',
+        affiliateId: 'policybazaar',
       });
     }
     if (finance.equityAllocationPct !== undefined && body) {
@@ -63,12 +71,14 @@ export function getRiskAlerts(body: BodyInputs | null, finance: FinanceInputs | 
       alerts.push({
         icon: '🧘', label: 'High stress level',
         detail: `You rated stress ${body.stressLevel}/10 — sustained levels this high are linked to elevated health risk and worse financial decision-making.`,
+        affiliateId: 'headspace',
       });
     }
     if (body.sleepHours < 6) {
       alerts.push({
         icon: '😴', label: 'Chronic sleep deficit',
         detail: `${body.sleepHours}h/night is well below the 7–9h range — this compounds into health and cognitive risk over months, not just tiredness.`,
+        affiliateId: 'book-why-we-sleep',
       });
     }
   }

@@ -1,4 +1,5 @@
 import type { RiskAlert } from '@/lib/riskAlerts';
+import { AFFILIATES } from '@/lib/affiliates';
 import { LinkChip, LinkBar } from './LinkChip';
 
 export function RiskAlertsCard({ alerts }: { alerts: RiskAlert[] }) {
@@ -12,24 +13,40 @@ export function RiskAlertsCard({ alerts }: { alerts: RiskAlert[] }) {
     );
   }
 
+  const hasAnyAffiliate = alerts.some(r => r.affiliateId);
+
   return (
     <div id="risk-alerts" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 h-full">
       <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">Risk alerts</p>
       <div className="space-y-3">
-        {alerts.map((r, i) => (
-          <div key={i} className="flex gap-3 pl-3 border-l-2 border-red-600">
-            <span className="flex-shrink-0 text-lg leading-none">{r.icon}</span>
-            <div className="min-w-0">
-              <p className="font-bold text-red-700 dark:text-red-400 text-xs mb-1">{r.label}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{r.detail}</p>
+        {alerts.map((r, i) => {
+          const fix = r.affiliateId ? AFFILIATES.find(a => a.id === r.affiliateId) : undefined;
+          return (
+            <div key={i} className="flex gap-3 pl-3 border-l-2 border-red-600">
+              <span className="flex-shrink-0 text-lg leading-none">{r.icon}</span>
+              <div className="min-w-0">
+                <p className="font-bold text-red-700 dark:text-red-400 text-xs mb-1">{r.label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{r.detail}</p>
+                {fix && (
+                  <a href={fix.url} target="_blank" rel="noopener noreferrer sponsored"
+                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
+                    {fix.logo} Close this gap with {fix.name} →
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <LinkBar>
         <LinkChip targetId="goal-progress">Fix it — see Goal Progress</LinkChip>
         <LinkChip targetId="next-steps">Fix it — open Next Steps</LinkChip>
       </LinkBar>
+      {hasAnyAffiliate && (
+        <p className="text-[10px] text-gray-400 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+          Some links above are affiliate links — see our <a href="/affiliate-disclosure" className="underline hover:text-teal-600 dark:hover:text-teal-400">disclosure</a>.
+        </p>
+      )}
     </div>
   );
 }
